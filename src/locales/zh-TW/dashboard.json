@@ -1,0 +1,11 @@
+{
+  "net_worth": "淨資產 (折合 {{currency}})",
+  "total_assets": "總資產",
+  "total_liabilities": "總負債",
+  "monthly_overview": "本月概況 ({{currency}})",
+  "income": "收入",
+  "expense": "支出",
+  "trend_30_days": "近30天資產趨勢",
+  "all_assets": "所有資產",
+  "select_accounts": "選擇帳戶"
+}

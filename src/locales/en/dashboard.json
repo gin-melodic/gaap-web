@@ -1,0 +1,11 @@
+{
+  "net_worth": "Net Worth ({{currency}})",
+  "total_assets": "Total Assets",
+  "total_liabilities": "Total Liabilities",
+  "monthly_overview": "Monthly Overview ({{currency}})",
+  "income": "Income",
+  "expense": "Expense",
+  "trend_30_days": "30-Day Trend",
+  "all_assets": "All Assets",
+  "select_accounts": "Select Accounts"
+}

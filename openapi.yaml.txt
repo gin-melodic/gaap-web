@@ -1,0 +1,1641 @@
+openapi: 3.1.0
+info:
+  title: GAAP Web API
+  version: 1.0.0
+  license: 
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  description: |
+    API documentation for the GAAP Web application.
+
+    ## Overview
+    This API manages personal finances, including accounts, transactions, and dashboard analytics.
+    It supports multi-currency, hierarchical accounts, and flexible transaction types.
+
+    ## Authentication
+    Currently assumes a single-user local context or session-based auth.
+
+tags:
+  - name: User
+    description: User profile and preferences
+  - name: Authentication
+    description: User authentication and session management
+  - name: Configuration
+    description: Global configurations
+  - name: Finance
+    description: Financial operations
+  - name: Accounts
+    description: Account management
+    x-parent: Finance
+  - name: Transactions
+    description: Transaction management
+    x-parent: Finance
+  - name: Dashboard
+    description: Analytics and summaries
+
+servers:
+  - url: http://localhost:3000/api
+    description: Local development server (HTTPS)
+security:
+  - BearerAuth: []
+
+paths:
+  /auth/login:
+    post:
+      summary: User login
+      operationId: login
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /auth/register:
+    post:
+      summary: User registration
+      operationId: register
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /auth/logout:
+    post:
+      summary: User logout
+      operationId: logout
+      tags:
+        - Authentication
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Logout successful
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /auth/2fa/generate:
+    post:
+      summary: Generate 2FA secret
+      operationId: generate2FA
+      tags:
+        - Authentication
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: 2FA secret generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TwoFactorSecret"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /auth/2fa/enable:
+    post:
+      summary: Enable 2FA
+      operationId: enable2FA
+      tags:
+        - Authentication
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  maxLength: 6
+                  pattern: "^[0-9]{6}$"
+      responses:
+        "200":
+          description: 2FA enabled
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /auth/2fa/disable:
+    post:
+      summary: Disable 2FA
+      operationId: disable2FA
+      tags:
+        - Authentication
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, password]
+              properties:
+                code:
+                  type: string
+                  maxLength: 6
+                  pattern: "^[0-9]{6}$"
+                password:
+                  type: string
+      responses:
+        "200":
+          description: 2FA disabled
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /user/profile:
+    get:
+      summary: Get current user profile
+      operationId: getUserProfile
+      tags:
+        - User
+      responses:
+        "200":
+          description: User profile details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        default:
+          $ref: "#/components/responses/InternalServerError"
+    put:
+      summary: Update user profile
+      operationId: updateUserProfile
+      tags:
+        - User
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserInput"
+      responses:
+        "200":
+          description: Updated user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        default:
+          $ref: "#/components/responses/InternalServerError"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+
+  /user/preferences/theme:
+    put:
+      summary: Update user theme preference
+      operationId: updateThemePreference
+      tags:
+        - User
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Theme"
+      responses:
+        "200":
+          description: Theme updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Theme"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        default:
+          $ref: "#/components/responses/InternalServerError"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+
+  /config/currencies:
+    get:
+      summary: Get supported currencies
+      operationId: listCurrencies
+      tags:
+        - Configuration
+      responses:
+        "200":
+          description: List of supported currency codes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  example: CNY
+                  maxLength: 3
+                  pattern: "^[A-Z]{3}$"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        default:
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      summary: Add a supported currency
+      operationId: addCurrency
+      tags:
+        - Configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  description: ISO 4217 currency code
+                  example: GBP
+                  maxLength: 3
+                  pattern: "^[A-Z]{3}$"
+      responses:
+        "201":
+          description: Currency added
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  maxLength: 3
+                  pattern: "^[A-Z]{3}$"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        default:
+          $ref: "#/components/responses/InternalServerError"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+    delete:
+      summary: Remove a supported currency
+      operationId: deleteCurrency
+      tags:
+        - Configuration
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+            example: USD
+      responses:
+        "204":
+          description: Currency removed
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        default:
+          $ref: "#/components/responses/InternalServerError"
+
+  /config/themes:
+    get:
+      summary: Get available themes
+      operationId: getThemes
+      tags:
+        - Configuration
+      responses:
+        "200":
+          description: List of available themes
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 100
+                items:
+                  $ref: "#/components/schemas/Theme"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        default:
+          $ref: "#/components/responses/InternalServerError"
+
+  /config/account-types:
+    get:
+      summary: Get account type definitions
+      operationId: getAccountTypes
+      tags:
+        - Configuration
+      responses:
+        "200":
+          description: Account type definitions
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: "#/components/schemas/AccountTypeConfig"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        default:
+          $ref: "#/components/responses/InternalServerError"
+
+  /accounts:
+    get:
+      summary: List all accounts
+      operationId: listAccounts
+      tags:
+        - Accounts
+      parameters:
+        - name: query
+          in: query
+          schema:
+            $ref: "#/components/schemas/AccountQuery"
+      responses:
+        "200":
+          description: A list of accounts
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        maxItems: 100
+                        items:
+                          $ref: "#/components/schemas/Account"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        default:
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      summary: Create a new account
+      operationId: createAccount
+      tags:
+        - Accounts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountInput"
+      responses:
+        "201":
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        default:
+          $ref: "#/components/responses/InternalServerError"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+
+  /accounts/{id}:
+    get:
+      summary: Get account details
+      operationId: getAccount
+      tags:
+        - Accounts
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "123"
+      responses:
+        "200":
+          description: Account details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        default:
+          $ref: "#/components/responses/InternalServerError"
+    put:
+      summary: Update account
+      operationId: updateAccount
+      tags:
+        - Accounts
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountInput"
+      responses:
+        "200":
+          description: Account updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        default:
+          $ref: "#/components/responses/InternalServerError"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+    delete:
+      summary: Delete account
+      operationId: deleteAccount
+      tags:
+        - Accounts
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "123"
+      responses:
+        "204":
+          description: Account deleted
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        default:
+          $ref: "#/components/responses/InternalServerError"
+
+  /transactions:
+    get:
+      summary: List transactions
+      operationId: listTransactions
+      tags:
+        - Transactions
+      parameters:
+        - name: query
+          in: query
+          schema:
+            $ref: "#/components/schemas/TransactionQuery"
+      responses:
+        "200":
+          description: A list of transactions
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        maxItems: 100
+                        items:
+                          $ref: "#/components/schemas/Transaction"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        default:
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      summary: Create a new transaction
+      operationId: createTransaction
+      tags:
+        - Transactions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransactionInput"
+      responses:
+        "201":
+          description: Transaction created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        default:
+          $ref: "#/components/responses/InternalServerError"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+
+  /transactions/{id}:
+    get:
+      summary: Get transaction details
+      operationId: getTransaction
+      tags:
+        - Transactions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "123"
+      responses:
+        "200":
+          description: Transaction details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        default:
+          $ref: "#/components/responses/InternalServerError"
+    put:
+      summary: Update transaction
+      operationId: updateTransaction
+      tags:
+        - Transactions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransactionInput"
+      responses:
+        "200":
+          description: Transaction updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        default:
+          $ref: "#/components/responses/InternalServerError"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+    delete:
+      summary: Delete transaction
+      operationId: deleteTransaction
+      tags:
+        - Transactions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "123"
+      responses:
+        "204":
+          description: Transaction deleted
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        default:
+          $ref: "#/components/responses/InternalServerError"
+
+  /dashboard/summary:
+    get:
+      summary: Get dashboard summary (Assets, Liabilities, Net Worth)
+      operationId: getDashboardSummary
+      tags:
+        - Dashboard
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        default:
+          $ref: "#/components/responses/InternalServerError"
+
+  /dashboard/monthly-stats:
+    get:
+      summary: Get monthly income and expense statistics
+      operationId: getMonthlyStats
+      tags:
+        - Dashboard
+      responses:
+        "200":
+          description: Monthly statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MonthlyStats"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        default:
+          $ref: "#/components/responses/InternalServerError"
+
+  /dashboard/balance-trend:
+    get:
+      summary: Get balance trend data for the last 30 days
+      operationId: getBalanceTrend
+      tags:
+        - Dashboard
+      parameters:
+        - name: accounts
+          in: query
+          description: Comma-separated list of account IDs to filter by. Defaults to 'all'.
+          schema:
+            type: array
+            maxItems: 50
+            items:
+              type: string
+              example: "acc-123"
+              maxLength: 50
+      responses:
+        "200":
+          description: Balance trend data
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 365
+                items:
+                  $ref: "#/components/schemas/DailyBalance"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        default:
+          $ref: "#/components/responses/InternalServerError"
+
+  /exchange-rates:
+    get:
+      summary: Get current exchange rates
+      operationId: getExchangeRates
+      tags:
+        - Meta
+      responses:
+        "200":
+          description: Current exchange rates
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: number
+                  minimum: 0
+                example:
+                  CNY: 1
+                  USD: 7.23
+                  HKD: 0.92
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        default:
+          $ref: "#/components/responses/InternalServerError"
+
+components:
+  parameters:
+    Page:
+      name: page
+      in: query
+      description: Page number (1-based)
+      schema:
+        type: integer
+        default: 1
+        minimum: 1
+      example: 1
+    Limit:
+      name: limit
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        default: 20
+        minimum: 1
+        maximum: 100
+      example: 20
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotAcceptable:
+      description: Not Acceptable
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    TooManyRequests:
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    UnsupportedMediaType:
+      description: Unsupported Media Type
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    DefaultError:
+      description: Unexpected error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Error:
+      type: object
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+          description: Error code
+          pattern: "^[A-Z0-9_]+$"
+          maxLength: 50
+        message:
+          type: string
+          description: Human-readable error message
+          maxLength: 255
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true
+
+    PaginatedResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        total:
+          type: integer
+          description: Total number of items
+          minimum: 0
+        page:
+          type: integer
+          description: Current page number
+          minimum: 1
+        limit:
+          type: integer
+          description: Items per page
+          minimum: 1
+          maximum: 100
+        totalPages:
+          type: integer
+          description: Total number of pages
+          minimum: 0
+
+    LoginInput:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          minLength: 8
+          maxLength: 100
+        code:
+          type: string
+          description: TOTP code for 2FA
+          maxLength: 6
+          pattern: "^[0-9]{6}$"
+      example:
+        email: "user@example.com"
+        password: "password123"
+        code: "123456"
+
+    RegisterInput:
+      type: object
+      additionalProperties: false
+      required: [email, password, nickname]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          minLength: 8
+          maxLength: 100
+        nickname:
+          type: string
+          maxLength: 50
+        cf_turnstile_response:
+          type: string
+          description: Cloudflare Turnstile token
+      example:
+        email: "newuser@example.com"
+        password: "password123"
+        nickname: "New User"
+        cf_turnstile_response: "0.xxxxxxx"
+
+    AuthResponse:
+      type: object
+      additionalProperties: false
+      required: [token, user]
+      properties:
+        token:
+          type: string
+          description: JWT access token
+        user:
+          $ref: "#/components/schemas/User"
+
+    TwoFactorSecret:
+      type: object
+      additionalProperties: false
+      required: [secret, url]
+      properties:
+        secret:
+          type: string
+          description: The TOTP secret key
+        url:
+          type: string
+          description: The otpauth URL for QR code generation
+
+    User:
+      type: object
+      additionalProperties: false
+      required: [email, nickname, plan]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        nickname:
+          type: string
+          maxLength: 50
+        avatar:
+          type: [string, "null"]
+          maxLength: 2048
+        plan:
+          type: string
+          enum: [FREE, PRO]
+      example:
+        email: "user@example.com"
+        nickname: "John Doe"
+        avatar: "https://example.com/avatar.jpg"
+        plan: "FREE"
+
+    UserInput:
+      type: object
+      additionalProperties: false
+      properties:
+        nickname:
+          type: string
+          maxLength: 50
+        avatar:
+          type: [string, "null"]
+          maxLength: 2048
+        plan:
+          type: string
+          enum: [FREE, PRO]
+      example:
+        nickname: "John Doe"
+        avatar: "https://example.com/avatar.jpg"
+        plan: "PRO"
+
+    Theme:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          maxLength: 50
+          pattern: "^[a-z0-9-]+$"
+        name:
+          type: string
+          maxLength: 50
+        isDark:
+          type: boolean
+        colors:
+          type: object
+          additionalProperties: false
+          properties:
+            primary:
+              type: string
+              maxLength: 9
+              pattern: "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"
+            bg:
+              type: string
+              maxLength: 9
+              pattern: "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"
+            card:
+              type: string
+              maxLength: 9
+              pattern: "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"
+            text:
+              type: string
+              maxLength: 9
+              pattern: "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"
+            muted:
+              type: string
+              maxLength: 9
+              pattern: "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"
+            border:
+              type: string
+              maxLength: 9
+              pattern: "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"
+      example:
+        id: "theme-1"
+        name: "Light"
+        isDark: false
+        colors:
+          primary: "#007bff"
+          bg: "#ffffff"
+          card: "#f8f9fa"
+          text: "#212529"
+          muted: "#6c757d"
+          border: "#dee2e6"
+
+    AccountTypeConfig:
+      type: object
+      additionalProperties: false
+      properties:
+        label:
+          type: string
+          maxLength: 50
+        color:
+          type: string
+          maxLength: 9
+          pattern: "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"
+        bg:
+          type: string
+          maxLength: 9
+          pattern: "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"
+        icon:
+          type: string
+          description: Icon name or identifier
+          maxLength: 50
+      example:
+        label: "Bank Account"
+        color: "#007bff"
+        bg: "#e9ecef"
+        icon: "bank"
+
+    AccountType:
+      type: string
+      enum: [ASSET, LIABILITY, INCOME, EXPENSE]
+      description: The type of the account
+
+    Account:
+      type: object
+      additionalProperties: false
+      required: [id, name, type, currency, balance]
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the account
+          maxLength: 50
+          pattern: "^[a-zA-Z0-9_-]+$"
+        parentId:
+          type: [string, "null"]
+          description: ID of the parent account if this is a sub-account
+          maxLength: 50
+          pattern: "^[a-zA-Z0-9_-]+$"
+        name:
+          type: string
+          description: Name of the account
+          maxLength: 100
+        type:
+          $ref: "#/components/schemas/AccountType"
+        isGroup:
+          type: boolean
+          default: false
+          description: Whether this account is a group/folder for other accounts
+        balance:
+          type: number
+          description: Current balance of the account
+          minimum: -1000000000000
+          maximum: 1000000000000
+        currency:
+          type: string
+          description: Currency code (e.g., CNY, USD)
+          example: CNY
+          maxLength: 3
+          pattern: "^[A-Z]{3}$"
+        defaultChildId:
+          type: [string, "null"]
+          description: Default child account ID for quick access
+          maxLength: 50
+        date:
+          type: string
+          format: date
+          description: Account creation or reference date
+        number:
+          type: string
+          description: Account number or identifier
+          maxLength: 50
+        remarks:
+          type: string
+          description: Additional notes or remarks
+          maxLength: 500
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      example:
+        id: "acc-123"
+        name: "Main Checking"
+        type: "ASSET"
+        balance: 1500.00
+        currency: "USD"
+        date: "2023-01-01"
+        created_at: "2023-01-01T10:00:00Z"
+        updated_at: "2023-01-01T10:00:00Z"
+
+    AccountInput:
+      type: object
+      additionalProperties: false
+      required: [name, type, currency]
+      properties:
+        parentId:
+          type: [string, "null"]
+          maxLength: 50
+        name:
+          type: string
+          maxLength: 100
+        type:
+          $ref: "#/components/schemas/AccountType"
+        isGroup:
+          type: boolean
+        balance:
+          type: number
+          default: 0
+          minimum: -1000000000000
+          maximum: 1000000000000
+        currency:
+          type: string
+          maxLength: 3
+          pattern: "^[A-Z]{3}$"
+        defaultChildId:
+          type: [string, "null"]
+          maxLength: 50
+        date:
+          type: string
+          format: date
+        number:
+          type: string
+          maxLength: 50
+        remarks:
+          type: string
+          maxLength: 500
+      example:
+        name: "Savings"
+        type: "ASSET"
+        currency: "USD"
+        balance: 500.00
+        date: "2023-01-15"
+
+    TransactionType:
+      type: string
+      enum: [INCOME, EXPENSE, TRANSFER]
+      description: The type of the transaction
+
+    Transaction:
+      type: object
+      additionalProperties: false
+      required: [id, date, from, to, amount, currency, type]
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the transaction
+          maxLength: 50
+          pattern: "^[a-zA-Z0-9_-]+$"
+        date:
+          type: string
+          format: date
+          description: Date of the transaction (YYYY-MM-DD)
+        from:
+          type: string
+          description: ID of the source account
+          maxLength: 50
+        to:
+          type: string
+          description: ID of the destination account
+          maxLength: 50
+        amount:
+          type: number
+          description: Transaction amount
+          minimum: 0
+          maximum: 1000000000000
+        currency:
+          type: string
+          description: Currency of the transaction
+          maxLength: 3
+          pattern: "^[A-Z]{3}$"
+        note:
+          type: string
+          description: Description or note for the transaction
+          maxLength: 500
+        type:
+          $ref: "#/components/schemas/TransactionType"
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      example:
+        id: "txn-789"
+        date: "2023-10-27"
+        from: "acc-123"
+        to: "acc-456"
+        amount: 50.00
+        currency: "USD"
+        type: "EXPENSE"
+        note: "Groceries"
+        created_at: "2023-10-27T14:30:00Z"
+        updated_at: "2023-10-27T14:30:00Z"
+
+    TransactionInput:
+      type: object
+      additionalProperties: false
+      required: [date, from, to, amount, currency, type]
+      properties:
+        date:
+          type: string
+          format: date
+        from:
+          type: string
+          maxLength: 50
+        to:
+          type: string
+          maxLength: 50
+        amount:
+          type: number
+          minimum: 0
+          maximum: 1000000000000
+        currency:
+          type: string
+          maxLength: 3
+          pattern: "^[A-Z]{3}$"
+        note:
+          type: string
+          maxLength: 500
+        type:
+          $ref: "#/components/schemas/TransactionType"
+      example:
+        date: "2023-10-27"
+        from: "acc-123"
+        to: "acc-456"
+        amount: 50.00
+        currency: "USD"
+        type: "EXPENSE"
+        note: "Groceries"
+
+    DashboardSummary:
+      type: object
+      additionalProperties: false
+      properties:
+        assets:
+          type: number
+          minimum: 0
+          maximum: 1000000000000
+        liabilities:
+          type: number
+          minimum: 0
+          maximum: 1000000000000
+        netWorth:
+          type: number
+          minimum: -1000000000000
+          maximum: 1000000000000
+      example:
+        assets: 10000.00
+        liabilities: 2000.00
+        netWorth: 8000.00
+
+    MonthlyStats:
+      type: object
+      additionalProperties: false
+      properties:
+        income:
+          type: number
+          minimum: 0
+          maximum: 1000000000000
+        expense:
+          type: number
+          minimum: 0
+          maximum: 1000000000000
+      example:
+        income: 5000.00
+        expense: 3000.00
+
+    DailyBalance:
+      type: object
+      additionalProperties: false
+      properties:
+        date:
+          type: string
+          format: date
+        balances:
+          type: object
+          additionalProperties:
+            type: number
+            minimum: -1000000000000
+            maximum: 1000000000000
+          description: Map of account ID (or 'all') to balance
+      example:
+        date: "2023-10-27"
+        balances:
+          all: 8000.00
+          "acc-123": 1500.00
+
+    TransactionQuery:
+      type: object
+      additionalProperties: false
+      properties:
+        page:
+          type: integer
+          default: 1
+          minimum: 1
+        limit:
+          type: integer
+          default: 20
+          minimum: 1
+          maximum: 100
+        startDate:
+          type: string
+          format: date
+          example: "2023-01-01"
+        endDate:
+          type: string
+          format: date
+          example: "2023-01-31"
+        accountId:
+          type: string
+          description: Filter by account (source or destination)
+          example: "123"
+        type:
+          $ref: "#/components/schemas/TransactionType"
+        sortBy:
+          type: string
+          enum: [date, amount, created_at]
+          default: date
+          example: date
+        sortOrder:
+          type: string
+          enum: [asc, desc]
+          default: desc
+          example: desc
+
+    AccountQuery:
+      type: object
+      additionalProperties: false
+      properties:
+        page:
+          type: integer
+          default: 1
+          minimum: 1
+        limit:
+          type: integer
+          default: 20
+          minimum: 1
+          maximum: 100
+        type:
+          $ref: "#/components/schemas/AccountType"
+        parentId:
+          type: string
+          example: "123"

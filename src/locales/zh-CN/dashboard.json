@@ -1,0 +1,11 @@
+{
+  "net_worth": "净资产 (折合 {{currency}})",
+  "total_assets": "总资产",
+  "total_liabilities": "总负债",
+  "monthly_overview": "本月概况 ({{currency}})",
+  "income": "收入",
+  "expense": "支出",
+  "trend_30_days": "近30天资产趋势",
+  "all_assets": "所有资产",
+  "select_accounts": "选择账户"
+}

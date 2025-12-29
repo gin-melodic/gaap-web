@@ -1,0 +1,11 @@
+{
+  "net_worth": "純資産 ({{currency}}換算)",
+  "total_assets": "総資産",
+  "total_liabilities": "総負債",
+  "monthly_overview": "今月の概要 ({{currency}})",
+  "income": "収入",
+  "expense": "支出",
+  "trend_30_days": "過去30日間の資産推移",
+  "all_assets": "すべての資産",
+  "select_accounts": "アカウントを選択"
+}
