@@ -108,6 +108,15 @@ export function useDeleteAccount() {
   });
 }
 
+// Get account transaction count
+export function useAccountTransactionCount(id: string, enabled = true) {
+  return useQuery({
+    queryKey: [...accountKeys.detail(id), 'transactionCount'],
+    queryFn: () => accountService.getTransactionCount(id),
+    enabled: !!id && enabled,
+  });
+}
+
 // ========== Convenience Hooks ==========
 
 // Get all accounts (flat list)

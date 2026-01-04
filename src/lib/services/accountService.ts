@@ -37,4 +37,8 @@ export const accountService = {
       method: 'DELETE',
       body: migrationTargets ? JSON.stringify({ migrationTargets }) : undefined,
     }),
+
+  getTransactionCount: (id: string): Promise<{ count: number }> =>
+    apiRequest(`/api/accounts/${id}/transaction-count`),
 };
+
