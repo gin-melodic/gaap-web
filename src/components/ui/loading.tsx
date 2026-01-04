@@ -34,7 +34,7 @@ export function Loading({ size = 'md', text, fullPage = false }: LoadingProps) {
 // Skeleton component for content placeholder
 export function Skeleton({ className = '' }: { className?: string }) {
   return (
-    <div className={`animate-pulse bg-[var(--bg-main)] rounded ${className}`} />
+    <div className={`animate-pulse bg-[var(--muted)]/50 rounded ${className}`} />
   );
 }
 
