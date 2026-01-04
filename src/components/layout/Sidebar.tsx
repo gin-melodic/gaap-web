@@ -9,8 +9,7 @@ import {
   LayoutDashboard,
   Wallet,
   ArrowRightLeft,
-  Settings,
-  LogOut
+  Settings
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -18,7 +17,7 @@ import { Button } from '@/components/ui/button';
 const Sidebar = () => {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout, setSettingsView } = useGlobal();
+  const { user, setSettingsView } = useGlobal();
   const { t } = useTranslation('common');
 
   const navItems = [

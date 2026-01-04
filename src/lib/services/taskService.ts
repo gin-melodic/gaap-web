@@ -4,8 +4,8 @@ export interface Task {
   id: string;
   type: string;
   status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
-  payload: any;
-  result?: any;
+  payload: unknown;
+  result?: unknown;
   progress: number;
   totalItems: number;
   processedItems: number;
@@ -20,6 +20,7 @@ export interface TaskQuery {
   limit?: number;
   status?: Task['status'];
   type?: string;
+  [key: string]: string | number | undefined;
 }
 
 export interface PaginatedTaskResponse {
@@ -29,7 +30,7 @@ export interface PaginatedTaskResponse {
   limit: number;
 }
 
-const buildQueryString = (query?: Record<string, any>): string => {
+const buildQueryString = (query?: Record<string, unknown>): string => {
   if (!query) return '';
   const params = new URLSearchParams();
   Object.entries(query).forEach(([key, value]) => {

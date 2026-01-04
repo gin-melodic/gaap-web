@@ -1,7 +1,7 @@
 import apiRequest from '../api';
 import { Transaction, TransactionInput, TransactionQuery, PaginatedResponse } from '../types';
 
-const buildQueryString = (query?: Record<string, any>): string => {
+const buildQueryString = (query?: Record<string, unknown>): string => {
   if (!query) return '';
   const params = new URLSearchParams();
   Object.entries(query).forEach(([key, value]) => {

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { accountService } from '../services';
-import { Account, AccountInput, AccountQuery } from '../types';
+import { AccountInput, AccountQuery } from '../types';
 import { toast } from 'sonner';
 
 // Query Keys

@@ -156,7 +156,7 @@ describe('useLogout', () => {
   it('should logout and clear tokens', async () => {
     vi.mocked(authService.logout).mockResolvedValue();
 
-    const { Wrapper, queryClient } = createWrapper();
+    const { Wrapper } = createWrapper();
     const { result } = renderHook(() => useLogout(), { wrapper: Wrapper });
 
     result.current.mutate();

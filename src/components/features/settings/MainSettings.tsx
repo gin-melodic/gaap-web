@@ -18,11 +18,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { SettingsView } from '@/context/GlobalContext';
 
-interface MainSettingsProps {
-  onNavigate: (view: SettingsView) => void;
-}
-
-export const MainSettings = ({ onNavigate }: { onNavigate: (view: any) => void }) => {
+export const MainSettings = ({ onNavigate }: { onNavigate: (view: SettingsView) => void }) => {
   const { t } = useTranslation(['settings', 'common']);
   const router = useRouter();
   const { user, currentTheme, currencies, openTaskCenter } = useGlobal();

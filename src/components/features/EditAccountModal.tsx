@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGlobal } from '@/context/GlobalContext';
 import { useUpdateAccount, useDeleteAccount, useCreateAccount, useAllAccounts, AccountType, Account } from '@/lib/hooks';
@@ -23,13 +23,21 @@ import {
 import { Plus, Trash2, CornerDownRight, AlertTriangle } from 'lucide-react';
 import { toast } from "sonner";
 
-interface EditAccountModalProps {
-  isOpen: boolean;
+interface EditAccountFormProps {
+  account: Account;
   onClose: () => void;
-  account: Account | null;
 }
 
-const EditAccountModal = ({ isOpen, onClose, account }: EditAccountModalProps) => {
+interface ChildAccount {
+  id: string;
+  name: string;
+  currency: string;
+  balance: string;
+  isDefault?: boolean;
+  isNew?: boolean;
+}
+
+const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
   const { t } = useTranslation(['accounts', 'common']);
   const { currencies } = useGlobal();
   const { accounts } = useAllAccounts();
@@ -37,41 +45,32 @@ const EditAccountModal = ({ isOpen, onClose, account }: EditAccountModalProps) =
   const deleteAccountMutation = useDeleteAccount();
   const createAccountMutation = useCreateAccount();
 
-  const [name, setName] = useState('');
-  const [date, setDate] = useState('');
-  const [number, setNumber] = useState('');
-  const [remarks, setRemarks] = useState('');
-  const [balance, setBalance] = useState('0');
-  const [currency, setCurrency] = useState('CNY');
+  const [name, setName] = useState(account.name);
+  const [date, setDate] = useState(account.date || new Date().toISOString().split('T')[0]);
+  const [number, setNumber] = useState(account.number || '');
+  const [remarks, setRemarks] = useState(account.remarks || '');
+  const [balance, setBalance] = useState(account.balance?.toString() || '0');
+  const [currency, setCurrency] = useState(account.currency || 'CNY');
 
   // Group account state
-  const [children, setChildren] = useState<any[]>([]);
+  const isGroup = account.isGroup;
+  const [children, setChildren] = useState<ChildAccount[]>(() => {
+    if (isGroup) {
+      const accountChildren = accounts.filter(a => a.parentId === account.id);
+      return accountChildren.map(c => ({
+        id: c.id,
+        name: c.name,
+        currency: c.currency,
+        balance: c.balance.toString(),
+        isDefault: false,
+        isNew: false
+      }));
+    }
+    return [];
+  });
 
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [migrationTargets, setMigrationTargets] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    if (isOpen && account) {
-      setName(account.name);
-      setDate(account.date || new Date().toISOString().split('T')[0]);
-      setNumber(account.number || '');
-      setRemarks(account.remarks || '');
-      setBalance(account.balance?.toString() || '0');
-      setCurrency(account.currency || 'CNY');
-
-      if (account.isGroup) {
-        const accountChildren = accounts.filter(a => a.parentId === account.id);
-        setChildren(accountChildren.map(c => ({
-          ...c,
-          balance: c.balance.toString()
-        })));
-      } else {
-        setChildren([]);
-      }
-    }
-  }, [isOpen, account, accounts]);
-
-  const isGroup = account?.isGroup;
 
   const handleAddChild = () => {
     setChildren([...children, {
@@ -93,7 +92,7 @@ const EditAccountModal = ({ isOpen, onClose, account }: EditAccountModalProps) =
     }
   };
 
-  const handleChildChange = (id: string, field: string, value: any) => {
+  const handleChildChange = (id: string, field: keyof ChildAccount, value: string | boolean) => {
     setChildren(children.map(c => {
       if (c.id === id) {
         return { ...c, [field]: value };
@@ -103,8 +102,6 @@ const EditAccountModal = ({ isOpen, onClose, account }: EditAccountModalProps) =
   };
 
   const handleSaveWithChildren = async () => {
-    if (!account) return;
-
     try {
       // Update Parent
       await updateAccountMutation.mutateAsync({
@@ -142,13 +139,12 @@ const EditAccountModal = ({ isOpen, onClose, account }: EditAccountModalProps) =
       }
 
       onClose();
-    } catch (error) {
+    } catch {
       // Error is already handled by the hook with toast
     }
   };
 
   const getAvailableTargets = (curr: string) => {
-    if (!account) return [];
     let accountsToDeleteIds = [account.id];
     if (isGroup) {
       accountsToDeleteIds = [...accountsToDeleteIds, ...accounts.filter(a => a.parentId === account.id).map(a => a.id)];
@@ -164,14 +160,10 @@ const EditAccountModal = ({ isOpen, onClose, account }: EditAccountModalProps) =
 
   const prepareDelete = () => {
     setMigrationTargets({});
-
-    if (!account) return;
     setIsDeleteAlertOpen(true);
   };
 
   const handleDeleteConfirm = async () => {
-    if (!account) return;
-
     try {
       // For group accounts, the backend handles children deletion as part of the task
       // Just create one migration task that includes all child accounts
@@ -182,7 +174,7 @@ const EditAccountModal = ({ isOpen, onClose, account }: EditAccountModalProps) =
 
       setIsDeleteAlertOpen(false);
       onClose();
-    } catch (error) {
+    } catch {
       // Error is already handled by the hook with toast
     }
   };
@@ -192,12 +184,12 @@ const EditAccountModal = ({ isOpen, onClose, account }: EditAccountModalProps) =
     createAccountMutation.isPending;
 
   // Calculate if we have any blocked currencies (no targets available)
-  const requiredCurrencies = account ? Object.keys(
+  const requiredCurrencies = Object.keys(
     [account, ...(isGroup ? children : [])].reduce((acc, curr) => {
       if (curr && curr.currency) acc[curr.currency] = true;
       return acc;
     }, {} as Record<string, boolean>)
-  ) : [];
+  );
 
   const blockedCurrencies = requiredCurrencies.filter(curr => getAvailableTargets(curr).length === 0);
   const hasBlockedCurrencies = blockedCurrencies.length > 0;
@@ -209,123 +201,115 @@ const EditAccountModal = ({ isOpen, onClose, account }: EditAccountModalProps) =
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{t('accounts:edit_account')}</DialogTitle>
-          </DialogHeader>
-
-          <div className="grid gap-6 py-4">
-            <div className="grid gap-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>{t('accounts:account_name')}</Label>
-                  <Input value={name} onChange={e => setName(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t('accounts:account_date')}</Label>
-                  <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
-                </div>
-              </div>
-
-              {!isGroup && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>{t('common:currency')}</Label>
-                    <Select value={currency} onValueChange={setCurrency} disabled>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {currencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>{t('accounts:balance')}</Label>
-                    <Input
-                      type="number"
-                      value={balance}
-                      onChange={e => setBalance(e.target.value)}
-                      disabled={account?.type === 'EXPENSE' || account?.type === 'INCOME'}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>{t('accounts:account_number')}</Label>
-                  <Input value={number} onChange={e => setNumber(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t('accounts:remarks')}</Label>
-                  <Input value={remarks} onChange={e => setRemarks(e.target.value)} />
-                </div>
-              </div>
+      <div className="grid gap-6 py-4">
+        <div className="grid gap-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>{t('accounts:account_name')}</Label>
+              <Input value={name} onChange={e => setName(e.target.value)} />
             </div>
-
-            {isGroup && (
-              <div className="space-y-4 border rounded-xl p-4 bg-[var(--bg-main)]/50 mt-6">
-                <div className="flex justify-between items-center">
-                  <Label className="text-base">{t('accounts:sub_accounts')}</Label>
-                  <Button variant="outline" size="sm" onClick={handleAddChild}><Plus size={14} className="mr-1" /> {t('common:add')}</Button>
-                </div>
-
-                <div className="space-y-3">
-                  {children.map((child, index) => (
-                    <div key={child.id} className="flex gap-3 items-start">
-                      <div className="pt-3 text-[var(--text-muted)]"><CornerDownRight size={16} /></div>
-                      <div className="grid grid-cols-12 gap-2 flex-1">
-                        <div className="col-span-4">
-                          <Input
-                            placeholder={t('accounts:sub_account_name')}
-                            value={child.name}
-                            onChange={e => handleChildChange(child.id, 'name', e.target.value)}
-                          />
-                        </div>
-                        <div className="col-span-3">
-                          <Select value={child.currency} onValueChange={v => handleChildChange(child.id, 'currency', v)} disabled={!child.isNew}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {currencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="col-span-3">
-                          <Input
-                            type="number"
-                            placeholder={t('accounts:balance_placeholder')}
-                            value={child.balance}
-                            onChange={e => handleChildChange(child.id, 'balance', e.target.value)}
-                          />
-                        </div>
-                        <div className="col-span-2 flex items-center justify-end gap-1">
-                          {child.isNew && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleRemoveChild(child.id)}>
-                              <Trash2 size={14} />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label>{t('accounts:account_date')}</Label>
+              <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
+            </div>
           </div>
 
-          <DialogFooter className="flex justify-between sm:justify-between">
-            <Button variant="destructive" onClick={prepareDelete} disabled={isPending} className="gap-2">
-              <Trash2 size={16} /> {t('common:delete')}
-            </Button>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={onClose}>{t('common:cancel')}</Button>
-              <Button onClick={handleSaveWithChildren} disabled={isPending} className="bg-[var(--primary)] text-white hover:opacity-90">
-                {isPending ? t('common:saving') || '保存中...' : t('common:save')}
-              </Button>
+          {!isGroup && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{t('common:currency')}</Label>
+                <Select value={currency} onValueChange={setCurrency} disabled>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {currencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{t('accounts:balance')}</Label>
+                <Input
+                  type="number"
+                  value={balance}
+                  onChange={e => setBalance(e.target.value)}
+                  disabled={account?.type === 'EXPENSE' || account?.type === 'INCOME'}
+                />
+              </div>
             </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>{t('accounts:account_number')}</Label>
+              <Input value={number} onChange={e => setNumber(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('accounts:remarks')}</Label>
+              <Input value={remarks} onChange={e => setRemarks(e.target.value)} />
+            </div>
+          </div>
+        </div>
+
+        {isGroup && (
+          <div className="space-y-4 border rounded-xl p-4 bg-[var(--bg-main)]/50 mt-6">
+            <div className="flex justify-between items-center">
+              <Label className="text-base">{t('accounts:sub_accounts')}</Label>
+              <Button variant="outline" size="sm" onClick={handleAddChild}><Plus size={14} className="mr-1" /> {t('common:add')}</Button>
+            </div>
+
+            <div className="space-y-3">
+              {children.map((child) => (
+                <div key={child.id} className="flex gap-3 items-start">
+                  <div className="pt-3 text-[var(--text-muted)]"><CornerDownRight size={16} /></div>
+                  <div className="grid grid-cols-12 gap-2 flex-1">
+                    <div className="col-span-4">
+                      <Input
+                        placeholder={t('accounts:sub_account_name')}
+                        value={child.name}
+                        onChange={e => handleChildChange(child.id, 'name', e.target.value)}
+                      />
+                    </div>
+                    <div className="col-span-3">
+                      <Select value={child.currency} onValueChange={v => handleChildChange(child.id, 'currency', v)} disabled={!child.isNew}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {currencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="col-span-3">
+                      <Input
+                        type="number"
+                        placeholder={t('accounts:balance_placeholder')}
+                        value={child.balance}
+                        onChange={e => handleChildChange(child.id, 'balance', e.target.value)}
+                      />
+                    </div>
+                    <div className="col-span-2 flex items-center justify-end gap-1">
+                      {child.isNew && (
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleRemoveChild(child.id)}>
+                          <Trash2 size={14} />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <DialogFooter className="flex justify-between sm:justify-between">
+        <Button variant="destructive" onClick={prepareDelete} disabled={isPending} className="gap-2">
+          <Trash2 size={16} /> {t('common:delete')}
+        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={onClose}>{t('common:cancel')}</Button>
+          <Button onClick={handleSaveWithChildren} disabled={isPending} className="bg-[var(--primary)] text-white hover:opacity-90">
+            {isPending ? t('common:saving') || '保存中...' : t('common:save')}
+          </Button>
+        </div>
+      </DialogFooter>
 
       <Dialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
         <DialogContent>
@@ -391,6 +375,27 @@ const EditAccountModal = ({ isOpen, onClose, account }: EditAccountModalProps) =
         </DialogContent>
       </Dialog>
     </>
+  );
+};
+
+interface EditAccountModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  account: Account | null;
+}
+
+const EditAccountModal = ({ isOpen, onClose, account }: EditAccountModalProps) => {
+  const { t } = useTranslation(['accounts', 'common']);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{t('accounts:edit_account')}</DialogTitle>
+        </DialogHeader>
+        {account && <EditAccountForm key={account.id} account={account} onClose={onClose} />}
+      </DialogContent>
+    </Dialog>
   );
 };
 

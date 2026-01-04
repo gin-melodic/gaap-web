@@ -12,7 +12,7 @@ const TestComponent = () => {
 };
 
 // Helper to create mock response
-const createMockResponse = (data: any, code = 0, status = 200) => ({
+const createMockResponse = (data: unknown, code = 0, status = 200) => ({
   ok: status >= 200 && status < 300,
   status,
   headers: {
@@ -64,8 +64,8 @@ describe('GlobalContext Authentication', () => {
     localStorageMock.setItem('token', 'valid-token');
 
     // Mock successful profile fetch
-    (global.fetch as any).mockResolvedValueOnce(
-      createMockResponse({ user: { email: 'test@example.com', nickname: 'TestUser', plan: 'FREE' } })
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      createMockResponse({ user: { email: 'test@example.com', nickname: 'TestUser', plan: 'FREE' } }) as Response
     );
 
     await act(async () => {
@@ -90,15 +90,15 @@ describe('GlobalContext Authentication', () => {
     localStorageMock.setItem('refreshToken', 'valid-refresh-token');
 
     // 1. Profile fetch -> 401 (business error code)
-    (global.fetch as any)
-      .mockResolvedValueOnce(createMockResponse(null, 401))
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce(createMockResponse(null, 401) as Response)
       // 2. Refresh fetch -> 200
       .mockResolvedValueOnce(
-        createMockResponse({ accessToken: 'new-access-token', refreshToken: 'new-refresh-token' })
+        createMockResponse({ accessToken: 'new-access-token', refreshToken: 'new-refresh-token' }) as Response
       )
       // 3. Retry profile fetch -> 200
       .mockResolvedValueOnce(
-        createMockResponse({ user: { email: 'test@example.com', nickname: 'RefreshedUser', plan: 'PRO' } })
+        createMockResponse({ user: { email: 'test@example.com', nickname: 'RefreshedUser', plan: 'PRO' } }) as Response
       );
 
     await act(async () => {
@@ -123,10 +123,10 @@ describe('GlobalContext Authentication', () => {
     localStorageMock.setItem('refreshToken', 'bad-refresh-token');
 
     // 1. Profile fetch -> 401
-    (global.fetch as any)
-      .mockResolvedValueOnce(createMockResponse(null, 401))
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce(createMockResponse(null, 401) as Response)
       // 2. Refresh fetch -> 401
-      .mockResolvedValueOnce(createMockResponse(null, 401));
+      .mockResolvedValueOnce(createMockResponse(null, 401) as Response);
 
     await act(async () => {
       render(

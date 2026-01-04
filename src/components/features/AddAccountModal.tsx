@@ -22,7 +22,6 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Trash2, CornerDownRight, Crown } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
 import { toast } from "sonner";
 import {
   Tooltip,
@@ -54,7 +53,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
   const [balance, setBalance] = useState('0');
 
   // Group account state
-  const [children, setChildren] = useState([
+  const [children, setChildren] = useState(() => [
     { id: Date.now().toString(), name: '', currency: 'CNY', balance: '0', isDefault: true }
   ]);
 
@@ -91,7 +90,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
     }
   };
 
-  const handleChildChange = (id: string, field: string, value: any) => {
+  const handleChildChange = (id: string, field: string, value: string) => {
     setChildren(children.map(c => {
       if (c.id === id) {
         return { ...c, [field]: value };
@@ -167,13 +166,12 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
       if (!saveAndContinue) {
         onClose();
       }
-    } catch (error) {
+    } catch {
       // Error is already handled by the hook with toast
     }
   };
 
   const isPro = user.plan === 'PRO';
-  const canBeGroup = isPro && (type === AccountType.ASSET || type === AccountType.LIABILITY);
   const isPending = createAccount.isPending;
 
   return (
@@ -311,7 +309,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
               </div>
 
               <div className="space-y-3">
-                {children.map((child, index) => (
+                {children.map((child) => (
                   <div key={child.id} className="flex gap-3 items-start animate-in slide-in-from-left-2">
                     <div className="pt-3 text-[var(--text-muted)]"><CornerDownRight size={16} /></div>
                     <div className="grid grid-cols-12 gap-2 flex-1">

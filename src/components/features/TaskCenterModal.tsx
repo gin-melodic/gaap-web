@@ -61,7 +61,7 @@ const TaskCenterModal = () => {
     const cancelMutation = useCancelTask();
     const retryMutation = useRetryTask();
     const { accounts } = useAllAccounts();
-    const tasks = tasksData?.data || [];
+    const tasks = useMemo(() => tasksData?.data || [], [tasksData?.data]);
 
     // Filter states
     const [typeFilter, setTypeFilter] = useState<string>('all');

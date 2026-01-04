@@ -29,7 +29,7 @@ export const UserProfile = ({ onBack }: { onBack: () => void }) => {
   const [nickname, setNickname] = useState(user.nickname);
   const [show2FA, setShow2FA] = useState(false);
   const [qrUrl, setQrUrl] = useState('');
-  const [secret, setSecret] = useState('');
+  const [, setSecret] = useState('');
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -45,7 +45,7 @@ export const UserProfile = ({ onBack }: { onBack: () => void }) => {
       setQrUrl(data.url);
       setSecret(data.secret);
       setShow2FA(true);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
       // Error handled by hook
     }
@@ -61,7 +61,7 @@ export const UserProfile = ({ onBack }: { onBack: () => void }) => {
       updateUser({ twoFactorEnabled: true });
       setShow2FA(false);
       setCode('');
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
       // Error handled by hook
     }
@@ -76,7 +76,7 @@ export const UserProfile = ({ onBack }: { onBack: () => void }) => {
       setShowDisable2FAModal(false);
       setCode('');
       setPassword('');
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
       // Error handled by hook
     }

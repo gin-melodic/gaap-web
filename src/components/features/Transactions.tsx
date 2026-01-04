@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAllTransactionsSuspense, useAllAccountsSuspense, useCreateTransaction, useUpdateTransaction, useDeleteTransaction, useCreateAccount, TransactionType, AccountType } from '@/lib/hooks';
-import { useGlobal } from '@/context/GlobalContext';
+import { useAllTransactionsSuspense, useAllAccountsSuspense, useCreateTransaction, useUpdateTransaction, useDeleteTransaction, useCreateAccount, TransactionType, AccountType, Account, Transaction } from '@/lib/hooks';
 import { useTranslation } from 'react-i18next';
 import { Plus, ArrowRightLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -61,7 +60,7 @@ const Transactions = () => {
   const formatCurrency = (amount: number, currency = 'CNY') => {
     try {
       return new Intl.NumberFormat('zh-CN', { style: 'currency', currency }).format(amount);
-    } catch (e) {
+    } catch {
       return `${currency} ${amount.toFixed(2)}`;
     }
   };
@@ -71,14 +70,14 @@ const Transactions = () => {
       return new Intl.NumberFormat('zh-CN', { style: 'currency', currency: currencyCode })
         .formatToParts(0)
         .find(part => part.type === 'currency')?.value || currencyCode;
-    } catch (e) {
+    } catch {
       return currencyCode;
     }
   };
 
   const currentCurrency = accounts.find(a => a.id === newTx.from)?.currency || 'CNY';
 
-  const getFullAccountName = (account: any, allAccounts: any[]) => {
+  const getFullAccountName = (account: Account, allAccounts: Account[]) => {
     if (account.parentId) {
       const parent = allAccounts.find(a => a.id === account.parentId);
       return parent ? `${parent.name} - ${account.name}` : account.name;
@@ -114,7 +113,7 @@ const Transactions = () => {
       const minutes = String(d.getMinutes()).padStart(2, '0');
       const seconds = String(d.getSeconds()).padStart(2, '0');
       return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-    } catch (e) {
+    } catch {
       return dateStr;
     }
   };
@@ -133,7 +132,7 @@ const Transactions = () => {
         second: '2-digit',
         hour12: false
       }).format(d).replace(/\//g, '-');
-    } catch (e) {
+    } catch {
       return dateStr;
     }
   };
@@ -213,7 +212,7 @@ const Transactions = () => {
 
       setShowAddModal(false);
       resetForm();
-    } catch (error) {
+    } catch {
       // Error is already handled by the hook with toast
     }
   };
@@ -228,7 +227,7 @@ const Transactions = () => {
     if (val === 'NEW_EXPENSE') setIsCreatingExpense(true); else setIsCreatingExpense(false);
   };
 
-  const handleEdit = (tx: any) => {
+  const handleEdit = (tx: Transaction) => {
     setNewTx({
       amount: tx.amount.toString(),
       note: tx.note,
@@ -255,13 +254,13 @@ const Transactions = () => {
           setShowAddModal(false);
           resetForm();
         }
-      } catch (error) {
+      } catch {
         // Error is already handled by the hook with toast
       }
     }
   };
 
-  const renderAccountOptions = (filterFn: (a: any) => boolean) => {
+  const renderAccountOptions = (filterFn: (a: Account) => boolean) => {
     return accounts.filter(filterFn).map(a => {
       if (a.isGroup) return null;
       const label = getFullAccountName(a, accounts);

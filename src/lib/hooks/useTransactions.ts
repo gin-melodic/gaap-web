@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { transactionService } from '../services';
-import { Transaction, TransactionInput, TransactionQuery, TransactionSortBy, SortOrder } from '../types';
+import { TransactionInput, TransactionQuery, TransactionSortBy, SortOrder } from '../types';
 import { toast } from 'sonner';
 import { accountKeys } from './useAccounts';
 
