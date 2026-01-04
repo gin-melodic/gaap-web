@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { authService } from '../services';
 import { LoginInput, RegisterInput } from '../types';
 import { toast } from 'sonner';
+import { resetApiState } from '../api';
 
 export const authKeys = {
   profile: ['auth', 'profile'] as const,
@@ -23,9 +24,11 @@ export function useLogin() {
   return useMutation({
     mutationFn: (input: LoginInput) => authService.login(input),
     onSuccess: (data) => {
+      resetApiState(); // Clear any stale refresh state from previous sessions
       if (data.accessToken) localStorage.setItem('token', data.accessToken);
       if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
-      queryClient.invalidateQueries({ queryKey: authKeys.profile });
+      // Clear ALL cached queries to prevent stale errors from being replayed
+      queryClient.clear();
     },
     onError: (error: Error) => {
       toast.error(error.message || '登录失败');

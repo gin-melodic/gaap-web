@@ -141,10 +141,13 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
             }
           } catch (refreshErr) {
             console.error('Refresh failed:', refreshErr);
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
-            setIsLoggedIn(false);
-            setUser({ email: '', nickname: '', avatar: null, plan: 'FREE' });
+            // Only clear if the token hasn't been updated (e.g. by a parallel login)
+            if (localStorage.getItem('token') === token) {
+              localStorage.removeItem('token');
+              localStorage.removeItem('refreshToken');
+              setIsLoggedIn(false);
+              setUser({ email: '', nickname: '', avatar: null, plan: 'FREE' });
+            }
           }
         } else if (error instanceof ApiError && (error.code === 503 || error.code === 502 || error.code === 504)) {
           // Backend service unavailable - keep tokens, user can retry later
@@ -156,10 +159,13 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
           // Don't clear tokens or logout - just leave current state  
         } else {
           console.error('Auth verification failed:', error);
-          localStorage.removeItem('token');
-          localStorage.removeItem('refreshToken');
-          setIsLoggedIn(false);
-          setUser({ email: '', nickname: '', avatar: null, plan: 'FREE' });
+          // Only clear if the token hasn't been updated (e.g. by a parallel login)
+          if (localStorage.getItem('token') === token) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+            setIsLoggedIn(false);
+            setUser({ email: '', nickname: '', avatar: null, plan: 'FREE' });
+          }
         }
       } finally {
         setIsLoading(false);

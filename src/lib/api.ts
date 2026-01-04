@@ -21,18 +21,29 @@ export class ApiError extends Error {
 // Flag to prevent multiple simultaneous refresh attempts
 let isRefreshing = false;
 // Queue of requests waiting for token refresh
-let refreshSubscribers: Array<(token: string) => void> = [];
+let refreshSubscribers: Array<(token: string | null) => void> = [];
 
-function onTokenRefreshed(token: string) {
+function onTokenRefreshed(token: string | null) {
   refreshSubscribers.forEach(callback => callback(token));
   refreshSubscribers = [];
 }
 
-function addRefreshSubscriber(callback: (token: string) => void) {
+function addRefreshSubscriber(callback: (token: string | null) => void) {
   refreshSubscribers.push(callback);
 }
 
-function redirectToLogin() {
+// Reset API state - call after successful login to clear any stale refresh state
+export function resetApiState() {
+  isRefreshing = false;
+  refreshSubscribers = [];
+}
+
+function redirectToLogin(failedToken?: string | null) {
+  if (failedToken && localStorage.getItem('token') !== failedToken) {
+    console.warn('[API] Token has changed, skipping logout redirect');
+    return;
+  }
+
   localStorage.removeItem('token');
   localStorage.removeItem('refreshToken');
   if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
@@ -124,24 +135,34 @@ async function apiRequest<T = any>(url: string, options: RequestInit = {}): Prom
 
         if (!isRefreshing) {
           isRefreshing = true;
-          const newToken = await refreshAccessToken();
-          isRefreshing = false;
+          try {
+            const newToken = await refreshAccessToken();
 
-          if (newToken) {
-            onTokenRefreshed(newToken);
-            // Retry original request with new token
-            const retryResponse = await makeRequest(newToken);
-            return parseResponse<T>(retryResponse);
-          } else {
-            // Refresh failed - redirect to login
-            redirectToLogin();
-            // Return a never-resolving promise to prevent further execution/errors while redirecting
-            return new Promise<T>(() => { });
+            if (newToken) {
+              onTokenRefreshed(newToken);
+              // Retry original request with new token
+              const retryResponse = await makeRequest(newToken);
+              return parseResponse<T>(retryResponse);
+            } else {
+              // Refresh failed - redirect to login
+              // console.error('[API] Refresh token failed, redirecting to login');
+              // Notify subscribers of failure
+              onTokenRefreshed(null);
+
+              redirectToLogin(token);
+              throw new ApiError('Session expired', 401);
+            }
+          } finally {
+            isRefreshing = false;
           }
         } else {
           // Wait for the ongoing refresh to complete
           return new Promise<T>((resolve, reject) => {
-            addRefreshSubscriber(async (newToken: string) => {
+            addRefreshSubscriber(async (newToken: string | null) => {
+              if (!newToken) {
+                reject(new ApiError('Session expired (Refresh failed)', 401));
+                return;
+              }
               try {
                 const retryResponse = await makeRequest(newToken);
                 resolve(await parseResponse<T>(retryResponse));

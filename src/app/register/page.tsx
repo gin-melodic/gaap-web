@@ -17,6 +17,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [nickname, setNickname] = useState('');
   const [turnstileToken, setTurnstileToken] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,6 +26,10 @@ export default function RegisterPage() {
     e.preventDefault();
     if (!turnstileToken) {
       toast.error(t('auth:captcha_required'));
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast.error(t('auth:password_mismatch'));
       return;
     }
     setLoading(true);
@@ -95,6 +100,19 @@ export default function RegisterPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
+              placeholder="••••••••"
+              minLength={8}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">{t('auth:confirm_password')}</Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
               required
               placeholder="••••••••"
               minLength={8}
