@@ -11,7 +11,7 @@ export interface WebSocketMessage {
         taskId: string;
         status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
         taskType: string;
-        result?: any;
+        result?: unknown;
     };
 }
 
@@ -46,7 +46,10 @@ export function useWebSocket(): UseWebSocketReturn {
         return `${protocol}//${host}/api/ws?token=${encodeURIComponent(token)}`;
     }, []);
 
+    const connectRef = useRef<() => void>(() => { });
+
     const connect = useCallback(() => {
+
         if (wsRef.current?.readyState === WebSocket.OPEN) {
             return;
         }
@@ -100,7 +103,8 @@ export function useWebSocket(): UseWebSocketReturn {
 
                     reconnectTimeoutRef.current = setTimeout(() => {
                         if (isLoggedIn) {
-                            connect();
+                            // Use the ref to call connect to avoid "variable used before declaration"
+                            connectRef.current();
                         }
                     }, delay);
                 }
@@ -110,6 +114,11 @@ export function useWebSocket(): UseWebSocketReturn {
             setStatus('error');
         }
     }, [getWebSocketUrl, isLoggedIn]);
+
+    // Update the ref whenever connect changes
+    useEffect(() => {
+        connectRef.current = connect;
+    }, [connect]);
 
     const disconnect = useCallback(() => {
         if (reconnectTimeoutRef.current) {
@@ -135,6 +144,7 @@ export function useWebSocket(): UseWebSocketReturn {
     // Connect when logged in, disconnect when not
     useEffect(() => {
         if (isLoggedIn) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             connect();
         } else {
             disconnect();

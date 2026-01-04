@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGlobal } from '@/context/GlobalContext';
-import { ChevronLeft, Check, Sparkles } from 'lucide-react';
+import { ChevronLeft, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export const Subscription = ({ onBack }: { onBack: () => void }) => {

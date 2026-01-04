@@ -72,6 +72,7 @@ export interface AccountQuery {
   limit?: number;
   type?: AccountType;
   parentId?: string;
+  [key: string]: string | number | boolean | undefined;
 }
 
 // ============== Transaction ==============
@@ -107,6 +108,7 @@ export interface TransactionQuery {
   type?: TransactionType;
   sortBy?: TransactionSortBy;
   sortOrder?: SortOrder;
+  [key: string]: string | number | boolean | undefined;
 }
 
 // ============== User ==============

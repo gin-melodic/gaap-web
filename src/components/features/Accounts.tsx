@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { useAllAccountsSuspense, AccountType, Account } from '@/lib/hooks';
+import { useAllAccountsSuspense, Account } from '@/lib/hooks';
 import { useTranslation } from 'react-i18next';
 import { ACCOUNT_TYPES, EXCHANGE_RATES } from '@/lib/data';
 import {
@@ -26,14 +26,14 @@ const Accounts = () => {
   const [activeTab, setActiveTab] = useState('ALL');
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
-  const [editAccount, setEditAccount] = useState<any>(null);
+  const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const itemsPerPage = 10;
 
   const formatCurrency = (amount: number, currency = 'CNY') => {
     try {
       return new Intl.NumberFormat('zh-CN', { style: 'currency', currency }).format(amount);
-    } catch (e) {
+    } catch {
       return `${currency} ${amount.toFixed(2)}`;
     }
   };
@@ -73,7 +73,7 @@ const Accounts = () => {
     { id: 'EXPENSE', label: t('common:expense') }
   ];
 
-  const AccountRow = ({ account, isChild = false, groupBalance, hasChildren = false }: { account: any, isChild?: boolean, groupBalance?: number, hasChildren?: boolean }) => {
+  const AccountRow = ({ account, isChild = false, groupBalance, hasChildren = false }: { account: Account, isChild?: boolean, groupBalance?: number, hasChildren?: boolean }) => {
     const TypeIcon = ACCOUNT_TYPES[account.type].icon;
     const typeMeta = ACCOUNT_TYPES[account.type];
 
@@ -141,7 +141,7 @@ const Accounts = () => {
     );
   };
 
-  const renderAccountCard = (parentAccount: any) => {
+  const renderAccountCard = (parentAccount: Account) => {
     const children = accounts.filter(a => a.parentId === parentAccount.id);
     const groupBalance = children.reduce((sum, child) => {
       const rate = EXCHANGE_RATES[child.currency] || 1;

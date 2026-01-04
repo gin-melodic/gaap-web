@@ -20,7 +20,7 @@ const Dashboard = () => {
     try {
       const locale = currency === 'CNY' ? 'zh-CN' : 'en-US';
       return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(amount);
-    } catch (e) {
+    } catch {
       return `${currency} ${amount.toFixed(2)}`;
     }
   };

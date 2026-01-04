@@ -1,6 +1,4 @@
-import { toast } from 'sonner';
-
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   code: number;
   message: string;
   data: T;
@@ -8,9 +6,9 @@ export interface ApiResponse<T = any> {
 
 export class ApiError extends Error {
   code: number;
-  data: any;
+  data: unknown;
 
-  constructor(message: string, code: number, data?: any) {
+  constructor(message: string, code: number, data?: unknown) {
     super(message);
     this.name = 'ApiError';
     this.code = code;
@@ -84,7 +82,7 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
-async function apiRequest<T = any>(url: string, options: RequestInit = {}): Promise<T> {
+async function apiRequest<T = unknown>(url: string, options: RequestInit = {}): Promise<T> {
   const makeRequest = async (token: string | null): Promise<Response> => {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',

@@ -73,7 +73,7 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
   // Check authentication status on mount
   useEffect(() => {
     const checkAuth = async () => {
-      let token = localStorage.getItem('token');
+      const token = localStorage.getItem('token');
       const storedState = localStorage.getItem('gaap_state');
 
       // Restore non-sensitive state from local storage first (preferences, etc)
@@ -98,7 +98,7 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
 
       try {
         // Validate token by fetching profile
-        const data = await apiRequest<any>('/api/user/profile');
+        const data = await apiRequest<{ user: User }>('/api/user/profile');
 
         if (data && data.user) {
           setUser(data.user);
@@ -120,7 +120,7 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
           }
 
           try {
-            const refreshData = await apiRequest<any>('/api/auth/refresh', {
+            const refreshData = await apiRequest<{ accessToken: string; refreshToken?: string }>('/api/auth/refresh', {
               method: 'POST',
               body: JSON.stringify({ refreshToken })
             });
@@ -133,7 +133,7 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
               }
 
               // Retry profile fetch with new token
-              const userData = await apiRequest<any>('/api/user/profile');
+              const userData = await apiRequest<{ user: User }>('/api/user/profile');
               if (userData && userData.user) {
                 setUser(userData.user);
                 setIsLoggedIn(true);

@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { useWebSocket, WebSocketMessage } from './useWebSocket';
+import { useWebSocket } from './useWebSocket';
 import { accountKeys } from './useAccounts';
 import { transactionKeys } from './useTransactions';
 import { useGlobal } from '@/context/GlobalContext';
@@ -21,13 +21,13 @@ export function useTaskNotifications() {
     const { lastMessage, status } = useWebSocket();
 
     // Handle open task center (refresh data when opening)
-    const handleOpenTaskCenter = () => {
+    const handleOpenTaskCenter = useCallback(() => {
         openTaskCenter();
         queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
-    };
+    }, [openTaskCenter, queryClient]);
 
     // Refresh related data based on task type
-    const refreshRelatedData = (taskType: string) => {
+    const refreshRelatedData = useCallback((taskType: string) => {
         if (taskType === 'ACCOUNT_MIGRATION') {
             // Refresh accounts and transactions after account migration
             queryClient.invalidateQueries({ queryKey: accountKeys.lists() });
@@ -35,7 +35,7 @@ export function useTaskNotifications() {
         }
         // Always refresh task list
         queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
-    };
+    }, [queryClient]);
 
     // Handle WebSocket messages
     useEffect(() => {
@@ -68,7 +68,7 @@ export function useTaskNotifications() {
                 refreshRelatedData(taskType);
             }
         }
-    }, [lastMessage, isLoggedIn, t, queryClient]);
+    }, [lastMessage, isLoggedIn, t, handleOpenTaskCenter, refreshRelatedData]);
 
     return {
         openTaskCenter: handleOpenTaskCenter,

@@ -4,12 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGlobal } from '@/context/GlobalContext';
 import { useLogin } from '@/lib/hooks';
-import { useTranslation, Trans } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 import { Turnstile } from '@marsidev/react-turnstile';
 import {
   Wallet,
   CheckCircle2,
-  Sparkles,
   Mail,
   Lock,
   MessageCircle,
