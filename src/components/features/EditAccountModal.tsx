@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGlobal } from '@/context/GlobalContext';
 import { useUpdateAccount, useDeleteAccount, useCreateAccount, useAllAccounts, AccountType, Account } from '@/lib/hooks';
+import { accountService } from '@/lib/services';
 import {
   Dialog,
   DialogContent,
@@ -71,6 +72,8 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
 
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [migrationTargets, setMigrationTargets] = useState<Record<string, string>>({});
+  const [transactionCount, setTransactionCount] = useState<number | null>(null);
+  const [isLoadingCount, setIsLoadingCount] = useState(false);
 
   const handleAddChild = () => {
     setChildren([...children, {
@@ -158,7 +161,25 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
     );
   };
 
-  const prepareDelete = () => {
+  const prepareDelete = async () => {
+    setIsLoadingCount(true);
+    setTransactionCount(null);
+    try {
+      // Get transaction count for this account and all children
+      const accountIds = [account.id, ...children.filter(c => !c.isNew).map(c => c.id)];
+      let totalCount = 0;
+      for (const id of accountIds) {
+        const { count } = await accountService.getTransactionCount(id);
+        totalCount += count;
+      }
+      setTransactionCount(totalCount);
+    } catch (error) {
+      console.error('Failed to get transaction count:', error);
+      // Default to require migration if we can't determine
+      setTransactionCount(1);
+    } finally {
+      setIsLoadingCount(false);
+    }
     setMigrationTargets({});
     setIsDeleteAlertOpen(true);
   };
@@ -317,60 +338,85 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
             <DialogTitle>{t('accounts:delete_account_title')}</DialogTitle>
             <DialogDescription asChild>
               <div className="space-y-4 text-muted-foreground text-sm">
-                <p>{t('accounts:delete_account_confirm')}</p>
-                <div className="space-y-4">
-                  {requiredCurrencies.map(curr => {
-                    const targets = getAvailableTargets(curr);
-                    const isTargetMissing = targets.length === 0;
+                {isLoadingCount ? (
+                  <p>{t('common:loading') || '加载中...'}</p>
+                ) : transactionCount === 0 ? (
+                  // No transactions - simple confirmation
+                  <p>{t('accounts:delete_no_transactions_confirm')}</p>
+                ) : (
+                  // Has transactions - show migration UI
+                  <>
+                    <p>{t('accounts:delete_account_confirm')}</p>
+                    <div className="space-y-4">
+                      {requiredCurrencies.map(curr => {
+                        const targets = getAvailableTargets(curr);
+                        const isTargetMissing = targets.length === 0;
 
-                    return (
-                      <div key={curr} className="space-y-2">
-                        <Label>{t('accounts:migrate_balance_for', { currency: curr, defaultValue: `Migrate ${curr} balance to:` })}</Label>
+                        return (
+                          <div key={curr} className="space-y-2">
+                            <Label>{t('accounts:migrate_balance_for', { currency: curr, defaultValue: `Migrate ${curr} balance to:` })}</Label>
 
-                        {isTargetMissing ? (
-                          <div className="text-sm text-red-500 flex items-center gap-2 border border-red-200 bg-red-50 p-2 rounded-md">
-                            <AlertTriangle size={14} className="shrink-0" />
-                            <span>
-                              {t('accounts:no_available_funding_accounts', {
-                                type: account?.type,
-                                defaultValue: `No available ${account?.type} funding accounts, please create one before proceeding with deletion`
-                              })}
-                            </span>
+                            {isTargetMissing ? (
+                              <div className="text-sm text-red-500 flex items-center gap-2 border border-red-200 bg-red-50 p-2 rounded-md">
+                                <AlertTriangle size={14} className="shrink-0" />
+                                <span>
+                                  {t('accounts:no_available_funding_accounts', {
+                                    type: account?.type,
+                                    defaultValue: `No available ${account?.type} funding accounts, please create one before proceeding with deletion`
+                                  })}
+                                </span>
+                              </div>
+                            ) : (
+                              <Select
+                                value={migrationTargets[curr]}
+                                onValueChange={(val) => setMigrationTargets(prev => ({ ...prev, [curr]: val }))}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder={t('accounts:select_account')} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {targets.map(t => (
+                                    <SelectItem key={t.id} value={t.id}>{t.name} ({t.currency})</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
                           </div>
-                        ) : (
-                          <Select
-                            value={migrationTargets[curr]}
-                            onValueChange={(val) => setMigrationTargets(prev => ({ ...prev, [curr]: val }))}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder={t('accounts:select_account')} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {targets.map(t => (
-                                <SelectItem key={t.id} value={t.id}>{t.name} ({t.currency})</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDeleteAlertOpen(false)}>{t('common:cancel')}</Button>
-            <Button
-              variant="destructive"
-              onClick={(e: React.MouseEvent) => {
-                e.preventDefault();
-                if (!hasBlockedCurrencies && isMigrationComplete) handleDeleteConfirm();
-              }}
-              disabled={isPending || hasBlockedCurrencies || !isMigrationComplete}
-            >
-              {isPending ? t('common:deleting') || '删除中...' : t('common:delete')}
-            </Button>
+            {transactionCount === 0 ? (
+              // No transactions - direct delete button
+              <Button
+                variant="destructive"
+                onClick={(e: React.MouseEvent) => {
+                  e.preventDefault();
+                  handleDeleteConfirm();
+                }}
+                disabled={isPending || isLoadingCount}
+              >
+                {isPending ? t('common:deleting') || '删除中...' : t('common:delete')}
+              </Button>
+            ) : (
+              // Has transactions - require migration selection
+              <Button
+                variant="destructive"
+                onClick={(e: React.MouseEvent) => {
+                  e.preventDefault();
+                  if (!hasBlockedCurrencies && isMigrationComplete) handleDeleteConfirm();
+                }}
+                disabled={isPending || hasBlockedCurrencies || !isMigrationComplete || isLoadingCount}
+              >
+                {isPending ? t('common:deleting') || '删除中...' : t('common:delete')}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -28,12 +28,13 @@
   "delete_child_hint": "如需刪除子帳戶，請前往該子帳戶詳情頁或刪除父帳戶。",
   "delete_account_title": "刪除帳戶",
   "delete_account_confirm": "確定要刪除該帳戶嗎？此操作無法復原。",
-  "migrate_balance_for": "遷移 {{currency}} 餘額至：",
+  "migrate_balance_for": "遷移 {{currency}} 餘額和交易記錄至：",
   "select_account": "選擇帳戶",
   "delete_success": "帳戶已刪除",
   "migration_error_no_target": "無法刪除：未找到其他 {{currencies}} 帳戶用於餘額遷移。",
   "quick_add_currency": "快速添加新幣種",
   "no_available_funding_accounts": "沒有可用的 {{type}} 資金帳戶，請在繼續刪除之前創建一個。",
   "free_asset_limit_reached": "免費用戶最多只能創建5個資產帳戶，升級到 Pro 解鎖無限帳戶",
-  "free_group_disabled": "父子帳戶功能僅限 Pro 用戶，升級後可使用多幣種帳戶管理"
+  "free_group_disabled": "父子帳戶功能僅限 Pro 用戶，升級後可使用多幣種帳戶管理",
+  "delete_no_transactions_confirm": "該帳戶沒有交易記錄，確定要刪除嗎？刪除後餘額將直接清零，此操作無法撤銷。"
 }

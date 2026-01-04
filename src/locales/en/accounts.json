@@ -28,12 +28,13 @@
   "delete_child_hint": "To delete a sub-account, please go to its specific page or delete the parent account.",
   "delete_account_title": "Delete Account",
   "delete_account_confirm": "Are you sure you want to delete this account? This action cannot be undone.",
-  "migrate_balance_for": "Migrate {{currency}} balance to:",
+  "migrate_balance_for": "Migrate {{currency}} balance and transaction records to:",
   "select_account": "Select Account",
   "delete_success": "Account deleted successfully",
   "migration_error_no_target": "Cannot delete: No other {{currencies}} account found for balance migration.",
   "quick_add_currency": "Quick add new currency",
   "no_available_funding_accounts": "No available {{type}} funding accounts, please create one before proceeding with deletion",
   "free_asset_limit_reached": "Free users can create up to 5 asset accounts. Upgrade to Pro for unlimited accounts.",
-  "free_group_disabled": "Parent-child accounts are available for Pro users only. Upgrade to unlock multi-currency account management."
+  "free_group_disabled": "Parent-child accounts are available for Pro users only. Upgrade to unlock multi-currency account management.",
+  "delete_no_transactions_confirm": "This account has no transactions. Are you sure you want to delete it? The balance will be cleared and this action cannot be undone."
 }

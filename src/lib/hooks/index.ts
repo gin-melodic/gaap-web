@@ -9,6 +9,7 @@ export {
   useDeleteAccount,
   useAllAccounts,
   useAllAccountsSuspense,
+  useAccountTransactionCount,
   accountKeys,
 } from './useAccounts';
 
