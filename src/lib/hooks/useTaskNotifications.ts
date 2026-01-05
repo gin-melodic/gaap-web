@@ -14,6 +14,8 @@ import { taskKeys } from './useTasks';
  * Hook that listens to WebSocket for task status changes and shows notifications
  * when tasks complete or fail.
  */
+const notifiedTasks = new Set<string>();
+
 export function useTaskNotifications() {
     const { t } = useTranslation('settings');
     const { isLoggedIn, openTaskCenter } = useGlobal();
@@ -46,15 +48,36 @@ export function useTaskNotifications() {
 
             console.log('[TaskNotifications] Received task update:', { taskId, taskStatus, taskType });
 
+            // Skip if already notified for this completed/failed task
+            if ((taskStatus === 'COMPLETED' || taskStatus === 'FAILED') && notifiedTasks.has(taskId)) {
+                return;
+            }
+
             if (taskStatus === 'COMPLETED') {
                 const typeText = getTypeText(taskType, t);
-                toast.success(t('task_completed_notification', { type: typeText }), {
+                let message = t('task_completed_notification', { type: typeText });
+
+                if (taskType === 'DATA_IMPORT' && lastMessage.payload.result) {
+                    const result = lastMessage.payload.result as {
+                        accountsImported?: number;
+                        transactionsImported?: number;
+                        accountsSkipped?: number;
+                        transactionsSkipped?: number;
+                    };
+                    const added = (result.accountsImported || 0) + (result.transactionsImported || 0);
+                    const updated = (result.accountsSkipped || 0) + (result.transactionsSkipped || 0);
+                    const duplicated = updated;
+                    message = t('settings:import_result_summary', { added, updated, duplicated });
+                }
+
+                toast.success(message, {
                     duration: 6000,
                     action: {
                         label: t('view_task_center'),
                         onClick: handleOpenTaskCenter,
                     },
                 });
+                notifiedTasks.add(taskId);
                 refreshRelatedData(taskType);
             } else if (taskStatus === 'FAILED') {
                 const typeText = getTypeText(taskType, t);
@@ -65,6 +88,7 @@ export function useTaskNotifications() {
                         onClick: handleOpenTaskCenter,
                     },
                 });
+                notifiedTasks.add(taskId);
                 refreshRelatedData(taskType);
             }
         }

@@ -1,4 +1,4 @@
-import apiRequest from '../api';
+import apiRequest, { API_BASE_PATH } from '../api';
 
 export interface Task {
   id: string;
@@ -44,14 +44,14 @@ const buildQueryString = (query?: Record<string, unknown>): string => {
 
 export const taskService = {
   list: (query?: TaskQuery): Promise<PaginatedTaskResponse> =>
-    apiRequest(`/api/tasks${buildQueryString(query)}`),
+    apiRequest(`${API_BASE_PATH}/tasks${buildQueryString(query)}`),
 
   get: (id: string): Promise<Task> =>
-    apiRequest(`/api/tasks/${id}`),
+    apiRequest(`${API_BASE_PATH}/tasks/${id}`),
 
   cancel: (id: string): Promise<void> =>
-    apiRequest(`/api/tasks/${id}/cancel`, { method: 'POST' }),
+    apiRequest(`${API_BASE_PATH}/tasks/${id}/cancel`, { method: 'POST' }),
 
   retry: (id: string): Promise<Task> =>
-    apiRequest(`/api/tasks/${id}/retry`, { method: 'POST' }),
+    apiRequest(`${API_BASE_PATH}/tasks/${id}/retry`, { method: 'POST' }),
 };

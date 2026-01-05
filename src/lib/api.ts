@@ -1,3 +1,6 @@
+// API base path - change this to modify the API prefix globally
+export const API_BASE_PATH = '/api/v1';
+
 export interface ApiResponse<T = unknown> {
   code: number;
   message: string;
@@ -56,7 +59,7 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 
   try {
-    const response = await fetch('/api/auth/refresh', {
+    const response = await fetch(`${API_BASE_PATH}/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
@@ -88,6 +91,11 @@ async function apiRequest<T = unknown>(url: string, options: RequestInit = {}): 
       'Content-Type': 'application/json',
       ...options.headers as Record<string, string>,
     };
+
+    // Remove Content-Type if body is FormData to let browser set it with boundary
+    if (options.body instanceof FormData) {
+      delete headers['Content-Type'];
+    }
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;

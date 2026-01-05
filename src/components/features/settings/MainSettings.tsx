@@ -11,7 +11,8 @@ import {
   Globe,
   Languages,
   ListTodo,
-  LogOut
+  LogOut,
+  HardDrive
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -85,6 +86,15 @@ export const MainSettings = ({ onNavigate }: { onNavigate: (view: SettingsView) 
         </div>
         <div onClick={openTaskCenter} className="p-4 flex justify-between items-center hover:bg-[var(--bg-main)] cursor-pointer">
           <div className="flex items-center gap-3"><ListTodo size={18} className="text-[var(--text-muted)]" /><span className="text-[var(--text-main)] font-medium">{t('settings:task_center')}</span></div>
+          <div className="flex items-center gap-2 text-[var(--text-muted)] text-sm"><ChevronRight size={16} /></div>
+        </div>
+      </Card>
+
+      {/* Data Management */}
+      <Card className="bg-[var(--bg-card)] border-[var(--border)] shadow-sm overflow-hidden py-0 gap-0">
+        <div className="p-4 border-b border-[var(--border)] font-bold text-[var(--text-main)] text-sm bg-[var(--bg-main)]">{t('settings:data_management')}</div>
+        <div onClick={() => onNavigate('DATA_EXPORT')} className="p-4 flex justify-between items-center hover:bg-[var(--bg-main)] cursor-pointer">
+          <div className="flex items-center gap-3"><HardDrive size={18} className="text-[var(--text-muted)]" /><span className="text-[var(--text-main)] font-medium">{t('settings:data_export.title')}</span></div>
           <div className="flex items-center gap-2 text-[var(--text-muted)] text-sm"><ChevronRight size={16} /></div>
         </div>
       </Card>

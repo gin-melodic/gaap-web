@@ -1,4 +1,4 @@
-import apiRequest from '../api';
+import apiRequest, { API_BASE_PATH } from '../api';
 import { Transaction, TransactionInput, TransactionQuery, PaginatedResponse } from '../types';
 
 const buildQueryString = (query?: Record<string, unknown>): string => {
@@ -15,23 +15,23 @@ const buildQueryString = (query?: Record<string, unknown>): string => {
 
 export const transactionService = {
   list: (query?: TransactionQuery): Promise<PaginatedResponse<Transaction>> =>
-    apiRequest(`/api/transactions${buildQueryString(query)}`),
+    apiRequest(`${API_BASE_PATH}/transactions${buildQueryString(query)}`),
 
   get: (id: string): Promise<Transaction> =>
-    apiRequest(`/api/transactions/${id}`),
+    apiRequest(`${API_BASE_PATH}/transactions/${id}`),
 
   create: (input: TransactionInput): Promise<Transaction> =>
-    apiRequest('/api/transactions', {
+    apiRequest(`${API_BASE_PATH}/transactions`, {
       method: 'POST',
       body: JSON.stringify(input),
     }),
 
   update: (id: string, input: Partial<TransactionInput>): Promise<Transaction> =>
-    apiRequest(`/api/transactions/${id}`, {
+    apiRequest(`${API_BASE_PATH}/transactions/${id}`, {
       method: 'PUT',
       body: JSON.stringify(input),
     }),
 
   delete: (id: string): Promise<void> =>
-    apiRequest(`/api/transactions/${id}`, { method: 'DELETE' }),
+    apiRequest(`${API_BASE_PATH}/transactions/${id}`, { method: 'DELETE' }),
 };
