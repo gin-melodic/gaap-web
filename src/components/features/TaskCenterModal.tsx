@@ -102,12 +102,36 @@ const TaskCenterModal = () => {
                 return `${sourceAccountName} → ${targetAccountIds.length} ${t('common:accounts')}`;
             }
             return sourceAccountName;
+        } else if (task.type === 'DATA_EXPORT' && task.payload) {
+            const payload = task.payload as { startDate: string; endDate: string };
+            return `${payload.startDate} - ${payload.endDate}`;
+        } else if (task.type === 'DATA_IMPORT' && task.payload) {
+            const payload = task.payload as { fileName: string };
+            // Extract filename from path if needed, or just show it
+            const fileName = payload.fileName.split(/[/\\]/).pop() || payload.fileName;
+
+            if (task.status === 'COMPLETED' && task.result) {
+                const result = task.result as {
+                    accountsImported?: number;
+                    transactionsImported?: number;
+                    accountsSkipped?: number;
+                    transactionsSkipped?: number;
+                };
+                const added = (result.accountsImported || 0) + (result.transactionsImported || 0);
+                const updated = (result.accountsSkipped || 0) + (result.transactionsSkipped || 0);
+                const duplicated = updated;
+                return `${fileName} (${t('settings:import_result_summary', { added, updated, duplicated })})`;
+            }
+
+            return fileName;
         }
         return '';
     };
 
     const getTypeText = (type: string) => {
         if (type === 'ACCOUNT_MIGRATION') return t('settings:task_type_account_migration');
+        if (type === 'DATA_EXPORT') return t('settings:task_type_data_export');
+        if (type === 'DATA_IMPORT') return t('settings:task_type_data_import');
         return type;
     };
 

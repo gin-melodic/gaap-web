@@ -1,4 +1,4 @@
-import apiRequest from '../api';
+import apiRequest, { API_BASE_PATH } from '../api';
 import { Account, AccountInput, AccountQuery, PaginatedResponse } from '../types';
 
 const buildQueryString = (query?: Record<string, unknown>): string => {
@@ -15,30 +15,30 @@ const buildQueryString = (query?: Record<string, unknown>): string => {
 
 export const accountService = {
   list: (query?: AccountQuery): Promise<PaginatedResponse<Account>> =>
-    apiRequest(`/api/accounts${buildQueryString(query)}`),
+    apiRequest(`${API_BASE_PATH}/accounts${buildQueryString(query)}`),
 
   get: (id: string): Promise<Account> =>
-    apiRequest(`/api/accounts/${id}`),
+    apiRequest(`${API_BASE_PATH}/accounts/${id}`),
 
   create: (input: AccountInput): Promise<Account> =>
-    apiRequest('/api/accounts', {
+    apiRequest(`${API_BASE_PATH}/accounts`, {
       method: 'POST',
       body: JSON.stringify(input),
     }),
 
   update: (id: string, input: Partial<AccountInput>): Promise<Account> =>
-    apiRequest(`/api/accounts/${id}`, {
+    apiRequest(`${API_BASE_PATH}/accounts/${id}`, {
       method: 'PUT',
       body: JSON.stringify(input),
     }),
 
   delete: (id: string, migrationTargets?: Record<string, string>): Promise<{ taskId?: string }> =>
-    apiRequest(`/api/accounts/${id}`, {
+    apiRequest(`${API_BASE_PATH}/accounts/${id}`, {
       method: 'DELETE',
       body: migrationTargets ? JSON.stringify({ migrationTargets }) : undefined,
     }),
 
   getTransactionCount: (id: string): Promise<{ count: number }> =>
-    apiRequest(`/api/accounts/${id}/transaction-count`),
+    apiRequest(`${API_BASE_PATH}/accounts/${id}/transaction-count`),
 };
 

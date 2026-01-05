@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { THEMES } from '@/lib/data';
-import apiRequest, { ApiError } from '@/lib/api';
+import apiRequest, { ApiError, API_BASE_PATH } from '@/lib/api';
 
 interface User {
   email: string;
@@ -26,7 +26,7 @@ interface Theme {
   };
 }
 
-export type SettingsView = 'MAIN' | 'PROFILE' | 'SUBSCRIPTION' | 'CURRENCY' | 'THEME' | 'LANGUAGE' | 'TASKS';
+export type SettingsView = 'MAIN' | 'PROFILE' | 'SUBSCRIPTION' | 'CURRENCY' | 'THEME' | 'LANGUAGE' | 'TASKS' | 'DATA_EXPORT';
 
 interface GlobalContextType {
   user: User;
@@ -98,7 +98,7 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
 
       try {
         // Validate token by fetching profile
-        const data = await apiRequest<{ user: User }>('/api/user/profile');
+        const data = await apiRequest<{ user: User }>(`${API_BASE_PATH}/user/profile`);
 
         if (data && data.user) {
           setUser(data.user);
@@ -109,46 +109,13 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
 
       } catch (error) {
         // Handle token expiration / 401
+        // Note: apiRequest already handles token refresh internally. 
+        // If we receive a 401 here, it means the refresh failed or the token is invalid.
         if (error instanceof ApiError && error.code === 401) {
-          const refreshToken = localStorage.getItem('refreshToken');
-          if (!refreshToken) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
-            setIsLoggedIn(false);
-            setIsLoading(false);
-            return;
-          }
-
-          try {
-            const refreshData = await apiRequest<{ accessToken: string; refreshToken?: string }>('/api/auth/refresh', {
-              method: 'POST',
-              body: JSON.stringify({ refreshToken })
-            });
-
-            const newToken = refreshData.accessToken;
-            if (newToken) {
-              localStorage.setItem('token', newToken);
-              if (refreshData.refreshToken) {
-                localStorage.setItem('refreshToken', refreshData.refreshToken);
-              }
-
-              // Retry profile fetch with new token
-              const userData = await apiRequest<{ user: User }>('/api/user/profile');
-              if (userData && userData.user) {
-                setUser(userData.user);
-                setIsLoggedIn(true);
-              }
-            }
-          } catch (refreshErr) {
-            console.error('Refresh failed:', refreshErr);
-            // Only clear if the token hasn't been updated (e.g. by a parallel login)
-            if (localStorage.getItem('token') === token) {
-              localStorage.removeItem('token');
-              localStorage.removeItem('refreshToken');
-              setIsLoggedIn(false);
-              setUser({ email: '', nickname: '', avatar: null, plan: 'FREE' });
-            }
-          }
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          setIsLoggedIn(false);
+          setUser({ email: '', nickname: '', avatar: null, plan: 'FREE' });
         } else if (error instanceof ApiError && (error.code === 503 || error.code === 502 || error.code === 504)) {
           // Backend service unavailable - keep tokens, user can retry later
           console.warn('Backend service unavailable, will retry later');
@@ -159,12 +126,23 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
           // Don't clear tokens or logout - just leave current state  
         } else {
           console.error('Auth verification failed:', error);
+          if (error instanceof ApiError) {
+            console.error('ApiError details:', { code: error.code, data: error.data, message: error.message });
+          }
+          // Only clear if the token hasn't been updated (e.g. by a parallel login)
           // Only clear if the token hasn't been updated (e.g. by a parallel login)
           if (localStorage.getItem('token') === token) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
+            // We used to clear token here, but transient errors (500, 404 due to path issues) shouldn't logout the user.
+            // Only 401 should trigger logout (handled above).
+            console.warn('Auth verification failed but token preserved. User state might be inconsistent.');
+            // Do NOT clear token.
+            // localStorage.removeItem('token');
+            // localStorage.removeItem('refreshToken');
+
+            // However, we can't set isLoggedIn(true) if we don't have user data.
+            // The app might stay in a "loading" or "unauthenticated" state visually (missing sidebar).
+            // But at least a refresh won't redirect to login if the error was transient.
             setIsLoggedIn(false);
-            setUser({ email: '', nickname: '', avatar: null, plan: 'FREE' });
           }
         }
       } finally {
