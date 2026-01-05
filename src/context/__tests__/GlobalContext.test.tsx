@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { GlobalProvider, useGlobal } from '../GlobalContext';
+import { API_BASE_PATH } from '../../lib/api';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 // Test component to consume context
@@ -80,7 +81,7 @@ describe('GlobalContext Authentication', () => {
       expect(screen.getByText('Logged in as TestUser')).toBeInTheDocument();
     });
 
-    expect(global.fetch).toHaveBeenCalledWith('/api/user/profile', expect.objectContaining({
+    expect(global.fetch).toHaveBeenCalledWith(`${API_BASE_PATH}/user/profile`, expect.objectContaining({
       headers: expect.objectContaining({ Authorization: 'Bearer valid-token' })
     }));
   });
