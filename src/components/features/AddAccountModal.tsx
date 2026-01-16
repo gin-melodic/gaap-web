@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGlobal } from '@/context/GlobalContext';
-import { useCreateAccount, useAllAccounts, AccountType } from '@/lib/hooks';
+import { useCreateAccount, useAllAccounts, AccountType, UserLevelType } from '@/lib/hooks';
 import { ACCOUNT_TYPES } from '@/lib/data';
 import {
   Dialog,
@@ -41,7 +41,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
   const { accounts } = useAllAccounts();
   const createAccount = useCreateAccount();
 
-  const [type, setType] = useState<AccountType>(AccountType.ASSET);
+  const [type, setType] = useState<AccountType>(AccountType.ACCOUNT_TYPE_ASSET);
   const [isGroup, setIsGroup] = useState(false);
   const [name, setName] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -113,10 +113,11 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
 
   const handleSubmit = async () => {
     if (!name) return;
+    const finalDate = date || new Date().toISOString().split('T')[0];
 
     // FREE user ASSET limit check
-    if (type === AccountType.ASSET && user.plan === 'FREE') {
-      const currentAssetCount = accounts.filter(a => a.type === AccountType.ASSET && !a.parentId).length;
+    if (type === AccountType.ACCOUNT_TYPE_ASSET && user.plan === UserLevelType.USER_LEVEL_TYPE_FREE) {
+      const currentAssetCount = accounts.filter(a => a.type === AccountType.ACCOUNT_TYPE_ASSET && !a.parentId).length;
       if (currentAssetCount >= 5) {
         toast.error(t('accounts:free_asset_limit_reached'));
         return;
@@ -124,29 +125,32 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
     }
 
     try {
-      if (isGroup && (type === AccountType.ASSET || type === AccountType.LIABILITY)) {
+      if (isGroup && (type === AccountType.ACCOUNT_TYPE_ASSET || type === AccountType.ACCOUNT_TYPE_LIABILITY)) {
         // Create parent account first
-        const parent = await createAccount.mutateAsync({
+        const res = await createAccount.mutateAsync({
           name,
           type,
           isGroup: true,
           balance: 0,
           currency: 'CNY',
-          ...(date ? { date } : {}),
+          date: finalDate,
           ...(number ? { number } : {}),
           ...(remarks ? { remarks } : {}),
         });
 
-        // Create children with parentId
-        for (const child of children) {
-          await createAccount.mutateAsync({
-            parentId: parent.id,
-            name: child.name || `${name} ${child.currency}`,
-            type,
-            balance: parseFloat(child.balance) || 0,
-            currency: child.currency,
-            isGroup: false,
-          });
+        if (res.account?.id) {
+          // Create children with parentId
+          for (const child of children) {
+            await createAccount.mutateAsync({
+              parentId: res.account.id,
+              name: child.name || `${name} ${child.currency}`,
+              type,
+              balance: parseFloat(child.balance) || 0,
+              currency: child.currency,
+              isGroup: false,
+              date: finalDate
+            });
+          }
         }
       } else {
         // Simple Account
@@ -155,7 +159,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
           type,
           balance: parseFloat(balance) || 0,
           currency,
-          ...(date ? { date } : {}),
+          date: finalDate,
           ...(number ? { number } : {}),
           ...(remarks ? { remarks } : {}),
           isGroup: false,
@@ -171,7 +175,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
     }
   };
 
-  const isPro = user.plan === 'PRO';
+  const isPro = user.plan === UserLevelType.USER_LEVEL_TYPE_PRO;
   const isPending = createAccount.isPending;
 
   return (
@@ -188,12 +192,13 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
               <div
                 key={key}
                 onClick={() => {
-                  setType(key as AccountType);
-                  if (key === AccountType.INCOME || key === AccountType.EXPENSE) setIsGroup(false);
+                  const typeVal = Number(key) as AccountType;
+                  setType(typeVal);
+                  if (typeVal === AccountType.ACCOUNT_TYPE_INCOME || typeVal === AccountType.ACCOUNT_TYPE_EXPENSE) setIsGroup(false);
                 }}
                 className={`
                   cursor-pointer rounded-xl border-2 p-4 flex flex-col items-center gap-2 transition-all
-                  ${type === key ? `border-[var(--primary)] bg-[var(--primary)]/5 ${value.color}` : 'border-transparent bg-[var(--bg-main)] text-[var(--text-muted)] hover:bg-[var(--bg-main)]/80'}
+                  ${type === Number(key) ? `border-[var(--primary)] bg-[var(--primary)]/5 ${value.color}` : 'border-transparent bg-[var(--bg-main)] text-[var(--text-muted)] hover:bg-[var(--bg-main)]/80'}
                 `}
               >
                 <value.icon size={24} />
@@ -203,7 +208,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
           </div>
 
           {/* Group Toggle - PRO only */}
-          {(type === AccountType.ASSET || type === AccountType.LIABILITY) && (
+          {(type === AccountType.ACCOUNT_TYPE_ASSET || type === AccountType.ACCOUNT_TYPE_LIABILITY) && (
             <div className={`flex items-center space-x-2 bg-[var(--bg-main)] p-3 pr-6 rounded-lg ${!isPro ? 'opacity-60' : ''}`}>
               <Checkbox
                 id="isGroup"
@@ -284,6 +289,9 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
                 <div className="space-y-2">
                   <Label>{t('accounts:initial_balance')}</Label>
                   <Input type="number" value={balance} onChange={e => setBalance(e.target.value)} />
+                  {parseFloat(balance) !== 0 && (type === AccountType.ACCOUNT_TYPE_ASSET || type === AccountType.ACCOUNT_TYPE_LIABILITY) && (
+                    <p className="text-xs text-purple-600">{t('accounts:initial_balance_info')}</p>
+                  )}
                 </div>
               </div>
             )}

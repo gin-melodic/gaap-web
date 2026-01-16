@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAllTransactionsSuspense, useAllAccountsSuspense, useCreateTransaction, useUpdateTransaction, useDeleteTransaction, useCreateAccount, TransactionType, AccountType, Account, Transaction } from '@/lib/hooks';
+import { useAllTransactionsSuspense, useAllAccountsSuspense, useCreateTransaction, useUpdateTransaction, useDeleteTransaction, useCreateAccount } from '@/lib/hooks';
+import { TransactionType, AccountType, Account, Transaction, Money } from '@/lib/types';
+import { MoneyHelper } from '@/lib/utils/money';
 import { useTranslation } from 'react-i18next';
 import { Plus, ArrowRightLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -57,11 +59,18 @@ const Transactions = () => {
 
   const [newTx, setNewTx] = useState({ amount: '', note: '', from: '', to: '', date: getCurrentDateTime() });
 
-  const formatCurrency = (amount: number, currency = 'CNY') => {
+  const formatCurrency = (amount: Money | number, currency = 'CNY') => {
+    let val = amount;
+    // Also handle Money encoded object
+    if (typeof amount === 'object' && amount !== null && ('units' in amount || 'nanos' in amount)) {
+      // Check if it has 'units' (string) or needs coercion
+      val = MoneyHelper.from(amount).toNumber();
+    }
+
     try {
-      return new Intl.NumberFormat('zh-CN', { style: 'currency', currency }).format(amount);
+      return new Intl.NumberFormat('zh-CN', { style: 'currency', currency }).format(val as number);
     } catch {
-      return `${currency} ${amount.toFixed(2)}`;
+      return `${currency} ${Number(val).toFixed(2)}`;
     }
   };
 
@@ -75,7 +84,13 @@ const Transactions = () => {
     }
   };
 
-  const currentCurrency = accounts.find(a => a.id === newTx.from)?.currency || 'CNY';
+  // Helper to safely get currency from an account
+  const getAccountCurrency = (account?: Account) => {
+    // If account.balance is undefined, default to CNY
+    return account?.balance?.currencyCode || 'CNY';
+  }
+
+  const currentCurrency = getAccountCurrency(accounts.find(a => a.id === newTx.from));
 
   const getFullAccountName = (account: Account, allAccounts: Account[]) => {
     if (account.parentId) {
@@ -147,41 +162,47 @@ const Transactions = () => {
 
       if (newTx.from === 'NEW_INCOME') {
         if (!newIncomeName) return;
-        const newAccount = await createAccount.mutateAsync({
+        const res = await createAccount.mutateAsync({
           name: newIncomeName,
-          type: AccountType.INCOME,
+          type: AccountType.ACCOUNT_TYPE_INCOME,
           currency: 'CNY',
           balance: 0,
           isGroup: false,
+          date: getCurrentDateTime(),
         });
-        finalFromAccount = newAccount.id;
+        if (res.account) {
+          finalFromAccount = res.account.id;
+        }
       }
 
       if (newTx.to === 'NEW_EXPENSE') {
         if (!newExpenseName) return;
         const sourceAcc = accounts.find(a => a.id === finalFromAccount);
-        const newAccount = await createAccount.mutateAsync({
+        const sourceCurrency = getAccountCurrency(sourceAcc);
+        const res = await createAccount.mutateAsync({
           name: newExpenseName,
-          type: AccountType.EXPENSE,
-          currency: sourceAcc?.currency || 'CNY',
+          type: AccountType.ACCOUNT_TYPE_EXPENSE,
+          currency: sourceCurrency,
           balance: 0,
           isGroup: false,
+          date: getCurrentDateTime(),
         });
-        console.log('Created account response:', newAccount);
-        finalToAccount = newAccount.id;
-        console.log('finalToAccount:', finalToAccount);
+        if (res.account) {
+          finalToAccount = res.account.id;
+        }
       }
 
-      const fromAccount = finalFromAccount === newTx.from ? accounts.find(a => a.id === newTx.from) : { type: AccountType.INCOME, currency: 'CNY' };
-      const toAccount = finalToAccount === newTx.to ? accounts.find(a => a.id === newTx.to) : { type: AccountType.EXPENSE };
+      const fromAccount = finalFromAccount === newTx.from ? accounts.find(a => a.id === newTx.from) : undefined;
+      const toAccount = finalToAccount === newTx.to ? accounts.find(a => a.id === newTx.to) : undefined;
+      const fromCurrency = getAccountCurrency(fromAccount);
 
-      let type = TransactionType.TRANSFER;
-      if (toAccount?.type === AccountType.EXPENSE) type = TransactionType.EXPENSE;
-      if (fromAccount?.type === AccountType.INCOME) type = TransactionType.INCOME;
+      let type = TransactionType.TRANSACTION_TYPE_TRANSFER;
+      if (toAccount?.type === AccountType.ACCOUNT_TYPE_EXPENSE) type = TransactionType.TRANSACTION_TYPE_EXPENSE;
+      if (fromAccount?.type === AccountType.ACCOUNT_TYPE_INCOME) type = TransactionType.TRANSACTION_TYPE_INCOME;
 
       let finalNote = newTx.note;
       if (!finalNote) {
-        const typeName = type === TransactionType.EXPENSE ? t('common:expense') : type === TransactionType.INCOME ? t('common:income') : t('transactions:transfer');
+        const typeName = type === TransactionType.TRANSACTION_TYPE_EXPENSE ? t('common:expense') : type === TransactionType.TRANSACTION_TYPE_INCOME ? t('common:income') : t('transactions:transfer');
         const targetAccountName = finalToAccount === newTx.to
           ? (accounts.find(a => a.id === newTx.to)?.name || '')
           : newExpenseName;
@@ -198,7 +219,7 @@ const Transactions = () => {
         from: finalFromAccount,
         to: finalToAccount,
         amount: parseFloat(newTx.amount),
-        currency: fromAccount?.currency || 'CNY',
+        currency: fromCurrency,
         type,
         note: finalNote,
         date: dateToSend,
@@ -228,8 +249,10 @@ const Transactions = () => {
   };
 
   const handleEdit = (tx: Transaction) => {
+    // tx.amount is Money (proto). Construct a helper from it.
+    const amountVal = MoneyHelper.from(tx.amount).toNumber();
     setNewTx({
-      amount: tx.amount.toString(),
+      amount: amountVal.toString(),
       note: tx.note,
       from: tx.from,
       to: tx.to,
@@ -334,12 +357,12 @@ const Transactions = () => {
                     <SelectContent>
                       <SelectGroup>
                         <SelectLabel>{t('transactions:asset_source')}</SelectLabel>
-                        {renderAccountOptions(a => a.type === AccountType.ASSET)}
+                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_ASSET)}
                       </SelectGroup>
                       <SelectGroup>
                         <SelectLabel>{t('transactions:income_source')}</SelectLabel>
                         <SelectItem value="NEW_INCOME" className="font-bold text-indigo-600">{t('transactions:new_income_account')}</SelectItem>
-                        {renderAccountOptions(a => a.type === AccountType.INCOME)}
+                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_INCOME)}
                       </SelectGroup>
                     </SelectContent>
                   </Select>
@@ -356,15 +379,15 @@ const Transactions = () => {
                       <SelectGroup>
                         <SelectLabel>{t('transactions:expense_destination')}</SelectLabel>
                         <SelectItem value="NEW_EXPENSE" className="font-bold text-indigo-600">{t('transactions:new_expense_account')}</SelectItem>
-                        {renderAccountOptions(a => a.type === AccountType.EXPENSE)}
+                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_EXPENSE)}
                       </SelectGroup>
                       <SelectGroup>
                         <SelectLabel>{t('transactions:asset_deposit')}</SelectLabel>
-                        {renderAccountOptions(a => a.type === AccountType.ASSET)}
+                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_ASSET)}
                       </SelectGroup>
                       <SelectGroup>
                         <SelectLabel>{t('transactions:liability_repayment')}</SelectLabel>
-                        {renderAccountOptions(a => a.type === AccountType.LIABILITY)}
+                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_LIABILITY)}
                       </SelectGroup>
                     </SelectContent>
                   </Select>
@@ -418,15 +441,26 @@ const Transactions = () => {
         {transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(tx => {
           const fromAcc = accounts.find(a => a.id === tx.from);
           const toAcc = accounts.find(a => a.id === tx.to);
+          const isOpeningBalance = tx.type === TransactionType.TRANSACTION_TYPE_OPENING_BALANCE;
+          const txCurrency = tx.amount?.currencyCode || 'CNY';
           return (
-            <Card key={tx.id} className="bg-[var(--bg-card)] border-[var(--border)] shadow-sm cursor-pointer hover:border-indigo-300 transition-colors active:scale-[0.99]" onClick={() => handleEdit(tx)}>
+            <Card
+              key={tx.id}
+              className={`bg-[var(--bg-card)] border-[var(--border)] shadow-sm transition-colors ${isOpeningBalance ? 'opacity-80' : 'cursor-pointer hover:border-indigo-300 active:scale-[0.99]'}`}
+              onClick={() => !isOpeningBalance && handleEdit(tx)}
+            >
               <div className="p-4 flex flex-col gap-2">
                 <div className="flex justify-between items-start">
                   <div>
-                    <div className="font-bold text-[var(--text-main)] text-lg">{tx.note || t('transactions:unnamed_transaction')}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-[var(--text-main)] text-lg">{tx.note || t('transactions:unnamed_transaction')}</span>
+                      {isOpeningBalance && (
+                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">{t('transactions:system_generated')}</span>
+                      )}
+                    </div>
                     <div className="text-xs text-[var(--text-muted)]">{formatDateForDisplay(tx.date)}</div>
                   </div>
-                  <div className={`font-mono font-bold text-lg ${tx.type === TransactionType.EXPENSE ? 'text-[var(--text-main)]' : tx.type === TransactionType.INCOME ? 'text-emerald-600' : 'text-[var(--primary)]'}`}>{formatCurrency(tx.amount, tx.currency)}</div>
+                  <div className={`font-mono font-bold text-lg ${tx.type === TransactionType.TRANSACTION_TYPE_EXPENSE ? 'text-[var(--text-main)]' : tx.type === TransactionType.TRANSACTION_TYPE_INCOME ? 'text-emerald-600' : tx.type === TransactionType.TRANSACTION_TYPE_OPENING_BALANCE ? 'text-purple-600' : 'text-[var(--primary)]'}`}>{formatCurrency(tx.amount || 0, txCurrency)}</div>
                 </div>
                 <div className="flex items-center gap-2 text-sm bg-[var(--bg-main)] p-2 rounded-lg mt-1 border border-[var(--border)]">
                   <span className="text-[var(--text-muted)] truncate max-w-[45%]">{fromAcc ? getFullAccountName(fromAcc, accounts) : t('transactions:unknown_account')}</span>

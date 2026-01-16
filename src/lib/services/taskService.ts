@@ -30,28 +30,24 @@ export interface PaginatedTaskResponse {
   limit: number;
 }
 
-const buildQueryString = (query?: Record<string, unknown>): string => {
-  if (!query) return '';
-  const params = new URLSearchParams();
-  Object.entries(query).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      params.set(key, String(value));
-    }
-  });
-  const qs = params.toString();
-  return qs ? '?' + qs : '';
-};
+
 
 export const taskService = {
   list: (query?: TaskQuery): Promise<PaginatedTaskResponse> =>
-    apiRequest(`${API_BASE_PATH}/tasks${buildQueryString(query)}`),
+    apiRequest(`${API_BASE_PATH}/task/list-tasks`, {
+      method: 'POST',
+      body: JSON.stringify({ query })
+    }),
 
   get: (id: string): Promise<Task> =>
-    apiRequest(`${API_BASE_PATH}/tasks/${id}`),
+    apiRequest(`${API_BASE_PATH}/task/get-task`, {
+      method: 'POST',
+      body: JSON.stringify({ id })
+    }),
 
   cancel: (id: string): Promise<void> =>
-    apiRequest(`${API_BASE_PATH}/tasks/${id}/cancel`, { method: 'POST' }),
+    apiRequest(`${API_BASE_PATH}/task/cancel-task`, { method: 'POST', body: JSON.stringify({ id }) }),
 
   retry: (id: string): Promise<Task> =>
-    apiRequest(`${API_BASE_PATH}/tasks/${id}/retry`, { method: 'POST' }),
+    apiRequest(`${API_BASE_PATH}/task/retry-task`, { method: 'POST', body: JSON.stringify({ id }) }),
 };

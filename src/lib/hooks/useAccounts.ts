@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 export const accountKeys = {
   all: ['accounts'] as const,
   lists: () => [...accountKeys.all, 'list'] as const,
-  list: (query?: AccountQuery) => [...accountKeys.lists(), query] as const,
+  list: (query?: Partial<AccountQuery>) => [...accountKeys.lists(), query] as const,
   details: () => [...accountKeys.all, 'detail'] as const,
   detail: (id: string) => [...accountKeys.details(), id] as const,
 };
@@ -15,10 +15,10 @@ export const accountKeys = {
 // ========== Standard Hooks (with isLoading status) ==========
 
 // Get account list
-export function useAccounts(query?: AccountQuery) {
+export function useAccounts(query?: Partial<AccountQuery>) {
   return useQuery({
     queryKey: accountKeys.list(query),
-    queryFn: () => accountService.list(query),
+    queryFn: () => accountService.list(AccountQuery.fromPartial(query ?? {})),
   });
 }
 
@@ -34,10 +34,10 @@ export function useAccount(id: string) {
 // ========== Suspense Hooks (for use with Suspense component) ==========
 
 // Get account list (Suspense version)
-export function useAccountsSuspense(query?: AccountQuery) {
+export function useAccountsSuspense(query?: Partial<AccountQuery>) {
   return useSuspenseQuery({
     queryKey: accountKeys.list(query),
-    queryFn: () => accountService.list(query),
+    queryFn: () => accountService.list(AccountQuery.fromPartial(query ?? {})),
   });
 }
 
@@ -49,6 +49,14 @@ export function useAccountSuspense(id: string) {
   });
 }
 
+import { MoneyHelper } from '../utils/money';
+
+// Extended Input type for UI Forms
+export interface AccountFormInput extends Omit<AccountInput, 'balance'> {
+  balance?: number; // Optional initial balance
+  currency?: string;
+}
+
 // ========== Mutation Hooks ==========
 
 // Create account
@@ -56,7 +64,22 @@ export function useCreateAccount(options?: { silent?: boolean }) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: AccountInput) => accountService.create(input),
+    mutationFn: (input: AccountFormInput) => {
+      const { balance, currency, ...rest } = input;
+      const protoInput: AccountInput = {
+        ...rest,
+        // Default to zero money if not provided? Or undefined?
+        // AccountService create usually expects balance if provided.
+        balance: (balance !== undefined && currency)
+          ? MoneyHelper.fromAmount(balance, currency).toProto()
+          : undefined,
+      };
+
+      // If balance is undefined but currency is needed by backend logic? 
+      // Proto definition says balance is Money | undefined.
+
+      return accountService.create(protoInput);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: accountKeys.lists() });
       if (!options?.silent) {
@@ -74,8 +97,14 @@ export function useUpdateAccount() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, input }: { id: string; input: Partial<AccountInput> }) =>
-      accountService.update(id, input),
+    mutationFn: ({ id, input }: { id: string; input: Partial<AccountFormInput> }) => {
+      const { balance, currency, ...rest } = input;
+      const protoInput: any = { ...rest };
+      if (balance !== undefined && currency) {
+        protoInput.balance = MoneyHelper.fromAmount(balance, currency).toProto();
+      }
+      return accountService.update(id, protoInput);
+    },
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: accountKeys.lists() });
       queryClient.invalidateQueries({ queryKey: accountKeys.detail(id) });

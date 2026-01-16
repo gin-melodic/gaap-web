@@ -20,9 +20,12 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { useAllAccounts, useBalanceTrend, useProfile } from '@/lib/hooks';
+import { AccountType, useAllAccounts, useBalanceTrend, useProfile } from '@/lib/hooks';
 import { EXCHANGE_RATES } from '@/lib/data';
 import { ChevronDown, Loader2 } from 'lucide-react';
+import { MoneyHelper } from '@/lib/utils/money';
+import { DailyBalance } from '@/lib/types';
+import { DEFAULT_CURRENCY_CODE } from '@/lib/utils/constant';
 
 const COLORS = [
   'var(--primary)',
@@ -45,7 +48,7 @@ const BalanceTrendChart = () => {
 
   // Filter valid asset accounts for the dropdown
   const assetAccounts = useMemo(() => {
-    return accounts.filter(acc => acc.type === 'ASSET' && !acc.isGroup);
+    return accounts.filter(acc => acc.type === AccountType.ACCOUNT_TYPE_ASSET && !acc.isGroup);
   }, [accounts]);
 
   const toggleAccount = (id: string) => {
@@ -78,18 +81,19 @@ const BalanceTrendChart = () => {
 
     const baseRate = EXCHANGE_RATES[mainCurrency] || 1;
 
-    return trendData.data.map(d => {
+    return trendData.data.map((d: DailyBalance) => {
       let allTotal = 0;
       const convertedBalances: Record<string, number> = {};
 
       Object.entries(d.balances).forEach(([id, balance]) => {
         const acc = accounts.find(a => a.id === id);
-        const accRate = acc ? (EXCHANGE_RATES[acc.currency] || 1) : 1;
-        const converted = balance * (accRate / baseRate);
+        const accRate = acc ? (EXCHANGE_RATES[acc.balance?.currencyCode || DEFAULT_CURRENCY_CODE] || 1) : 1;
+        const amount = MoneyHelper.from(balance).toNumber();
+        const converted = amount * (accRate / baseRate);
 
         convertedBalances[id] = converted;
 
-        if (acc && acc.type === 'ASSET') {
+        if (acc && acc.type === AccountType.ACCOUNT_TYPE_ASSET) {
           allTotal += converted;
         }
       });

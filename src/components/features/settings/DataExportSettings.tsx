@@ -97,7 +97,7 @@ export const DataExportSettings = ({ onBack }: DataExportSettingsProps) => {
         throw new Error(t('settings:data_export.select_date_range'));
       }
 
-      const response = await apiRequest<{ taskId: string }>(`${API_BASE_PATH}/data/export`, {
+      const response = await apiRequest<{ taskId: string }>(`${API_BASE_PATH}/data/export-data`, {
         method: 'POST',
         body: JSON.stringify({ startDate, endDate }),
       });
@@ -130,7 +130,7 @@ export const DataExportSettings = ({ onBack }: DataExportSettingsProps) => {
       const formData = new FormData();
       formData.append('file', importFile);
 
-      const response = await apiRequest<{ taskId: string }>(`${API_BASE_PATH}/data/import`, {
+      const response = await apiRequest<{ taskId: string }>(`${API_BASE_PATH}/data/import-data`, {
         method: 'POST',
         body: formData,
         headers: {}, // Let browser set Content-Type for multipart
@@ -157,7 +157,10 @@ export const DataExportSettings = ({ onBack }: DataExportSettingsProps) => {
 
     const poll = async () => {
       try {
-        const response = await apiRequest<TaskStatus>(`${API_BASE_PATH}/data/export/${taskId}`);
+        const response = await apiRequest<TaskStatus>(`${API_BASE_PATH}/data/get-export-status`, {
+          method: 'POST',
+          body: JSON.stringify({ taskId }),
+        });
 
         if (type === 'export') {
           setExportTask(response);
@@ -185,10 +188,13 @@ export const DataExportSettings = ({ onBack }: DataExportSettingsProps) => {
     if (!exportTask?.taskId) return;
 
     try {
-      const response = await fetch(`${API_BASE_PATH}/data/download/${exportTask.taskId}`, {
+      const response = await fetch(`${API_BASE_PATH}/data/download-export`, {
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ taskId: exportTask.taskId }),
       });
 
       if (!response.ok) throw new Error('Download failed');

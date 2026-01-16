@@ -27,5 +27,14 @@
   "delete_transaction": "取引を削除",
   "confirm_delete": "削除を確認",
   "delete_warning": "この取引を削除してもよろしいですか？この操作は取り消せません。",
-  "transfer": "振替"
+  "transfer": "振替",
+  "system_generated": "システム",
+  "opening_balance": "期首残高",
+  "cannot_edit_system": "システム生成の取引は編集できません",
+  "create_success": "取引を作成しました",
+  "create_error": "作成に失敗しました",
+  "update_success": "取引を更新しました",
+  "update_error": "更新に失敗しました",
+  "delete_success": "取引を削除しました",
+  "delete_error": "削除に失敗しました"
 }

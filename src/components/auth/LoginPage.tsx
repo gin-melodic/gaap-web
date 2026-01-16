@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGlobal } from '@/context/GlobalContext';
-import { useLogin } from '@/lib/hooks';
+import { useLogin, UserLevelType } from '@/lib/hooks';
 import { useTranslation } from 'react-i18next';
 import { Turnstile } from '@marsidev/react-turnstile';
 import {
@@ -72,20 +72,20 @@ const LoginPage = () => {
       const data = await loginMutation.mutateAsync({
         email,
         password: hashedPassword,
-        code: step === 2 ? code : undefined,
-        cf_turnstile_response: turnstileToken
+        code: step === 2 ? code : '',
+        cfTurnstileResponse: turnstileToken
       });
 
       // Login success
-      if (!data || !data.user) {
+      if (!data || !data.auth || !data.auth.user) {
         throw new Error('Invalid response format');
       }
 
       contextLogin({
-        email: data.user.email,
-        nickname: data.user.nickname,
-        avatar: data.user.avatar,
-        plan: data.user.plan
+        email: data.auth.user.email,
+        nickname: data.auth.user.nickname,
+        avatar: data.auth.user.avatar,
+        plan: data.auth.user.plan
       });
 
       toast.success(t('auth:login_success'), { duration: 4000 });
@@ -280,7 +280,7 @@ const LoginPage = () => {
               variant="outline"
               type="button"
               onClick={() => {
-                contextLogin({ email: 'github_user@example.com', nickname: 'GitHub User', plan: 'PRO' });
+                contextLogin({ email: 'github_user@example.com', nickname: 'GitHub User', plan: UserLevelType.USER_LEVEL_TYPE_PRO });
                 router.push('/dashboard');
               }}
               className="flex items-center justify-center gap-2 py-6 rounded-xl hover:bg-slate-50"
@@ -292,7 +292,7 @@ const LoginPage = () => {
               variant="outline"
               type="button"
               onClick={() => {
-                contextLogin({ email: 'wechat_user@example.com', nickname: t('auth:default_wechat_username'), plan: 'FREE' });
+                contextLogin({ email: 'wechat_user@example.com', nickname: t('auth:default_wechat_username'), plan: UserLevelType.USER_LEVEL_TYPE_FREE });
                 router.push('/dashboard');
               }}
               className="flex items-center justify-center gap-2 py-6 rounded-xl hover:bg-slate-50"

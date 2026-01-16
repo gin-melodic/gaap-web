@@ -36,5 +36,7 @@
   "no_available_funding_accounts": "利用可能な {{type}} 資金口座がありません。削除を進める前に作成してください。",
   "free_asset_limit_reached": "無料ユーザーは最大5つの資産口座を作成できます。Proにアップグレードして無制限に。",
   "free_group_disabled": "親子口座はProユーザー限定です。アップグレードして多通貨管理を解除。",
-  "delete_no_transactions_confirm": "このアカウントには取引記録がありません。削除してもよろしいですか？残高はゼロになり、この操作は取り消せません。"
+  "delete_no_transactions_confirm": "このアカウントには取引記録がありません。削除してもよろしいですか？残高はゼロになり、この操作は取り消せません。",
+  "initial_balance_info": "期首残高仕訳が自動生成されます",
+  "equity": "資本"
 }

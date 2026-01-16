@@ -95,11 +95,14 @@ export const THEMES = [
 ];
 
 // Account type definitions
-export const ACCOUNT_TYPES: Record<string, { label: string; color: string; bg: string; icon: React.ComponentType<LucideProps> }> = {
-  ASSET: { label: 'Assets', color: 'text-emerald-600', bg: 'bg-emerald-100', icon: Building2 },
-  LIABILITY: { label: 'Liabilities', color: 'text-red-600', bg: 'bg-red-100', icon: CreditCard },
-  INCOME: { label: 'Income', color: 'text-blue-600', bg: 'bg-blue-100', icon: Briefcase },
-  EXPENSE: { label: 'Expenses', color: 'text-orange-600', bg: 'bg-orange-100', icon: Receipt },
+import { AccountType } from './types';
+
+// Account type definitions
+export const ACCOUNT_TYPES: Record<number, { label: string; color: string; bg: string; icon: React.ComponentType<LucideProps> }> = {
+  [AccountType.ACCOUNT_TYPE_ASSET]: { label: 'Assets', color: 'text-emerald-600', bg: 'bg-emerald-100', icon: Building2 },
+  [AccountType.ACCOUNT_TYPE_LIABILITY]: { label: 'Liabilities', color: 'text-red-600', bg: 'bg-red-100', icon: CreditCard },
+  [AccountType.ACCOUNT_TYPE_INCOME]: { label: 'Income', color: 'text-blue-600', bg: 'bg-blue-100', icon: Briefcase },
+  [AccountType.ACCOUNT_TYPE_EXPENSE]: { label: 'Expenses', color: 'text-orange-600', bg: 'bg-orange-100', icon: Receipt },
 };
 
 // Initial account data (includes parent-child structure)

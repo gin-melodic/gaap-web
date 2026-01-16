@@ -27,5 +27,14 @@
   "delete_transaction": "删除交易",
   "confirm_delete": "确认删除",
   "delete_warning": "您确定要删除这笔交易吗？此操作无法撤销。",
-  "transfer": "转账"
+  "transfer": "转账",
+  "system_generated": "系统",
+  "opening_balance": "期初余额",
+  "cannot_edit_system": "系统生成的交易不可编辑",
+  "create_success": "交易创建成功",
+  "create_error": "创建失败",
+  "update_success": "交易更新成功",
+  "update_error": "更新失败",
+  "delete_success": "交易删除成功",
+  "delete_error": "删除失败"
 }

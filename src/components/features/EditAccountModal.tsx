@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { useGlobal } from '@/context/GlobalContext';
 import { useUpdateAccount, useDeleteAccount, useCreateAccount, useAllAccounts, AccountType, Account } from '@/lib/hooks';
 import { accountService } from '@/lib/services';
+import { ACCOUNT_TYPES } from '@/lib/data';
+import { MoneyHelper } from '@/lib/utils/money';
 import {
   Dialog,
   DialogContent,
@@ -50,8 +52,8 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
   const [date, setDate] = useState(account.date || new Date().toISOString().split('T')[0]);
   const [number, setNumber] = useState(account.number || '');
   const [remarks, setRemarks] = useState(account.remarks || '');
-  const [balance, setBalance] = useState(account.balance?.toString() || '0');
-  const [currency, setCurrency] = useState(account.currency || 'CNY');
+  const [balance, setBalance] = useState(() => account.balance ? MoneyHelper.from(account.balance).toNumber().toString() : '0');
+  const [currency, setCurrency] = useState(account.balance?.currencyCode || 'CNY');
 
   // Group account state
   const isGroup = account.isGroup;
@@ -61,8 +63,8 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
       return accountChildren.map(c => ({
         id: c.id,
         name: c.name,
-        currency: c.currency,
-        balance: c.balance.toString(),
+        currency: c.balance?.currencyCode || 'CNY',
+        balance: c.balance ? MoneyHelper.from(c.balance).toNumber().toString() : '0',
         isDefault: false,
         isNew: false
       }));
@@ -111,6 +113,7 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
         id: account.id,
         input: {
           name,
+          type: account.type,
           date,
           number,
           remarks,
@@ -128,6 +131,7 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
               balance: parseFloat(child.balance) || 0,
               currency: child.currency,
               isGroup: false,
+              date
             });
           } else {
             await updateAccountMutation.mutateAsync({
@@ -154,7 +158,7 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
     }
 
     return accounts.filter(a =>
-      a.currency === curr &&
+      a.balance?.currencyCode === curr &&
       a.type === account.type && // Filter by same account type
       !accountsToDeleteIds.includes(a.id) &&
       !a.isGroup
@@ -206,8 +210,13 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
 
   // Calculate if we have any blocked currencies (no targets available)
   const requiredCurrencies = Object.keys(
-    [account, ...(isGroup ? children : [])].reduce((acc, curr) => {
-      if (curr && curr.currency) acc[curr.currency] = true;
+    [
+      isGroup ? null : account,
+      ...(isGroup ? children : [])
+    ].reduce((acc, curr) => {
+      // Fix: Account uses balance.currencyCode, ChildAccount uses currency
+      const currencyCode = (curr as Account)?.balance?.currencyCode || (curr as ChildAccount)?.currency;
+      if (curr && currencyCode) acc[currencyCode] = true;
       return acc;
     }, {} as Record<string, boolean>)
   );
@@ -252,7 +261,7 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
                   type="number"
                   value={balance}
                   onChange={e => setBalance(e.target.value)}
-                  disabled={account?.type === 'EXPENSE' || account?.type === 'INCOME'}
+                  disabled={account?.type === AccountType.ACCOUNT_TYPE_EXPENSE || account?.type === AccountType.ACCOUNT_TYPE_INCOME}
                 />
               </div>
             </div>
@@ -362,7 +371,7 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
                                 <span>
                                   {t('accounts:no_available_funding_accounts', {
                                     type: account?.type,
-                                    defaultValue: `No available ${account?.type} funding accounts, please create one before proceeding with deletion`
+                                    defaultValue: `No available ${account?.type ? t(`common:${ACCOUNT_TYPES[account.type]?.label.toLowerCase()}`) : ''} funding accounts, please create one before proceeding with deletion`
                                   })}
                                 </span>
                               </div>
@@ -376,7 +385,7 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
                                 </SelectTrigger>
                                 <SelectContent>
                                   {targets.map(t => (
-                                    <SelectItem key={t.id} value={t.id}>{t.name} ({t.currency})</SelectItem>
+                                    <SelectItem key={t.id} value={t.id}>{t.name} ({t.balance?.currencyCode || ''})</SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>

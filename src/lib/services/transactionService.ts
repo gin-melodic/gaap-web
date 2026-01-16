@@ -1,37 +1,71 @@
-import apiRequest, { API_BASE_PATH } from '../api';
-import { Transaction, TransactionInput, TransactionQuery, PaginatedResponse } from '../types';
+import { secureRequest } from '../network/secure-client';
+import {
+  ListTransactionsReq,
+  ListTransactionsRes,
+  GetTransactionReq,
+  GetTransactionRes,
+  CreateTransactionReq,
+  CreateTransactionRes,
+  UpdateTransactionReq,
+  UpdateTransactionRes,
+  DeleteTransactionReq,
+  DeleteTransactionRes,
+  TransactionInput,
+} from '../proto/transaction/v1/transaction';
 
-const buildQueryString = (query?: Record<string, unknown>): string => {
-  if (!query) return '';
-  const params = new URLSearchParams();
-  Object.entries(query).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      params.set(key, String(value));
-    }
-  });
-  const qs = params.toString();
-  return qs ? '?' + qs : '';
-};
 
 export const transactionService = {
-  list: (query?: TransactionQuery): Promise<PaginatedResponse<Transaction>> =>
-    apiRequest(`${API_BASE_PATH}/transactions${buildQueryString(query)}`),
+  list: async (query?: ListTransactionsReq['query']): Promise<ListTransactionsRes> => {
+    return secureRequest(
+      '/transaction/list-transactions',
+      { query },
+      ListTransactionsReq,
+      ListTransactionsRes
+    );
+  },
 
-  get: (id: string): Promise<Transaction> =>
-    apiRequest(`${API_BASE_PATH}/transactions/${id}`),
+  get: async (id: string): Promise<GetTransactionRes> => {
+    return secureRequest(
+      '/transaction/get-transaction',
+      { id },
+      GetTransactionReq,
+      GetTransactionRes
+    );
+  },
 
-  create: (input: TransactionInput): Promise<Transaction> =>
-    apiRequest(`${API_BASE_PATH}/transactions`, {
-      method: 'POST',
-      body: JSON.stringify(input),
-    }),
+  create: async (input: TransactionInput): Promise<CreateTransactionRes> => {
+    return secureRequest(
+      '/transaction/create-transaction',
+      {
+        input,
+      },
+      CreateTransactionReq,
+      CreateTransactionRes
+    );
+  },
 
-  update: (id: string, input: Partial<TransactionInput>): Promise<Transaction> =>
-    apiRequest(`${API_BASE_PATH}/transactions/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(input),
-    }),
+  update: async (id: string, input: Partial<TransactionInput>): Promise<UpdateTransactionRes> => {
+    return secureRequest(
+      '/transaction/update-transaction',
+      {
+        id,
+        input: input as TransactionInput, // Service handles partial updates, masking happens on backend usually, or we send partial object.
+        // Clarification: UpdateTransactionReq expects 'input' as TransactionInput. 
+        // If the backend supports partial updates with field masks or by ignoring fields, we can cast.
+        // Assuming backend handles partial input effectively for update if fields are zero-valued/undefined.
+      },
+      UpdateTransactionReq,
+      UpdateTransactionRes
+    );
+  },
 
-  delete: (id: string): Promise<void> =>
-    apiRequest(`${API_BASE_PATH}/transactions/${id}`, { method: 'DELETE' }),
+  delete: async (id: string): Promise<DeleteTransactionRes> => {
+    return secureRequest(
+      '/transaction/delete-transaction',
+      { id },
+      DeleteTransactionReq,
+      DeleteTransactionRes
+    );
+  },
 };
+

@@ -59,7 +59,7 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 
   try {
-    const response = await fetch(`${API_BASE_PATH}/auth/refresh`, {
+    const response = await fetch(`${API_BASE_PATH}/auth/refresh-token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
@@ -135,7 +135,7 @@ async function apiRequest<T = unknown>(url: string, options: RequestInit = {}): 
       // Handle 401 Unauthorized - attempt token refresh
       if (resData.code === 401) {
         // Skip refresh for auth endpoints
-        if (url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/refresh')) {
+        if (url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/refresh-token')) {
           throw new ApiError(resData.message || 'Unauthorized', resData.code, resData.data);
         }
 

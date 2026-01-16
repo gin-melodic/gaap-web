@@ -9,18 +9,19 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 
-import apiRequest, { ApiError } from '@/lib/api';
 import { sha256 } from '@/lib/utils';
+
+import { useRegister } from '@/lib/hooks';
 
 export default function RegisterPage() {
   const { t } = useTranslation(['auth', 'common', 'settings']);
   const router = useRouter();
+  const registerMutation = useRegister();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [nickname, setNickname] = useState('');
   const [turnstileToken, setTurnstileToken] = useState('');
-  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,34 +33,27 @@ export default function RegisterPage() {
       toast.error(t('auth:password_mismatch'));
       return;
     }
-    setLoading(true);
 
     try {
       const hashedPassword = await sha256(password);
-      await apiRequest('/api/auth/register', {
-        method: 'POST',
-        body: JSON.stringify({
-          email,
-          password: hashedPassword,
-          nickname,
-          cf_turnstile_response: turnstileToken
-        })
+      await registerMutation.mutateAsync({
+        email,
+        password: hashedPassword,
+        nickname,
+        cfTurnstileResponse: turnstileToken
       });
 
-      toast.success(t('auth:register_success'));
-      router.push('/login');
+      // useRegister hook handles toast and tokens
+      router.push('/dashboard'); // Auto-login often redirects to dashboard, but let's see. Hook says "请登录" (Please login) but secureAuthService returns tokens.
+      // If secureAuthService auto-logs in, we should go to dashboard.
+      // Wait, useRegister hook toast says "注册成功，请登录" in original, but I updated it to just "注册成功".
+      // secureAuthService.register keeps tokens. So we can go to dashboard.
     } catch (err: unknown) {
-      if (err instanceof ApiError) {
-        toast.error(err.message);
-      } else if (err instanceof Error) {
-        toast.error(err.message);
-      } else {
-        toast.error(t('auth:unknown_error'));
-      }
-    } finally {
-      setLoading(false);
+      // Error handled by hook
     }
   };
+
+  const loading = registerMutation.isPending;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">

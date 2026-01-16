@@ -3,12 +3,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { THEMES } from '@/lib/data';
 import apiRequest, { ApiError, API_BASE_PATH } from '@/lib/api';
+import { UserLevelType } from '@/lib/proto/base/base';
 
 interface User {
   email: string;
   nickname: string;
   avatar: string | null;
-  plan: 'FREE' | 'PRO';
+  plan: UserLevelType;
   twoFactorEnabled?: boolean;
 }
 
@@ -57,7 +58,7 @@ const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
 export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState<User>({ email: '', nickname: '', avatar: null, plan: 'FREE' });
+  const [user, setUser] = useState<User>({ email: '', nickname: '', avatar: null, plan: UserLevelType.UNRECOGNIZED });
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
   const [exchangeRatesLastUpdated, setExchangeRatesLastUpdated] = useState<number | null>(null);
   const [baseCurrency, setBaseCurrency] = useState('CNY');
@@ -98,7 +99,7 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
 
       try {
         // Validate token by fetching profile
-        const data = await apiRequest<{ user: User }>(`${API_BASE_PATH}/user/profile`);
+        const data = await apiRequest<{ user: User }>(`${API_BASE_PATH}/user/get-profile`, { method: 'POST' });
 
         if (data && data.user) {
           setUser(data.user);
@@ -115,7 +116,7 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
           localStorage.removeItem('token');
           localStorage.removeItem('refreshToken');
           setIsLoggedIn(false);
-          setUser({ email: '', nickname: '', avatar: null, plan: 'FREE' });
+          setUser({ email: '', nickname: '', avatar: null, plan: UserLevelType.UNRECOGNIZED });
         } else if (error instanceof ApiError && (error.code === 503 || error.code === 502 || error.code === 504)) {
           // Backend service unavailable - keep tokens, user can retry later
           console.warn('Backend service unavailable, will retry later');
@@ -173,7 +174,7 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = () => {
     setIsLoggedIn(false);
-    setUser({ email: '', nickname: '', avatar: null, plan: 'FREE' });
+    setUser({ email: '', nickname: '', avatar: null, plan: UserLevelType.UNRECOGNIZED });
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     // Redirect to login page

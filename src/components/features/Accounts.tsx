@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { useAllAccountsSuspense, Account } from '@/lib/hooks';
+import { useAllAccountsSuspense, Account, AccountType, Money } from '@/lib/hooks';
 import { useTranslation } from 'react-i18next';
 import { ACCOUNT_TYPES, EXCHANGE_RATES } from '@/lib/data';
+import { MoneyHelper } from '@/lib/utils/money';
 import {
   Plus,
   Wallet,
@@ -23,6 +24,7 @@ import EditAccountModal from './EditAccountModal';
 const Accounts = () => {
   const { t } = useTranslation(['accounts', 'common']);
   const { accounts } = useAllAccountsSuspense();
+  // We use string IDs for tabs, but map them to Enums for filtering
   const [activeTab, setActiveTab] = useState('ALL');
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,17 +32,39 @@ const Accounts = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const itemsPerPage = 10;
 
-  const formatCurrency = (amount: number, currency = 'CNY') => {
+  const formatCurrency = (amount: number | Money, currency = 'CNY') => {
+    let val = 0;
+    if (typeof amount === 'number') {
+      val = amount;
+    } else {
+      // Assume Money proto or undefined
+      val = MoneyHelper.from(amount).toNumber();
+    }
+
     try {
-      return new Intl.NumberFormat('zh-CN', { style: 'currency', currency }).format(amount);
+      return new Intl.NumberFormat('zh-CN', { style: 'currency', currency }).format(val);
     } catch {
-      return `${currency} ${amount.toFixed(2)}`;
+      return `${currency} ${val.toFixed(2)}`;
     }
   };
 
+  const tabToEnum: Record<string, AccountType | undefined> = useMemo(() => ({
+    'ASSET': AccountType.ACCOUNT_TYPE_ASSET,
+    'LIABILITY': AccountType.ACCOUNT_TYPE_LIABILITY,
+    'INCOME': AccountType.ACCOUNT_TYPE_INCOME,
+    'EXPENSE': AccountType.ACCOUNT_TYPE_EXPENSE
+  }), []);
+
   const topLevelAccounts = useMemo(() => {
     let filtered = accounts.filter(a => !a.parentId);
-    if (activeTab !== 'ALL') filtered = filtered.filter(a => a.type === activeTab);
+
+    if (activeTab !== 'ALL') {
+      const targetType = tabToEnum[activeTab];
+      if (targetType !== undefined) {
+        filtered = filtered.filter(a => a.type === targetType);
+      }
+    }
+
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(parent => {
@@ -49,14 +73,15 @@ const Accounts = () => {
         return children.some(child => child.name.toLowerCase().includes(query));
       });
     }
-    // Sort by created_at in descending order (newest first)
+    // Sort by createdAt in descending order (newest first)
     filtered.sort((a, b) => {
-      const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-      const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      // Ensure date handling is safe
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       return dateB - dateA;
     });
     return filtered;
-  }, [accounts, activeTab, searchQuery]);
+  }, [accounts, activeTab, searchQuery, tabToEnum]);
 
   const totalPages = Math.ceil(topLevelAccounts.length / itemsPerPage);
 
@@ -74,13 +99,18 @@ const Accounts = () => {
   ];
 
   const AccountRow = ({ account, isChild = false, groupBalance, hasChildren = false }: { account: Account, isChild?: boolean, groupBalance?: number, hasChildren?: boolean }) => {
-    const TypeIcon = ACCOUNT_TYPES[account.type].icon;
-    const typeMeta = ACCOUNT_TYPES[account.type];
+    const typeMeta = ACCOUNT_TYPES[account.type] || ACCOUNT_TYPES[AccountType.ACCOUNT_TYPE_ASSET];
+    const TypeIcon = typeMeta.icon;
 
     const handleClick = () => {
       setEditAccount(account);
       setIsEditModalOpen(true);
     };
+
+    // Safe access to currency
+    const currency = account.balance?.currencyCode || 'CNY';
+    // Safe access to balance value
+    const balanceVal = account.balance; // Money object
 
     if (account.isGroup) {
       const itemBg = hasChildren ? 'bg-[var(--bg-card)]' : 'bg-[var(--bg-main)]';
@@ -124,17 +154,17 @@ const Accounts = () => {
           <div>
             <div className="font-medium text-[var(--text-main)] flex items-center gap-2">
               {account.name}
-              {account.currency !== 'CNY' && (
-                <span className="text-[10px] bg-[var(--bg-main)] text-[var(--text-muted)] px-1.5 py-0.5 rounded font-bold">{account.currency}</span>
+              {currency !== 'CNY' && (
+                <span className="text-[10px] bg-[var(--bg-main)] text-[var(--text-muted)] px-1.5 py-0.5 rounded font-bold">{currency}</span>
               )}
             </div>
-            {!isChild && <div className="text-xs text-[var(--text-muted)] capitalize">{t('common:' + account.type.toLowerCase())}</div>}
+            {!isChild && <div className="text-xs text-[var(--text-muted)] capitalize">{t('common:' + typeMeta.label.toLowerCase())}</div>}
           </div>
         </div>
         <div className="text-right">
-          <div className="font-bold text-[var(--text-main)]">{formatCurrency(account.balance, account.currency)}</div>
-          {account.currency !== 'CNY' && (
-            <div className="text-[10px] text-slate-400">≈ {formatCurrency(account.balance * (EXCHANGE_RATES[account.currency] || 1), 'CNY')}</div>
+          <div className="font-bold text-[var(--text-main)]">{formatCurrency(MoneyHelper.from(balanceVal).toNumber(), currency)}</div>
+          {currency !== 'CNY' && (
+            <div className="text-[10px] text-slate-400">≈ {formatCurrency(MoneyHelper.from(balanceVal).toNumber() * (EXCHANGE_RATES[currency] || 1), 'CNY')}</div>
           )}
         </div>
       </div>
@@ -144,8 +174,10 @@ const Accounts = () => {
   const renderAccountCard = (parentAccount: Account) => {
     const children = accounts.filter(a => a.parentId === parentAccount.id);
     const groupBalance = children.reduce((sum, child) => {
-      const rate = EXCHANGE_RATES[child.currency] || 1;
-      return sum + (child.balance * rate);
+      const childIso = child.balance?.currencyCode || 'CNY';
+      const rate = EXCHANGE_RATES[childIso] || 1;
+      const balVal = MoneyHelper.from(child.balance).toNumber();
+      return sum + (balVal * rate);
     }, 0);
 
     return (
@@ -222,11 +254,13 @@ const Accounts = () => {
       </div>
 
       <AddAccountModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
-      <EditAccountModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        account={editAccount}
-      />
+      {editAccount && (
+        <EditAccountModal
+          isOpen={isEditModalOpen}
+          onClose={() => { setIsEditModalOpen(false); setEditAccount(null); }}
+          account={editAccount}
+        />
+      )}
     </div>
   );
 };

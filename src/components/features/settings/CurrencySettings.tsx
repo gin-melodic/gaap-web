@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { UserLevelType } from '@/lib/hooks';
 
 export const CurrencySettings = ({ onBack, onUpgrade }: { onBack: () => void; onUpgrade: () => void }) => {
   const { t } = useTranslation(['settings', 'common']);
@@ -25,7 +26,7 @@ export const CurrencySettings = ({ onBack, onUpgrade }: { onBack: () => void; on
 
   // Fetch rates for Pro users
   useEffect(() => {
-    if (user.plan === 'PRO' && baseCurrency) {
+    if (user.plan === UserLevelType.USER_LEVEL_TYPE_PRO && baseCurrency) {
       const fetchRates = async () => {
         setIsRefreshing(true);
         try {
@@ -75,18 +76,18 @@ export const CurrencySettings = ({ onBack, onUpgrade }: { onBack: () => void; on
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-[var(--text-main)]">{t('settings:currency_management')}</h2>
         <div className="flex flex-col items-end gap-1">
-          {user.plan === 'PRO' && (
+          {user.plan === UserLevelType.USER_LEVEL_TYPE_PRO && (
             <div className="flex items-center gap-2 text-xs text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full font-medium">
               <Sparkles size={12} />
               {isRefreshing ? t('settings:syncing') : t('settings:realtime_rates_active')}
             </div>
           )}
-          {user.plan === 'PRO' && exchangeRatesLastUpdated && (
+          {user.plan === UserLevelType.USER_LEVEL_TYPE_PRO && exchangeRatesLastUpdated && (
             <div className="text-xs text-[var(--text-muted)]">
               {t('settings:last_updated', { time: new Date(exchangeRatesLastUpdated).toLocaleString() })}
             </div>
           )}
-          {user.plan === 'FREE' && (
+          {user.plan === UserLevelType.USER_LEVEL_TYPE_FREE && (
             <Button
               onClick={onUpgrade}
               variant="outline"
