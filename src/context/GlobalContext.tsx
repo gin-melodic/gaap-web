@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { THEMES } from '@/lib/data';
-import apiRequest, { ApiError, API_BASE_PATH } from '@/lib/api';
+import { ApiError } from '@/lib/api';
+import { secureAuthService } from '@/lib/services/secureAuthService';
 import { UserLevelType } from '@/lib/proto/base/base';
 
 interface User {
@@ -97,12 +98,30 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
+      // For ALE-encrypted endpoints, we also need a session key
+      const sessionKey = localStorage.getItem('sessionKey');
+      if (!sessionKey) {
+        // Token exists but no session key - user needs to re-login
+        console.warn('Token exists but no session key, clearing tokens');
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        // Validate token by fetching profile
-        const data = await apiRequest<{ user: User }>(`${API_BASE_PATH}/user/get-profile`, { method: 'POST' });
+        // Validate token by fetching profile using secure ALE-encrypted service
+        const data = await secureAuthService.getProfile();
 
         if (data && data.user) {
-          setUser(data.user);
+          // Map the protobuf user response to our User type
+          setUser({
+            email: data.user.email || '',
+            nickname: data.user.nickname || '',
+            avatar: data.user.avatar || null,
+            plan: data.user.plan ?? UserLevelType.UNRECOGNIZED,
+            twoFactorEnabled: data.user.twoFactorEnabled ?? false,
+          });
           setIsLoggedIn(true);
         } else {
           throw new Error('Invalid user profile data');

@@ -202,7 +202,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
                 `}
               >
                 <value.icon size={24} />
-                <span className="text-sm font-bold">{t(`common:${key.toLowerCase()}`)}</span>
+                <span className="text-sm font-bold">{t(`common:${value.translationKey}`)}</span>
               </div>
             ))}
           </div>

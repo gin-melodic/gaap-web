@@ -371,7 +371,7 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
                                 <span>
                                   {t('accounts:no_available_funding_accounts', {
                                     type: account?.type,
-                                    defaultValue: `No available ${account?.type ? t(`common:${ACCOUNT_TYPES[account.type]?.label.toLowerCase()}`) : ''} funding accounts, please create one before proceeding with deletion`
+                                    defaultValue: `No available ${account?.type ? t(`common:${ACCOUNT_TYPES[account.type]?.translationKey}`) : ''} funding accounts, please create one before proceeding with deletion`
                                   })}
                                 </span>
                               </div>

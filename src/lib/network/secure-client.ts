@@ -261,19 +261,20 @@ async function attemptTokenRefresh(): Promise<boolean> {
 
   isRefreshing = true;
 
-  try {
-    const refreshToken = tokenStorage.getRefreshToken();
-    if (!refreshToken) {
-      onRefreshComplete(false);
-      return false;
-    }
+  // Capture the token we are about to use
+  const initialRefreshToken = tokenStorage.getRefreshToken();
+  if (!initialRefreshToken) {
+    onRefreshComplete(false);
+    return false;
+  }
 
+  try {
     // Import RefreshTokenReq/Res lazily to avoid circular deps
     const { RefreshTokenReq, RefreshTokenRes } = await import('../proto/auth/v1/auth');
 
     const result = await secureRequest(
       '/auth/refresh-token',
-      { refreshToken },
+      { refreshToken: initialRefreshToken },
       RefreshTokenReq,
       RefreshTokenRes,
       'bootstrap',
@@ -295,6 +296,19 @@ async function attemptTokenRefresh(): Promise<boolean> {
     onRefreshComplete(false);
     return false;
   } catch {
+    // If refresh failed (e.g. token revoked), check if another tab refreshed it.
+    // Give the other tab a moment to update localStorage.
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const currentRefreshToken = tokenStorage.getRefreshToken();
+
+    // If the token in storage has changed since we started, it means another tab
+    // successfully refreshed it. We can consider this a success.
+    if (currentRefreshToken && currentRefreshToken !== initialRefreshToken) {
+      onRefreshComplete(true);
+      return true;
+    }
+
     onRefreshComplete(false);
     return false;
   } finally {

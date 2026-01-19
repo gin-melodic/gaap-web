@@ -158,7 +158,7 @@ const Accounts = () => {
                 <span className="text-[10px] bg-[var(--bg-main)] text-[var(--text-muted)] px-1.5 py-0.5 rounded font-bold">{currency}</span>
               )}
             </div>
-            {!isChild && <div className="text-xs text-[var(--text-muted)] capitalize">{t('common:' + typeMeta.label.toLowerCase())}</div>}
+            {!isChild && <div className="text-xs text-[var(--text-muted)] capitalize">{t('common:' + typeMeta.translationKey)}</div>}
           </div>
         </div>
         <div className="text-right">
