@@ -38,6 +38,8 @@
   "last_updated": "最後更新: {{time}}",
   "currency_placeholder": "貨幣代碼 (如 GBP)",
   "sync_failed": "同步匯率失敗，請檢查網路",
+  "base_currency_updated": "基準貨幣已更新",
+  "update_failed": "更新基準貨幣失敗",
   "rates_synced": "匯率已更新",
   "syncing": "正在同步...",
   "realtime_rates_active": "即時匯率已啟用",

@@ -38,5 +38,11 @@
   "free_group_disabled": "Parent-child accounts are available for Pro users only. Upgrade to unlock multi-currency account management.",
   "delete_no_transactions_confirm": "This account has no transactions. Are you sure you want to delete it? The balance will be cleared and this action cannot be undone.",
   "initial_balance_info": "An opening balance voucher will be generated automatically",
-  "equity": "Equity"
+  "equity": "Equity",
+  "create_success": "Account created successfully",
+  "create_failed": "Creation failed",
+  "update_success": "Account updated successfully",
+  "update_failed": "Update failed",
+  "delete_failed": "Deletion failed",
+  "migration_task_started": "Migration task created, please check progress in Task Center"
 }

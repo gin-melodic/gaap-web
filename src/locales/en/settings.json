@@ -38,6 +38,8 @@
   "last_updated": "Last updated: {{time}}",
   "currency_placeholder": "Currency Code (e.g. GBP)",
   "sync_failed": "Failed to sync rates",
+  "base_currency_updated": "Base currency updated",
+  "update_failed": "Failed to update base currency",
   "rates_synced": "Exchange rates updated",
   "syncing": "Syncing...",
   "realtime_rates_active": "Real-time Rates Active",

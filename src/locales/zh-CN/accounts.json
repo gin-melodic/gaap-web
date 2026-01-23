@@ -38,5 +38,11 @@
   "free_group_disabled": "父子账户功能仅限 Pro 用户，升级后可使用多币种账户管理",
   "delete_no_transactions_confirm": "该账户没有交易记录，确定要删除吗？删除后余额将直接清零，此操作无法撤销。",
   "initial_balance_info": "系统将自动生成期初凭证",
-  "equity": "权益"
+  "equity": "权益",
+  "create_success": "账户创建成功",
+  "create_failed": "创建失败",
+  "update_success": "账户更新成功",
+  "update_failed": "更新失败",
+  "delete_failed": "删除失败",
+  "migration_task_started": "迁移任务已创建，请在任务中心查看进度"
 }

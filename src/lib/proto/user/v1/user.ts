@@ -31,6 +31,7 @@ export interface UserInput {
   nickname: string;
   avatar?: string | undefined;
   plan: UserLevelType;
+  mainCurrency?: string | undefined;
 }
 
 export interface GetUserProfileReq {
@@ -258,7 +259,7 @@ export const User: MessageFns<User> = {
 };
 
 function createBaseUserInput(): UserInput {
-  return { nickname: "", avatar: undefined, plan: 0 };
+  return { nickname: "", avatar: undefined, plan: 0, mainCurrency: undefined };
 }
 
 export const UserInput: MessageFns<UserInput> = {
@@ -271,6 +272,9 @@ export const UserInput: MessageFns<UserInput> = {
     }
     if (message.plan !== 0) {
       writer.uint32(24).int32(message.plan);
+    }
+    if (message.mainCurrency !== undefined) {
+      writer.uint32(34).string(message.mainCurrency);
     }
     return writer;
   },
@@ -306,6 +310,14 @@ export const UserInput: MessageFns<UserInput> = {
           message.plan = reader.int32() as any;
           continue;
         }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.mainCurrency = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -320,6 +332,7 @@ export const UserInput: MessageFns<UserInput> = {
       nickname: isSet(object.nickname) ? globalThis.String(object.nickname) : "",
       avatar: isSet(object.avatar) ? globalThis.String(object.avatar) : undefined,
       plan: isSet(object.plan) ? userLevelTypeFromJSON(object.plan) : 0,
+      mainCurrency: isSet(object.mainCurrency) ? globalThis.String(object.mainCurrency) : undefined,
     };
   },
 
@@ -334,6 +347,9 @@ export const UserInput: MessageFns<UserInput> = {
     if (message.plan !== 0) {
       obj.plan = userLevelTypeToJSON(message.plan);
     }
+    if (message.mainCurrency !== undefined) {
+      obj.mainCurrency = message.mainCurrency;
+    }
     return obj;
   },
 
@@ -345,6 +361,7 @@ export const UserInput: MessageFns<UserInput> = {
     message.nickname = object.nickname ?? "";
     message.avatar = object.avatar ?? undefined;
     message.plan = object.plan ?? 0;
+    message.mainCurrency = object.mainCurrency ?? undefined;
     return message;
   },
 };

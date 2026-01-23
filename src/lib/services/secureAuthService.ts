@@ -27,10 +27,13 @@ import {
 import {
   GetUserProfileReq,
   GetUserProfileRes,
+  UpdateUserProfileReq,
+  UpdateUserProfileRes,
+  UserInput,
 } from '../proto/user/v1/user';
 
 // Re-export types for convenience
-export type { LoginRes, RegisterRes, RefreshTokenRes };
+export type { LoginRes, RegisterRes, RefreshTokenRes, UserInput };
 
 /**
  * Secure Auth Service using ALE + Protobuf
@@ -150,6 +153,13 @@ export const secureAuthService = {
    */
   getProfile: async (): Promise<GetUserProfileRes> => {
     return secureRequest('/user/get-profile', {}, GetUserProfileReq, GetUserProfileRes, 'session');
+  },
+
+  /**
+   * Update user profile
+   */
+  updateProfile: async (input: UserInput): Promise<UpdateUserProfileRes> => {
+    return secureRequest('/user/update-profile', { input }, UpdateUserProfileReq, UpdateUserProfileRes, 'session');
   },
 
   /**

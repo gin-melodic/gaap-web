@@ -83,7 +83,7 @@ export function useWebSocket(): UseWebSocketReturn {
             };
 
             ws.onerror = (error) => {
-                console.error('[WebSocket] Error:', error);
+                console.warn('[WebSocket] Error:', error);
                 setStatus('error');
             };
 

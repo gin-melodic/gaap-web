@@ -27,8 +27,8 @@ export interface Account {
   /** Replaced float64 with Money */
   balance: Money | undefined;
   defaultChildId?:
-  | string
-  | undefined;
+    | string
+    | undefined;
   /** ISO 8601 Date string */
   date: string;
   number: string;

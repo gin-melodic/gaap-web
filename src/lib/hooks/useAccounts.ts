@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient, useSuspenseQuery } from '@tansta
 import { accountService } from '../services';
 import { AccountInput, AccountQuery } from '../types';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 // Query Keys
 export const accountKeys = {
@@ -61,6 +62,7 @@ export interface AccountFormInput extends Omit<AccountInput, 'balance'> {
 
 // Create account
 export function useCreateAccount(options?: { silent?: boolean }) {
+  const { t } = useTranslation('accounts');
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -83,23 +85,24 @@ export function useCreateAccount(options?: { silent?: boolean }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: accountKeys.lists() });
       if (!options?.silent) {
-        toast.success('账户创建成功');
+        toast.success(t('create_success'));
       }
     },
     onError: (error: Error) => {
-      toast.error(error.message || '创建失败');
+      toast.error(error.message || t('create_failed'));
     },
   });
 }
 
 // Update account
 export function useUpdateAccount() {
+  const { t } = useTranslation('accounts');
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: Partial<AccountFormInput> }) => {
       const { balance, currency, ...rest } = input;
-      const protoInput: any = { ...rest };
+      const protoInput: Partial<AccountInput> = { ...rest };
       if (balance !== undefined && currency) {
         protoInput.balance = MoneyHelper.fromAmount(balance, currency).toProto();
       }
@@ -108,16 +111,17 @@ export function useUpdateAccount() {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: accountKeys.lists() });
       queryClient.invalidateQueries({ queryKey: accountKeys.detail(id) });
-      toast.success('账户更新成功');
+      toast.success(t('update_success'));
     },
     onError: (error: Error) => {
-      toast.error(error.message || '更新失败');
+      toast.error(error.message || t('update_failed'));
     },
   });
 }
 
 // Delete account (creates migration task)
 export function useDeleteAccount() {
+  const { t } = useTranslation('accounts');
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -126,13 +130,13 @@ export function useDeleteAccount() {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: accountKeys.lists() });
       if (result?.taskId) {
-        toast.info('迁移任务已创建，请在任务中心查看进度');
+        toast.info(t('migration_task_started'));
       } else {
-        toast.success('账户删除成功');
+        toast.success(t('delete_success'));
       }
     },
     onError: (error: Error) => {
-      toast.error(error.message || '删除失败');
+      toast.error(error.message || t('delete_failed'));
     },
   });
 }
