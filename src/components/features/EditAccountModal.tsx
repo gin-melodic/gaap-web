@@ -261,7 +261,7 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
                   type="number"
                   value={balance}
                   onChange={e => setBalance(e.target.value)}
-                  disabled={account?.type === AccountType.ACCOUNT_TYPE_EXPENSE || account?.type === AccountType.ACCOUNT_TYPE_INCOME}
+                  disabled={account?.type === AccountType.ACCOUNT_TYPE_EXPENSE || account?.type === AccountType.ACCOUNT_TYPE_INCOME || account?.type === AccountType.ACCOUNT_TYPE_EQUITY}
                 />
               </div>
             </div>

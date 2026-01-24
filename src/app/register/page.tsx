@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { useGlobal } from '@/context/GlobalContext';
 
 import { sha256 } from '@/lib/utils';
 
@@ -16,6 +17,7 @@ import { useRegister } from '@/lib/hooks';
 export default function RegisterPage() {
   const { t } = useTranslation(['auth', 'common', 'settings']);
   const router = useRouter();
+  const { login: contextLogin } = useGlobal();
   const registerMutation = useRegister();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,18 +38,24 @@ export default function RegisterPage() {
 
     try {
       const hashedPassword = await sha256(password);
-      await registerMutation.mutateAsync({
+      const data = await registerMutation.mutateAsync({
         email,
         password: hashedPassword,
         nickname,
         cfTurnstileResponse: turnstileToken
       });
 
-      // useRegister hook handles toast and tokens
-      router.push('/dashboard'); // Auto-login often redirects to dashboard, but let's see. Hook says "请登录" (Please login) but secureAuthService returns tokens.
-      // If secureAuthService auto-logs in, we should go to dashboard.
-      // Wait, useRegister hook toast says "注册成功，请登录" in original, but I updated it to just "注册成功".
-      // secureAuthService.register keeps tokens. So we can go to dashboard.
+      // Registration with auto-login successful - update global context with user data
+      if (data && data.auth && data.auth.user) {
+        contextLogin({
+          email: data.auth.user.email,
+          nickname: data.auth.user.nickname,
+          avatar: data.auth.user.avatar,
+          plan: data.auth.user.plan
+        });
+      }
+
+      router.push('/dashboard');
     } catch (err: unknown) {
       // Error handled by hook
     }
