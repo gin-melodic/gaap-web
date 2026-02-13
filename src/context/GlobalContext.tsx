@@ -103,8 +103,9 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
       if (!sessionKey) {
         // Token exists but no session key - user needs to re-login
         console.warn('Token exists but no session key, clearing tokens');
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
+        // Clear all auth-related tokens/session state
+        secureAuthService.clearTokens();
+        localStorage.removeItem('sessionKey');
         setIsLoading(false);
         return;
       }
