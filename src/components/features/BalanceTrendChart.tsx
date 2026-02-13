@@ -77,18 +77,28 @@ const BalanceTrendChart = () => {
 
   // Transform backend data for recharts
   const chartData = useMemo(() => {
-    if (!trendData?.data) return [];
+    if (!trendData?.data || !Array.isArray(trendData.data)) return [];
 
     const baseRate = EXCHANGE_RATES[mainCurrency] || 1;
 
-    return trendData.data.map((d: DailyBalance) => {
+    const td = trendData.data.map((d: DailyBalance) => {
       let allTotal = 0;
       const convertedBalances: Record<string, number> = {};
+      const balances = d.balances || {};
 
-      Object.entries(d.balances).forEach(([id, balance]) => {
+      Object.entries(balances).forEach(([id, balance]) => {
         const acc = accounts.find(a => a.id === id);
-        const accRate = acc ? (EXCHANGE_RATES[acc.balance?.currencyCode || DEFAULT_CURRENCY_CODE] || 1) : 1;
-        const amount = MoneyHelper.from(balance).toNumber();
+        // Prefer the per-day balance currency; fallback to account's currency or default
+        const currency = balance?.currencyCode || acc?.balance?.currencyCode || DEFAULT_CURRENCY_CODE;
+        const accRate = (EXCHANGE_RATES[currency] || 1);
+        
+        let amount = 0;
+        try {
+          amount = MoneyHelper.from(balance).toNumber();
+        } catch (error) {
+          console.error(`Error parsing balance for account ${id}:`, error);
+        }
+        
         const converted = amount * (accRate / baseRate);
 
         convertedBalances[id] = converted;
@@ -98,6 +108,15 @@ const BalanceTrendChart = () => {
         }
       });
 
+      // Ensure selected accounts always have a numeric value (0 when missing)
+      const requiredIds = selectedAccountIds.includes('all')
+        ? accounts.filter(a => a.type === AccountType.ACCOUNT_TYPE_ASSET && !a.isGroup).map(a => a.id)
+        : selectedAccountIds;
+
+      requiredIds.forEach(id => {
+        if (convertedBalances[id] === undefined) convertedBalances[id] = 0;
+      });
+
       return {
         date: d.date,
         displayDate: d.date.substring(5), // MM-DD
@@ -105,7 +124,8 @@ const BalanceTrendChart = () => {
         all: allTotal
       };
     });
-  }, [trendData, accounts, mainCurrency]);
+    return td;
+  }, [trendData, accounts, mainCurrency, selectedAccountIds]);
 
   const currencySymbol = useMemo(() => {
     try {

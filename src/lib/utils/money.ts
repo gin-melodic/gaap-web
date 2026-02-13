@@ -37,12 +37,16 @@ export class MoneyHelper {
       return new MoneyHelper(new Decimal(0), '');
     }
 
-    const unitsDec = new Decimal(input.units);
-    const nanosDec = new Decimal(input.nanos).div(NANOS_MOD);
+    // Allow missing units/nanos (server may omit them when value is zero)
+    const units = input.units ?? 0;
+    const nanos = input.nanos ?? 0;
+
+    const unitsDec = new Decimal(units);
+    const nanosDec = new Decimal(nanos).div(NANOS_MOD);
 
     const total = unitsDec.plus(nanosDec);
 
-    return new MoneyHelper(total, input.currencyCode);
+    return new MoneyHelper(total, input.currencyCode || '');
   }
 
   /**

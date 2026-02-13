@@ -28,7 +28,7 @@ export function useLogin() {
       queryClient.clear();
     },
     onError: (error: Error) => {
-      toast.error(error.message || '登录失败');
+      // Handle specific error messages for better UX
     },
   });
 }
@@ -49,7 +49,7 @@ export function useRegister() {
 
       toast.success('注册成功');
     },
-    onError: (error: Error) => toast.error(error.message || '注册失败'),
+    // onError: (error: Error) => toast.error(error.message || '注册失败'),
   });
 }
 

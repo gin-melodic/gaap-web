@@ -384,9 +384,14 @@ export async function logout<TReq, TRes>(
   ResType: MessageFns<TRes>
 ): Promise<void> {
   try {
-    await secureRequest('/auth/logout', {}, ReqType, ResType, 'session');
+    // Use the bootstrap key for auth endpoints (server ALE middleware for /auth/* is bootstrap)
+    await secureRequest('/auth/logout', {}, ReqType, ResType, 'bootstrap');
   } finally {
     tokenStorage.clear();
     resetNetworkState();
+    // Redirect to login page after logout
+    if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+      window.location.href = '/login';
+    }
   }
 }

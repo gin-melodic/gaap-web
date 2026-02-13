@@ -101,9 +101,7 @@ const LoginPage = () => {
           toast.error(t('auth:invalid_email_or_password'), { duration: 4000 });
           return;
         }
-        // Error already handled by hook
       } else if (err instanceof Error) {
-        // Error already handled by hook
       }
     }
   };
