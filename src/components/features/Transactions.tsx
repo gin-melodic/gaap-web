@@ -88,7 +88,7 @@ const Transactions = () => {
   const getAccountCurrency = (account?: Account) => {
     // If account.balance is undefined, default to CNY
     return account?.balance?.currencyCode || 'CNY';
-  }
+  };
 
   const currentCurrency = getAccountCurrency(accounts.find(a => a.id === newTx.from));
 
