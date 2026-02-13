@@ -17,17 +17,17 @@ import { secureAuthService } from '../../lib/services/secureAuthService';
 
 // Test component to access context
 const TestComponent = () => {
-  const { user, isLoading } = useGlobal();
+  const { user, isLoggedIn, isLoading } = useGlobal();
   
   if (isLoading) {
     return <div>Loading...</div>;
   }
   
-  if (!user) {
-    return <div>Not logged in</div>;
+  if (isLoggedIn) {
+    return <div>Logged in as {user.nickname}</div>;
   }
   
-  return <div>Logged in as {user.nickname}</div>;
+  return <div>Not logged in</div>;
 };
 
 // Mock localStorage
