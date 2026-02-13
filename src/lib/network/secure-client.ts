@@ -48,21 +48,33 @@ const SESSION_KEY = 'sessionKey';
 
 export const tokenStorage: TokenStorage = {
   getToken: () => (typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null),
-  setToken: (token) => localStorage.setItem(TOKEN_KEY, token),
+  setToken: (token) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(TOKEN_KEY, token);
+    }
+  },
   getRefreshToken: () => (typeof window !== 'undefined' ? localStorage.getItem(REFRESH_TOKEN_KEY) : null),
-  setRefreshToken: (token) => localStorage.setItem(REFRESH_TOKEN_KEY, token),
+  setRefreshToken: (token) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(REFRESH_TOKEN_KEY, token);
+    }
+  },
   getSessionKey: () => (typeof window !== 'undefined' ? localStorage.getItem(SESSION_KEY) : null),
   setSessionKey: (key) => {
-    if (key) {
-      localStorage.setItem(SESSION_KEY, key);
-    } else {
-      localStorage.removeItem(SESSION_KEY);
+    if (typeof window !== 'undefined') {
+      if (key) {
+        localStorage.setItem(SESSION_KEY, key);
+      } else {
+        localStorage.removeItem(SESSION_KEY);
+      }
     }
   },
   clear: () => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-    localStorage.removeItem(SESSION_KEY);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
+      localStorage.removeItem(SESSION_KEY);
+    }
   },
 };
 
