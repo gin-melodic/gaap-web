@@ -58,7 +58,8 @@ export const CurrencySettings = ({ onBack, onUpgrade }: { onBack: () => void; on
 
   // Fetch rates for Pro users
   useEffect(() => {
-    // ... (existing useEffect logic) ...
+    // When base currency, user plan, or the number of tracked currencies changes, refresh
+    // exchange rates for Pro users so calculations stay in sync with the latest API data.
     if (user.plan === UserLevelType.USER_LEVEL_TYPE_PRO && baseCurrency) {
       const fetchRates = async () => {
         setIsRefreshing(true);
