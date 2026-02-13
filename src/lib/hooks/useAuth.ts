@@ -22,12 +22,12 @@ export function useLogin() {
 
   return useMutation({
     mutationFn: (input: LoginInput) => secureAuthService.login(input),
-    onSuccess: (data) => {
+    onSuccess: () => {
       // Tokens are already handled by secureAuthService
       // Clear ALL cached queries to prevent stale errors from being replayed
       queryClient.clear();
     },
-    onError: (error: Error) => {
+    onError: () => {
       // Handle specific error messages for better UX
     },
   });

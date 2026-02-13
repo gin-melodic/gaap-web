@@ -56,7 +56,7 @@ export default function RegisterPage() {
       }
 
       router.push('/dashboard');
-    } catch (err: unknown) {
+    } catch {
       // Error handled by hook
       toast.error(t('auth:register_failed'), { duration: 4000 });
     }
