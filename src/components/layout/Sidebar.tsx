@@ -21,8 +21,6 @@ const Sidebar = () => {
   const { user, setSettingsView } = useGlobal();
   const { t } = useTranslation('common');
 
-  console.info('User:', user);
-
   // Localized plan label
   const planLabel = user?.plan === UserLevelType.USER_LEVEL_TYPE_PRO
     ? t('settings:plans.pro.name')
