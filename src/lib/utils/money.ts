@@ -64,14 +64,19 @@ export class MoneyHelper {
     let units = this.amount.trunc();
     let nanos = this.amount.minus(units).times(NANOS_MOD).round();
 
-    // Normalize: if nanos rounds to ±1_000_000_000, carry into units
-    const nanosNum = nanos.toNumber();
-    if (nanosNum >= NANOS_MOD) {
-      units = units.plus(1);
-      nanos = nanos.minus(NANOS_MOD);
-    } else if (nanosNum <= -NANOS_MOD) {
-      units = units.minus(1);
-      nanos = nanos.plus(NANOS_MOD);
+    // Normalize: carry overflow/underflow nanos into units
+    // This handles cases where rounding produces values outside [-999,999,999, 999,999,999]
+    let nanosNum = nanos.toNumber();
+    while (nanosNum >= NANOS_MOD || nanosNum <= -NANOS_MOD) {
+      if (nanosNum >= NANOS_MOD) {
+        units = units.plus(1);
+        nanos = nanos.minus(NANOS_MOD);
+        nanosNum -= NANOS_MOD;
+      } else if (nanosNum <= -NANOS_MOD) {
+        units = units.minus(1);
+        nanos = nanos.plus(NANOS_MOD);
+        nanosNum += NANOS_MOD;
+      }
     }
 
     return {
