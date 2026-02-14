@@ -20,8 +20,6 @@ describe('MoneyHelper', () => {
       
       expect(proto.units).toBe('1');
       expect(proto.nanos).toBe(0);
-      expect(proto.nanos).toBeGreaterThanOrEqual(-999_999_999);
-      expect(proto.nanos).toBeLessThanOrEqual(999_999_999);
     });
 
     it('should normalize when nanos rounds to -1_000_000_000', () => {
@@ -31,8 +29,6 @@ describe('MoneyHelper', () => {
       
       expect(proto.units).toBe('-1');
       expect(proto.nanos).toBe(0);
-      expect(proto.nanos).toBeGreaterThanOrEqual(-999_999_999);
-      expect(proto.nanos).toBeLessThanOrEqual(999_999_999);
     });
 
     it('should handle positive values close to rounding boundary', () => {
@@ -41,8 +37,6 @@ describe('MoneyHelper', () => {
       
       expect(proto.units).toBe('6');
       expect(proto.nanos).toBe(0);
-      expect(proto.nanos).toBeGreaterThanOrEqual(-999_999_999);
-      expect(proto.nanos).toBeLessThanOrEqual(999_999_999);
     });
 
     it('should handle negative values close to rounding boundary', () => {
@@ -51,8 +45,6 @@ describe('MoneyHelper', () => {
       
       expect(proto.units).toBe('-6');
       expect(proto.nanos).toBe(0);
-      expect(proto.nanos).toBeGreaterThanOrEqual(-999_999_999);
-      expect(proto.nanos).toBeLessThanOrEqual(999_999_999);
     });
 
     it('should handle zero', () => {
@@ -69,8 +61,6 @@ describe('MoneyHelper', () => {
       
       expect(proto.units).toBe('1000000');
       expect(proto.nanos).toBe(0);
-      expect(proto.nanos).toBeGreaterThanOrEqual(-999_999_999);
-      expect(proto.nanos).toBeLessThanOrEqual(999_999_999);
     });
 
     it('should handle large negative values', () => {
@@ -79,8 +69,6 @@ describe('MoneyHelper', () => {
       
       expect(proto.units).toBe('-1000000');
       expect(proto.nanos).toBe(0);
-      expect(proto.nanos).toBeGreaterThanOrEqual(-999_999_999);
-      expect(proto.nanos).toBeLessThanOrEqual(999_999_999);
     });
 
     it('should maintain consistency: from -> toProto -> from should preserve value', () => {

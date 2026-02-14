@@ -68,10 +68,10 @@ export class MoneyHelper {
     // Rounding can produce exactly ±NANOS_MOD, which needs to be carried to units
     if (nanos.eq(NANOS_MOD)) {
       units = units.plus(1);
-      nanos = nanos.minus(NANOS_MOD);
+      nanos = new Decimal(0);
     } else if (nanos.eq(-NANOS_MOD)) {
       units = units.minus(1);
-      nanos = nanos.plus(NANOS_MOD);
+      nanos = new Decimal(0);
     }
 
     return {
