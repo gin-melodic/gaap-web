@@ -75,6 +75,11 @@ describe('MoneyHelper', () => {
       const originalAmount = 123.456789012;
       const money1 = MoneyHelper.fromAmount(originalAmount, 'USD');
       const proto = money1.toProto();
+      
+      // Verify proto has valid nanos (this is the bug fix test)
+      expect(proto.nanos).toBeGreaterThanOrEqual(-999_999_999);
+      expect(proto.nanos).toBeLessThanOrEqual(999_999_999);
+      
       const money2 = MoneyHelper.from(proto);
       
       // The round-trip should preserve the value within reasonable precision
@@ -90,6 +95,23 @@ describe('MoneyHelper', () => {
       // Should not throw and should have valid nanos
       expect(proto.nanos).toBeGreaterThanOrEqual(-999_999_999);
       expect(proto.nanos).toBeLessThanOrEqual(999_999_999);
+    });
+
+    it('should always produce valid nanos for any amount', () => {
+      // Test various random amounts to ensure nanos is always valid
+      const testAmounts = [
+        0.9999999995, -0.9999999995,
+        1.9999999995, -1.9999999995,
+        999.9999999995, -999.9999999995,
+        0.123456789, -0.123456789,
+        12345.6789, -12345.6789,
+      ];
+
+      for (const amount of testAmounts) {
+        const proto = MoneyHelper.fromAmount(amount, 'USD').toProto();
+        expect(proto.nanos).toBeGreaterThanOrEqual(-999_999_999);
+        expect(proto.nanos).toBeLessThanOrEqual(999_999_999);
+      }
     });
   });
 
