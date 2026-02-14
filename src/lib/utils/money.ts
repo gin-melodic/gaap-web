@@ -66,11 +66,10 @@ export class MoneyHelper {
 
     // Normalize: carry overflow/underflow nanos into units
     // Rounding can produce at most ±NANOS_MOD, so a single check suffices
-    const nanosNum = nanos.toNumber();
-    if (nanosNum >= NANOS_MOD) {
+    if (nanos.gte(NANOS_MOD)) {
       units = units.plus(1);
       nanos = nanos.minus(NANOS_MOD);
-    } else if (nanosNum <= -NANOS_MOD) {
+    } else if (nanos.lte(-NANOS_MOD)) {
       units = units.minus(1);
       nanos = nanos.plus(NANOS_MOD);
     }
