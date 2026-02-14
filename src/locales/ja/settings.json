@@ -38,6 +38,8 @@
   "last_updated": "最終更新: {{time}}",
   "currency_placeholder": "通貨コード (例: GBP)",
   "sync_failed": "レートの同期に失敗しました",
+  "base_currency_updated": "基本通貨が更新されました",
+  "update_failed": "基本通貨の更新に失敗しました",
   "rates_synced": "為替レートを更新しました",
   "syncing": "同期中...",
   "realtime_rates_active": "リアルタイムレート有効",

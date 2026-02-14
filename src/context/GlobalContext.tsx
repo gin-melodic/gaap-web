@@ -2,13 +2,15 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { THEMES } from '@/lib/data';
-import apiRequest, { ApiError, API_BASE_PATH } from '@/lib/api';
+import { ApiError } from '@/lib/api';
+import { secureAuthService } from '@/lib/services/secureAuthService';
+import { UserLevelType } from '@/lib/proto/base/base';
 
 interface User {
   email: string;
   nickname: string;
   avatar: string | null;
-  plan: 'FREE' | 'PRO';
+  plan: UserLevelType;
   twoFactorEnabled?: boolean;
 }
 
@@ -57,7 +59,7 @@ const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
 export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState<User>({ email: '', nickname: '', avatar: null, plan: 'FREE' });
+  const [user, setUser] = useState<User>({ email: '', nickname: '', avatar: null, plan: UserLevelType.UNRECOGNIZED });
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
   const [exchangeRatesLastUpdated, setExchangeRatesLastUpdated] = useState<number | null>(null);
   const [baseCurrency, setBaseCurrency] = useState('CNY');
@@ -96,12 +98,31 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
+      // For ALE-encrypted endpoints, we also need a session key
+      const sessionKey = localStorage.getItem('sessionKey');
+      if (!sessionKey) {
+        // Token exists but no session key - user needs to re-login
+        console.warn('Token exists but no session key, clearing tokens');
+        // Clear all auth-related tokens/session state
+        secureAuthService.clearTokens();
+        localStorage.removeItem('sessionKey');
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        // Validate token by fetching profile
-        const data = await apiRequest<{ user: User }>(`${API_BASE_PATH}/user/profile`);
+        // Validate token by fetching profile using secure ALE-encrypted service
+        const data = await secureAuthService.getProfile();
 
         if (data && data.user) {
-          setUser(data.user);
+          // Map the protobuf user response to our User type
+          setUser({
+            email: data.user.email || '',
+            nickname: data.user.nickname || '',
+            avatar: data.user.avatar || null,
+            plan: data.user.plan ?? UserLevelType.UNRECOGNIZED,
+            twoFactorEnabled: data.user.twoFactorEnabled ?? false,
+          });
           setIsLoggedIn(true);
         } else {
           throw new Error('Invalid user profile data');
@@ -115,7 +136,7 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
           localStorage.removeItem('token');
           localStorage.removeItem('refreshToken');
           setIsLoggedIn(false);
-          setUser({ email: '', nickname: '', avatar: null, plan: 'FREE' });
+          setUser({ email: '', nickname: '', avatar: null, plan: UserLevelType.UNRECOGNIZED });
         } else if (error instanceof ApiError && (error.code === 503 || error.code === 502 || error.code === 504)) {
           // Backend service unavailable - keep tokens, user can retry later
           console.warn('Backend service unavailable, will retry later');
@@ -173,7 +194,7 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = () => {
     setIsLoggedIn(false);
-    setUser({ email: '', nickname: '', avatar: null, plan: 'FREE' });
+    setUser({ email: '', nickname: '', avatar: null, plan: UserLevelType.UNRECOGNIZED });
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     // Redirect to login page

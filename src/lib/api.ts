@@ -1,10 +1,21 @@
 // API base path - change this to modify the API prefix globally
 export const API_BASE_PATH = '/api/v1';
 
-export interface ApiResponse<T = unknown> {
+// Standard API Response wrapper (for legacy or non-proto endpoints)
+export interface StandardResponse<T = unknown> {
   code: number;
-  message: string;
+  message?: string;
   data: T;
+}
+
+// Type guard for StandardResponse
+function isStandardResponse<T>(res: unknown): res is StandardResponse<T> {
+  return (
+    typeof res === 'object' &&
+    res !== null &&
+    'code' in res &&
+    typeof (res as StandardResponse<T>).code === 'number'
+  );
 }
 
 export class ApiError extends Error {
@@ -59,7 +70,7 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 
   try {
-    const response = await fetch(`${API_BASE_PATH}/auth/refresh`, {
+    const response = await fetch(`${API_BASE_PATH}/auth/refresh-token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
@@ -110,11 +121,18 @@ async function apiRequest<T = unknown>(url: string, options: RequestInit = {}): 
   const parseResponse = async <R>(response: Response): Promise<R> => {
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
-      const resData: ApiResponse<R> = await response.json();
-      if (resData.code !== 0) {
-        throw new ApiError(resData.message || 'Unknown error', resData.code, resData.data);
+      const resData: unknown = await response.json();
+
+      // Check if response is wrapped in { code, data }
+      if (isStandardResponse<R>(resData)) {
+        if (resData.code !== 0) {
+          throw new ApiError(resData.message || 'Unknown error', resData.code, resData.data);
+        }
+        return resData.data;
       }
-      return resData.data;
+
+      // Assume direct Protobuf response (no code wrapper)
+      return resData as R;
     } else {
       if (!response.ok) {
         throw new ApiError(`HTTP Error: ${response.status} ${response.statusText}`, response.status);
@@ -130,12 +148,13 @@ async function apiRequest<T = unknown>(url: string, options: RequestInit = {}): 
     // Check Content-Type
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
-      const resData: ApiResponse<T> = await response.json();
+      const resData: unknown = await response.json();
 
       // Handle 401 Unauthorized - attempt token refresh
-      if (resData.code === 401) {
+      // Check if it's a standard response with code 401
+      if (isStandardResponse(resData) && resData.code === 401) {
         // Skip refresh for auth endpoints
-        if (url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/refresh')) {
+        if (url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/refresh-token')) {
           throw new ApiError(resData.message || 'Unauthorized', resData.code, resData.data);
         }
 
@@ -180,11 +199,14 @@ async function apiRequest<T = unknown>(url: string, options: RequestInit = {}): 
         }
       }
 
-      // If code is not 0, it's a business error
-      if (resData.code !== 0) {
-        throw new ApiError(resData.message || 'Unknown error', resData.code, resData.data);
+      // If code is defined, check error, otherwise return raw data
+      if (isStandardResponse<T>(resData)) {
+        if (resData.code !== 0) {
+          throw new ApiError(resData.message || 'Unknown error', resData.code, resData.data);
+        }
+        return resData.data;
       }
-      return resData.data;
+      return resData as T;
     } else {
       // Non-JSON response (e.g. 404 html page)
       if (!response.ok) {

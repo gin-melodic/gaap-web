@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useGlobal } from '@/context/GlobalContext';
 import { ChevronLeft, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { UserLevelType } from '@/lib/hooks';
 
 export const Subscription = ({ onBack }: { onBack: () => void }) => {
   const { t } = useTranslation(['settings', 'common']);
@@ -20,7 +21,7 @@ export const Subscription = ({ onBack }: { onBack: () => void }) => {
         t('settings:plans.free.features.2'),
         t('settings:plans.free.features.3')
       ],
-      current: user.plan === 'FREE'
+      current: user.plan === UserLevelType.USER_LEVEL_TYPE_FREE
     },
     {
       id: 'pro',
@@ -34,7 +35,7 @@ export const Subscription = ({ onBack }: { onBack: () => void }) => {
         t('settings:plans.pro.features.3'),
         t('settings:plans.pro.features.4')
       ],
-      current: user.plan === 'PRO',
+      current: user.plan === UserLevelType.USER_LEVEL_TYPE_PRO,
       popular: true
     },
     {

@@ -8,6 +8,8 @@ import { TransactionType } from '@/lib/types';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import BalanceTrendChart from './BalanceTrendChart';
+import { DEFAULT_CURRENCY_CODE } from '@/lib/utils/constant';
+import { MoneyHelper } from '@/lib/utils/money';
 
 const Dashboard = () => {
   const { t } = useTranslation(['dashboard', 'common']);
@@ -35,11 +37,11 @@ const Dashboard = () => {
     accounts.forEach(acc => {
       if (acc.isGroup) return;
 
-      const accRate = EXCHANGE_RATES[acc.currency] || 1;
-      const convertedBalance = acc.balance * (accRate / baseRate);
+      const accRate = EXCHANGE_RATES[acc.balance?.currencyCode || DEFAULT_CURRENCY_CODE] || 1;
+      const convertedBalance = MoneyHelper.from(acc.balance).toNumber() * (accRate / baseRate);
 
-      if (acc.type === AccountType.ASSET) assets += convertedBalance;
-      if (acc.type === AccountType.LIABILITY) liabilities += convertedBalance;
+      if (acc.type === AccountType.ACCOUNT_TYPE_ASSET) assets += convertedBalance;
+      if (acc.type === AccountType.ACCOUNT_TYPE_LIABILITY) liabilities += convertedBalance;
     });
     return { assets, liabilities, netWorth: assets - liabilities };
   }, [accounts, mainCurrency]);
@@ -61,11 +63,11 @@ const Dashboard = () => {
       // Note: we're using string comparison which is safe for ISO format
       if (!tx.date.startsWith(currentMonth)) return;
 
-      const txRate = EXCHANGE_RATES[tx.currency] || 1;
-      const amount = tx.amount * (txRate / baseRate);
+      const txRate = EXCHANGE_RATES[tx.amount?.currencyCode || DEFAULT_CURRENCY_CODE] || 1;
+      const amount = MoneyHelper.from(tx.amount).toNumber() * (txRate / baseRate);
 
-      if (tx.type === TransactionType.INCOME) income += amount;
-      if (tx.type === TransactionType.EXPENSE) expense += amount;
+      if (tx.type === TransactionType.TRANSACTION_TYPE_INCOME) income += amount;
+      if (tx.type === TransactionType.TRANSACTION_TYPE_EXPENSE) expense += amount;
     });
 
     return { income, expense };

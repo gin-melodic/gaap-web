@@ -42,8 +42,8 @@ export const UserProfile = ({ onBack }: { onBack: () => void }) => {
   const handleGenerate2FA = async () => {
     try {
       const data = await generate2FA.mutateAsync();
-      setQrUrl(data.url);
-      setSecret(data.secret);
+      setQrUrl(data.secret?.url || '');
+      setSecret(data.secret?.secret || '');
       setShow2FA(true);
     } catch (e: unknown) {
       console.error(e);

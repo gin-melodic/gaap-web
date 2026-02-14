@@ -43,7 +43,7 @@ export function useWebSocket(): UseWebSocketReturn {
 
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const host = window.location.host;
-        return `${protocol}//${host}/api/ws?token=${encodeURIComponent(token)}`;
+        return `${protocol}//${host}/api/v1/ws?token=${encodeURIComponent(token)}`;
     }, []);
 
     const connectRef = useRef<() => void>(() => { });
@@ -83,7 +83,7 @@ export function useWebSocket(): UseWebSocketReturn {
             };
 
             ws.onerror = (error) => {
-                console.error('[WebSocket] Error:', error);
+                console.warn('[WebSocket] Error:', error);
                 setStatus('error');
             };
 

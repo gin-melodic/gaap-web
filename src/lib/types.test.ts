@@ -1,53 +1,39 @@
 import { describe, it, expect } from 'vitest';
-import {
-  AccountType,
-  TransactionType,
-  UserPlan,
-  SortOrder,
-  TransactionSortBy,
-} from './types';
+import { AccountType, TransactionType, UserLevelType } from './types';
 
-describe('AccountType enum', () => {
-  it('should have correct values', () => {
-    expect(AccountType.ASSET).toBe('ASSET');
-    expect(AccountType.LIABILITY).toBe('LIABILITY');
-    expect(AccountType.INCOME).toBe('INCOME');
-    expect(AccountType.EXPENSE).toBe('EXPENSE');
+describe('Enums', () => {
+  describe('AccountType', () => {
+    it('should have correct values', () => {
+      expect(AccountType.ACCOUNT_TYPE_ASSET).toBe(1);
+      expect(AccountType.ACCOUNT_TYPE_LIABILITY).toBe(2);
+      expect(AccountType.ACCOUNT_TYPE_INCOME).toBe(3);
+      expect(AccountType.ACCOUNT_TYPE_EXPENSE).toBe(4);
+      expect(AccountType.ACCOUNT_TYPE_EQUITY).toBe(5);
+    });
+
+    it('should map from string keys if needed (manual mapping required for proto enums usually)', () => {
+      // Proto enums are numbers at runtime usually, with reverse mapping
+      expect(AccountType[1]).toBe('ACCOUNT_TYPE_ASSET');
+    });
+
+    it('should support reverse mapping', () => {
+      expect(AccountType[AccountType.ACCOUNT_TYPE_ASSET]).toBe('ACCOUNT_TYPE_ASSET');
+      expect(AccountType[AccountType.ACCOUNT_TYPE_LIABILITY]).toBe('ACCOUNT_TYPE_LIABILITY');
+    });
   });
 
-  it('should be usable in type checks', () => {
-    const type: AccountType = AccountType.ASSET;
-    expect(type === AccountType.ASSET).toBe(true);
-    expect(type === AccountType.LIABILITY).toBe(false);
+  describe('TransactionType', () => {
+    it('should have correct values', () => {
+      expect(TransactionType.TRANSACTION_TYPE_INCOME).toBe(1);
+      expect(TransactionType.TRANSACTION_TYPE_EXPENSE).toBe(2);
+      expect(TransactionType.TRANSACTION_TYPE_TRANSFER).toBe(3);
+    });
   });
-});
 
-describe('TransactionType enum', () => {
-  it('should have correct values', () => {
-    expect(TransactionType.INCOME).toBe('INCOME');
-    expect(TransactionType.EXPENSE).toBe('EXPENSE');
-    expect(TransactionType.TRANSFER).toBe('TRANSFER');
-  });
-});
-
-describe('UserPlan enum', () => {
-  it('should have correct values', () => {
-    expect(UserPlan.FREE).toBe('FREE');
-    expect(UserPlan.PRO).toBe('PRO');
-  });
-});
-
-describe('SortOrder enum', () => {
-  it('should have correct values', () => {
-    expect(SortOrder.ASC).toBe('asc');
-    expect(SortOrder.DESC).toBe('desc');
-  });
-});
-
-describe('TransactionSortBy enum', () => {
-  it('should have correct values', () => {
-    expect(TransactionSortBy.DATE).toBe('date');
-    expect(TransactionSortBy.AMOUNT).toBe('amount');
-    expect(TransactionSortBy.CREATED_AT).toBe('created_at');
-  });
+  describe('UserLevelType', () => {
+    it('should have correct values', () => {
+      expect(UserLevelType.USER_LEVEL_TYPE_FREE).toBe(1);
+      expect(UserLevelType.USER_LEVEL_TYPE_PRO).toBe(2);
+    })
+  })
 });

@@ -6,14 +6,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { UserLevelType } from '@/lib/hooks';
+
+import { secureAuthService } from '@/lib/services/secureAuthService';
 
 export const CurrencySettings = ({ onBack, onUpgrade }: { onBack: () => void; onUpgrade: () => void }) => {
   const { t } = useTranslation(['settings', 'common']);
   const { user, currencies, addCurrency, deleteCurrency, exchangeRates, exchangeRatesLastUpdated, setExchangeRate, baseCurrency, setBaseCurrency } = useGlobal();
   const [editingCurrency, setEditingCurrency] = useState<string | null>(null);
+  const [confirmingBase, setConfirmingBase] = useState<string | null>(null);
   const [editRate, setEditRate] = useState('');
   const [newCurrency, setNewCurrency] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isUpdatingBase, setIsUpdatingBase] = useState(false);
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,9 +28,39 @@ export const CurrencySettings = ({ onBack, onUpgrade }: { onBack: () => void; on
     }
   };
 
+  const handleSetBaseCurrency = async (currency: string) => {
+    if (confirmingBase === currency) {
+      // Confirm update
+      setIsUpdatingBase(true);
+      try {
+        await secureAuthService.updateProfile({
+          nickname: user.nickname,
+          plan: user.plan,
+          avatar: user.avatar || undefined,
+          mainCurrency: currency
+        });
+        setBaseCurrency(currency);
+        setConfirmingBase(null);
+        toast.success(t('settings:base_currency_updated'));
+      } catch (error) {
+        console.error('Failed to update base currency:', error);
+        toast.error(t('settings:update_failed'));
+      } finally {
+        setIsUpdatingBase(false);
+      }
+    } else {
+      // First click: Request confirmation
+      setConfirmingBase(currency);
+      // Auto-cancel confirmation after 3 seconds
+      setTimeout(() => setConfirmingBase(prev => prev === currency ? null : prev), 3000);
+    }
+  };
+
   // Fetch rates for Pro users
   useEffect(() => {
-    if (user.plan === 'PRO' && baseCurrency) {
+    // When base currency, user plan, or the number of tracked currencies changes, refresh
+    // exchange rates for Pro users so calculations stay in sync with the latest API data.
+    if (user.plan === UserLevelType.USER_LEVEL_TYPE_PRO && baseCurrency) {
       const fetchRates = async () => {
         setIsRefreshing(true);
         try {
@@ -75,18 +110,18 @@ export const CurrencySettings = ({ onBack, onUpgrade }: { onBack: () => void; on
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-[var(--text-main)]">{t('settings:currency_management')}</h2>
         <div className="flex flex-col items-end gap-1">
-          {user.plan === 'PRO' && (
+          {user.plan === UserLevelType.USER_LEVEL_TYPE_PRO && (
             <div className="flex items-center gap-2 text-xs text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full font-medium">
               <Sparkles size={12} />
               {isRefreshing ? t('settings:syncing') : t('settings:realtime_rates_active')}
             </div>
           )}
-          {user.plan === 'PRO' && exchangeRatesLastUpdated && (
+          {user.plan === UserLevelType.USER_LEVEL_TYPE_PRO && exchangeRatesLastUpdated && (
             <div className="text-xs text-[var(--text-muted)]">
               {t('settings:last_updated', { time: new Date(exchangeRatesLastUpdated).toLocaleString() })}
             </div>
           )}
-          {user.plan === 'FREE' && (
+          {user.plan === UserLevelType.USER_LEVEL_TYPE_FREE && (
             <Button
               onClick={onUpgrade}
               variant="outline"
@@ -104,16 +139,35 @@ export const CurrencySettings = ({ onBack, onUpgrade }: { onBack: () => void; on
           <CardContent className="p-6">
             <h3 className="text-sm font-bold text-[var(--text-muted)] uppercase tracking-wider mb-4">{t('settings:base_currency')}</h3>
             <div className="flex flex-wrap gap-2">
-              {currencies.map(curr => (
-                <Button
-                  key={curr}
-                  variant={baseCurrency === curr ? "default" : "outline"}
-                  onClick={() => setBaseCurrency(curr)}
-                  className={`h-9 ${baseCurrency === curr ? 'bg-[var(--primary)] text-white' : 'border-[var(--border)] text-[var(--text-main)] hover:bg-[var(--bg-main)]'}`}
-                >
-                  {curr} {baseCurrency === curr && <CheckCircle2 size={14} className="ml-1" />}
-                </Button>
-              ))}
+              {currencies.map(curr => {
+                const isSelected = baseCurrency === curr;
+                const isConfirming = confirmingBase === curr;
+
+                return (
+                  <Button
+                    key={curr}
+                    variant={isSelected ? "default" : "outline"}
+                    onClick={() => handleSetBaseCurrency(curr)}
+                    disabled={isUpdatingBase || (isSelected && !isConfirming)}
+                    className={`h-9 relative transition-all duration-200 ${isSelected
+                        ? 'bg-[var(--primary)] text-white'
+                        : isConfirming
+                          ? 'bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200'
+                          : 'border-[var(--border)] text-[var(--text-main)] hover:bg-[var(--bg-main)]'
+                      }`}
+                  >
+                    {isConfirming ? (
+                      <span className="flex items-center animate-in fade-in zoom-in duration-200">
+                        {t('common:confirm')}
+                      </span>
+                    ) : (
+                      <>
+                        {curr} {isSelected && <CheckCircle2 size={14} className="ml-1" />}
+                      </>
+                    )}
+                  </Button>
+                )
+              })}
             </div>
             <p className="text-xs text-[var(--text-muted)] mt-3">
               {t('settings:base_currency_desc')}

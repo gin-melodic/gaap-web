@@ -4,7 +4,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { accountService } from '../services/accountService';
 import { useAccounts, useCreateAccount, useAllAccounts, accountKeys } from '../hooks/useAccounts';
-import { AccountType, Account, PaginatedResponse } from '../types';
+import { AccountType, Account } from '../types';
+import { Money } from '../proto/base/base';
+import { ListAccountsRes } from '../proto/account/v1/account';
 
 // Mock the account service
 vi.mock('../services/accountService', () => ({
@@ -47,17 +49,26 @@ const createWrapper = () => {
 const mockAccount: Account = {
   id: 'acc_1',
   name: 'Test Account',
-  type: AccountType.ASSET,
-  balance: 1000,
-  currency: 'CNY',
+  type: AccountType.ACCOUNT_TYPE_ASSET,
+  balance: { units: '1000', nanos: 0, currencyCode: 'CNY' } as Money,
   isGroup: false,
+  date: '2023-07-01',
+  number: 'A001',
+  remarks: 'Test account',
+  openingVoucherId: 'voucher_1',
+  createdAt: new Date(),
+  updatedAt: new Date(),
 };
 
-const mockAccountList: PaginatedResponse<Account> = {
+const mockAccountList: ListAccountsRes = {
   data: [mockAccount],
-  total: 1,
-  page: 1,
-  limit: 10,
+  pagination: {
+    total: 1,
+    page: 1,
+    limit: 10,
+    totalPages: 1,
+  },
+  base: { message: '' },
 };
 
 describe('useAccounts', () => {
@@ -85,14 +96,19 @@ describe('useAccounts', () => {
     vi.mocked(accountService.list).mockResolvedValue(mockAccountList);
 
     const { Wrapper } = createWrapper();
-    const query = { type: AccountType.ASSET };
+    const query = { type: AccountType.ACCOUNT_TYPE_ASSET };
     const { result } = renderHook(() => useAccounts(query), { wrapper: Wrapper });
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    expect(accountService.list).toHaveBeenCalledWith(query);
+    expect(accountService.list).toHaveBeenCalledWith(expect.objectContaining({
+      type: AccountType.ACCOUNT_TYPE_ASSET,
+      page: 0,
+      limit: 0,
+      parentId: '',
+    }));
   });
 });
 
@@ -115,7 +131,11 @@ describe('useAllAccounts', () => {
   });
 
   it('should return empty array when no data', async () => {
-    vi.mocked(accountService.list).mockResolvedValue({ data: [], total: 0, page: 1, limit: 100 });
+    vi.mocked(accountService.list).mockResolvedValue({
+      data: [],
+      pagination: { total: 0, page: 1, limit: 100, totalPages: 0 },
+      base: { message: '' },
+    });
 
     const { Wrapper } = createWrapper();
     const { result } = renderHook(() => useAllAccounts(), { wrapper: Wrapper });
@@ -135,7 +155,10 @@ describe('useCreateAccount', () => {
 
   it('should create account and invalidate cache', async () => {
     const newAccount = { ...mockAccount, id: 'acc_new' };
-    vi.mocked(accountService.create).mockResolvedValue(newAccount);
+    vi.mocked(accountService.create).mockResolvedValue({
+      account: newAccount,
+      base: { message: '' },
+    });
     vi.mocked(accountService.list).mockResolvedValue(mockAccountList);
 
     const { Wrapper, queryClient } = createWrapper();
@@ -147,9 +170,11 @@ describe('useCreateAccount', () => {
 
     const input = {
       name: 'New Account',
-      type: AccountType.ASSET,
+      type: AccountType.ACCOUNT_TYPE_ASSET,
       currency: 'CNY',
       balance: 500,
+      isGroup: false,
+      date: '2023-01-01',
     };
 
     result.current.mutate(input);
@@ -158,7 +183,17 @@ describe('useCreateAccount', () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    expect(accountService.create).toHaveBeenCalledWith(input);
+    expect(accountService.create).toHaveBeenCalledWith(expect.objectContaining({
+      name: 'New Account',
+      type: AccountType.ACCOUNT_TYPE_ASSET,
+      isGroup: false,
+      date: '2023-01-01',
+      balance: {
+        units: '500',
+        nanos: 0,
+        currencyCode: 'CNY',
+      },
+    }));
   });
 
   it('should handle creation error', async () => {
@@ -169,8 +204,10 @@ describe('useCreateAccount', () => {
 
     result.current.mutate({
       name: 'New Account',
-      type: AccountType.ASSET,
+      type: AccountType.ACCOUNT_TYPE_ASSET,
       currency: 'CNY',
+      isGroup: false,
+      date: '2023-01-01',
     });
 
     await waitFor(() => {
@@ -183,7 +220,7 @@ describe('accountKeys', () => {
   it('should generate correct query keys', () => {
     expect(accountKeys.all).toEqual(['accounts']);
     expect(accountKeys.lists()).toEqual(['accounts', 'list']);
-    expect(accountKeys.list({ type: AccountType.ASSET })).toEqual(['accounts', 'list', { type: AccountType.ASSET }]);
+    expect(accountKeys.list({ type: AccountType.ACCOUNT_TYPE_ASSET })).toEqual(['accounts', 'list', { type: AccountType.ACCOUNT_TYPE_ASSET }]);
     expect(accountKeys.details()).toEqual(['accounts', 'detail']);
     expect(accountKeys.detail('acc_1')).toEqual(['accounts', 'detail', 'acc_1']);
   });

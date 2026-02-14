@@ -5,6 +5,7 @@ import { THEMES } from '@/lib/data';
 import { ChevronLeft, CheckCircle2, Lock, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { UserLevelType } from '@/lib/hooks';
 
 export const ThemeSettings = ({ onBack, onUpgrade }: { onBack: () => void, onUpgrade: () => void }) => {
   const { t } = useTranslation(['settings', 'common']);
@@ -21,7 +22,7 @@ export const ThemeSettings = ({ onBack, onUpgrade }: { onBack: () => void, onUpg
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {THEMES.map(theme => {
           const isActive = currentTheme.id === theme.id;
-          const isLocked = user.plan === 'FREE' && theme.id !== 'default';
+          const isLocked = user.plan === UserLevelType.USER_LEVEL_TYPE_FREE && theme.id !== 'default';
 
           return (
             <div
@@ -54,7 +55,7 @@ export const ThemeSettings = ({ onBack, onUpgrade }: { onBack: () => void, onUpg
           );
         })}
       </div>
-      {user.plan === 'FREE' && (
+      {user.plan === UserLevelType.USER_LEVEL_TYPE_FREE && (
         <div className="mt-6 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-4 text-white flex items-center justify-between shadow-lg">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white/20 rounded-lg"><Crown size={20} /></div>

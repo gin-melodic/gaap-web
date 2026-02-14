@@ -27,5 +27,14 @@
   "delete_transaction": "Delete Transaction",
   "confirm_delete": "Confirm Delete",
   "delete_warning": "Are you sure you want to delete this transaction? This action cannot be undone.",
-  "transfer": "Transfer"
+  "transfer": "Transfer",
+  "system_generated": "System",
+  "opening_balance": "Opening Balance",
+  "cannot_edit_system": "System-generated transactions cannot be edited",
+  "create_success": "Transaction created successfully",
+  "create_error": "Failed to create transaction",
+  "update_success": "Transaction updated successfully",
+  "update_error": "Failed to update transaction",
+  "delete_success": "Transaction deleted successfully",
+  "delete_error": "Failed to delete transaction"
 }

@@ -8,19 +8,22 @@ import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { useGlobal } from '@/context/GlobalContext';
 
-import apiRequest, { ApiError } from '@/lib/api';
 import { sha256 } from '@/lib/utils';
+
+import { useRegister } from '@/lib/hooks';
 
 export default function RegisterPage() {
   const { t } = useTranslation(['auth', 'common', 'settings']);
   const router = useRouter();
+  const { login: contextLogin } = useGlobal();
+  const registerMutation = useRegister();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [nickname, setNickname] = useState('');
   const [turnstileToken, setTurnstileToken] = useState('');
-  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,34 +35,34 @@ export default function RegisterPage() {
       toast.error(t('auth:password_mismatch'));
       return;
     }
-    setLoading(true);
 
     try {
       const hashedPassword = await sha256(password);
-      await apiRequest('/api/auth/register', {
-        method: 'POST',
-        body: JSON.stringify({
-          email,
-          password: hashedPassword,
-          nickname,
-          cf_turnstile_response: turnstileToken
-        })
+      const data = await registerMutation.mutateAsync({
+        email,
+        password: hashedPassword,
+        nickname,
+        cfTurnstileResponse: turnstileToken
       });
 
-      toast.success(t('auth:register_success'));
-      router.push('/login');
-    } catch (err: unknown) {
-      if (err instanceof ApiError) {
-        toast.error(err.message);
-      } else if (err instanceof Error) {
-        toast.error(err.message);
-      } else {
-        toast.error(t('auth:unknown_error'));
+      // Registration with auto-login successful - update global context with user data
+      if (data && data.auth && data.auth.user) {
+        contextLogin({
+          email: data.auth.user.email,
+          nickname: data.auth.user.nickname,
+          avatar: data.auth.user.avatar,
+          plan: data.auth.user.plan
+        });
       }
-    } finally {
-      setLoading(false);
+
+      router.push('/dashboard');
+    } catch {
+      // Error handled by hook
+      toast.error(t('auth:register_failed'), { duration: 4000 });
     }
   };
+
+  const loading = registerMutation.isPending;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">

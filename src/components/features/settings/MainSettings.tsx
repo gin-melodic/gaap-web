@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGlobal } from '@/context/GlobalContext';
-import { useLogout } from '@/lib/hooks';
+import { useLogout, UserLevelType } from '@/lib/hooks';
 import { useRouter } from 'next/navigation';
 import {
   ChevronRight,
@@ -46,8 +46,8 @@ export const MainSettings = ({ onNavigate }: { onNavigate: (view: SettingsView) 
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <div className="font-bold text-[var(--text-main)] text-lg">{user.nickname}</div>
-              {user.plan === 'PRO' && <div className="bg-indigo-100 text-indigo-600 text-[10px] px-1.5 py-0.5 rounded font-bold flex items-center gap-1"><Crown size={10} /> PRO</div>}
-              {user.plan === 'FREE' && <div className="bg-slate-100 text-slate-500 text-[10px] px-1.5 py-0.5 rounded font-bold">FREE</div>}
+              {user.plan === UserLevelType.USER_LEVEL_TYPE_PRO && <div className="bg-indigo-100 text-indigo-600 text-[10px] px-1.5 py-0.5 rounded font-bold flex items-center gap-1"><Crown size={10} /> PRO</div>}
+              {user.plan === UserLevelType.USER_LEVEL_TYPE_FREE && <div className="bg-slate-100 text-slate-500 text-[10px] px-1.5 py-0.5 rounded font-bold">FREE</div>}
             </div>
             <div className="text-sm text-[var(--text-muted)]">{user.email}</div>
           </div>
@@ -58,7 +58,7 @@ export const MainSettings = ({ onNavigate }: { onNavigate: (view: SettingsView) 
       {/* Subscription */}
       <div onClick={() => onNavigate('SUBSCRIPTION')} className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-4 text-white shadow-lg shadow-indigo-200/50 cursor-pointer relative overflow-hidden group">
         <div className="relative z-10 flex justify-between items-center">
-          <div><div className="font-bold flex items-center gap-2"><Sparkles size={18} className="text-amber-300" />{t('settings:subscription_title')}</div><div className="text-indigo-100 text-sm mt-1">{user.plan === 'PRO' ? t('settings:pro_active') : t('settings:upgrade_hint')}</div></div>
+          <div><div className="font-bold flex items-center gap-2"><Sparkles size={18} className="text-amber-300" />{t('settings:subscription_title')}</div><div className="text-indigo-100 text-sm mt-1">{user.plan === UserLevelType.USER_LEVEL_TYPE_PRO ? t('settings:pro_active') : t('settings:upgrade_hint')}</div></div>
           <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm group-hover:bg-white/30 transition-colors"><ChevronRight size={20} /></div>
         </div>
         <div className="absolute -right-6 -bottom-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
