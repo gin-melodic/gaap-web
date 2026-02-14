@@ -65,11 +65,11 @@ export class MoneyHelper {
     let nanos = this.amount.minus(units).times(NANOS_MOD).round();
 
     // Normalize: carry overflow/underflow nanos into units
-    // Rounding can produce at most ±NANOS_MOD, so a single check suffices
-    if (nanos.gte(NANOS_MOD)) {
+    // Rounding can produce exactly ±NANOS_MOD, which needs to be carried to units
+    if (nanos.eq(NANOS_MOD)) {
       units = units.plus(1);
       nanos = nanos.minus(NANOS_MOD);
-    } else if (nanos.lte(-NANOS_MOD)) {
+    } else if (nanos.eq(-NANOS_MOD)) {
       units = units.minus(1);
       nanos = nanos.plus(NANOS_MOD);
     }
