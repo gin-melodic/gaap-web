@@ -61,13 +61,23 @@ export class MoneyHelper {
    * 对应 Go 的 ToEntityValues
    */
   toProto(): MoneyProto {
-    const unitsDec = this.amount.trunc();
-    const nanosDec = this.amount.minus(unitsDec).times(NANOS_MOD).round();
+    let units = this.amount.trunc();
+    let nanos = this.amount.minus(units).times(NANOS_MOD).round();
+
+    // Normalize: if nanos rounds to ±1_000_000_000, carry into units
+    const nanosNum = nanos.toNumber();
+    if (nanosNum >= NANOS_MOD) {
+      units = units.plus(1);
+      nanos = nanos.minus(NANOS_MOD);
+    } else if (nanosNum <= -NANOS_MOD) {
+      units = units.minus(1);
+      nanos = nanos.plus(NANOS_MOD);
+    }
 
     return {
       currencyCode: this.currency,
-      units: unitsDec.toString(),
-      nanos: nanosDec.toNumber(),
+      units: units.toString(),
+      nanos: nanos.toNumber(),
     };
   }
 
