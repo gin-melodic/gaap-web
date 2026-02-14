@@ -89,7 +89,7 @@ export {
 } from './proto/dashboard/v1/dashboard';
 
 // Aliases
-import { LoginReq, RegisterReq } from './proto/auth/v1/auth';
+import type { LoginReq, RegisterReq } from './proto/auth/v1/auth';
 export type LoginInput = LoginReq;
 export type RegisterInput = RegisterReq;
 
