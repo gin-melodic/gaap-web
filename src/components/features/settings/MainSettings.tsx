@@ -47,7 +47,7 @@ export const MainSettings = ({ onNavigate }: { onNavigate: (view: SettingsView) 
             <div className="flex items-center gap-2">
               <div className="font-bold text-[var(--text-main)] text-lg">{user.nickname}</div>
               {user.plan === UserLevelType.USER_LEVEL_TYPE_PRO && <div className="bg-indigo-100 text-indigo-600 text-[10px] px-1.5 py-0.5 rounded font-bold flex items-center gap-1"><Crown size={10} /> PRO</div>}
-              {user.plan === UserLevelType.USER_LEVEL_TYPE_FREE && <div className="bg-slate-100 text-slate-500 text-[10px] px-1.5 py-0.5 rounded font-bold">FREE</div>}
+              {user.plan === UserLevelType.USER_LEVEL_TYPE_FREE && <div className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 text-[10px] px-1.5 py-0.5 rounded font-bold">FREE</div>}
             </div>
             <div className="text-sm text-[var(--text-muted)]">{user.email}</div>
           </div>
@@ -61,7 +61,7 @@ export const MainSettings = ({ onNavigate }: { onNavigate: (view: SettingsView) 
           <div><div className="font-bold flex items-center gap-2"><Sparkles size={18} className="text-amber-300" />{t('settings:subscription_title')}</div><div className="text-indigo-100 text-sm mt-1">{user.plan === UserLevelType.USER_LEVEL_TYPE_PRO ? t('settings:pro_active') : t('settings:upgrade_hint')}</div></div>
           <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm group-hover:bg-white/30 transition-colors"><ChevronRight size={20} /></div>
         </div>
-        <div className="absolute -right-6 -bottom-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+        <div className="absolute -right-6 -bottom-10 w-32 h-32 bg-white/10 dark:bg-white/5 rounded-full blur-2xl"></div>
       </div>
 
       {/* Appearance & Theme */}
@@ -103,7 +103,7 @@ export const MainSettings = ({ onNavigate }: { onNavigate: (view: SettingsView) 
         onClick={handleLogout}
         disabled={logoutMutation.isPending}
         variant="destructive"
-        className="w-full bg-red-50 text-red-600 hover:bg-red-100 border-none shadow-none py-6 rounded-xl font-medium flex items-center justify-center gap-2 border-[var(--border)] shadow-sm mb-20"
+        className="w-full bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-950/60 border-none shadow-none py-6 rounded-xl font-medium flex items-center justify-center gap-2 border-[var(--border)] shadow-sm mb-20"
       >
         <LogOut size={18} /> {logoutMutation.isPending ? '...' : t('common:logout')}
       </Button>

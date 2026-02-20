@@ -239,7 +239,7 @@ const Accounts = () => {
           <Button variant="outline" size="icon" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages || totalPages === 0} className="bg-[var(--bg-card)] border-[var(--border)] hover:bg-[var(--bg-main)]"><ChevronRight size={18} className="text-[var(--text-main)]" /></Button>
         </div>
         <div className="relative w-full sm:w-64">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Search size={16} /></div>
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"><Search size={16} /></div>
           <Input
             type="text"
             placeholder={t('accounts:filter_accounts')}
@@ -248,7 +248,7 @@ const Accounts = () => {
             onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
           />
           {searchQuery && (
-            <button onClick={() => { setSearchQuery(''); setPage(1); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-[var(--bg-main)]"><X size={14} /></button>
+            <button onClick={() => { setSearchQuery(''); setPage(1); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-[var(--bg-main)]"><X size={14} /></button>
           )}
         </div>
       </div>

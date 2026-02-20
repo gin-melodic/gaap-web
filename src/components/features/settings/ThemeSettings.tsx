@@ -64,7 +64,7 @@ export const ThemeSettings = ({ onBack, onUpgrade }: { onBack: () => void, onUpg
               <div className="text-xs text-indigo-100">{t('settings:unlock_themes_desc')}</div>
             </div>
           </div>
-          <Button onClick={onUpgrade} className="bg-white text-indigo-600 hover:bg-indigo-50 font-bold">{t('common:go_upgrade')}</Button>
+          <Button onClick={onUpgrade} className="bg-white text-indigo-600 hover:bg-indigo-50 dark:bg-slate-100 dark:text-indigo-700 dark:hover:bg-slate-200 font-bold">{t('common:go_upgrade')}</Button>
         </div>
       )}
     </div>

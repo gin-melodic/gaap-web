@@ -87,7 +87,7 @@ const Dashboard = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-2">
               <div className="text-[var(--text-muted)] text-sm font-medium">{t('dashboard:total_assets')}</div>
-              <div className="p-2 bg-emerald-50 rounded-lg"><TrendingUp className="w-4 h-4 text-emerald-600" /></div>
+              <div className="p-2 bg-emerald-50 dark:bg-emerald-950/40 rounded-lg"><TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-300" /></div>
             </div>
             <div className="text-2xl font-bold text-[var(--text-main)]">{formatCurrency(summary.assets)}</div>
           </CardContent>
@@ -97,7 +97,7 @@ const Dashboard = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-2">
               <div className="text-[var(--text-muted)] text-sm font-medium">{t('dashboard:total_liabilities')}</div>
-              <div className="p-2 bg-red-50 rounded-lg"><TrendingDown className="w-4 h-4 text-red-600" /></div>
+              <div className="p-2 bg-red-50 dark:bg-red-950/40 rounded-lg"><TrendingDown className="w-4 h-4 text-red-600 dark:text-red-300" /></div>
             </div>
             <div className="text-2xl font-bold text-[var(--text-main)]">{formatCurrency(summary.liabilities)}</div>
           </CardContent>

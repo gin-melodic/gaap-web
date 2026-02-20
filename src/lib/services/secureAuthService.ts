@@ -74,6 +74,7 @@ export const secureAuthService = {
     email: string;
     password: string;
     nickname: string;
+    mainCurrency: string;
     cfTurnstileResponse?: string;
   }): Promise<RegisterRes> => {
     return register(
@@ -81,6 +82,7 @@ export const secureAuthService = {
         email: input.email,
         password: input.password,
         nickname: input.nickname,
+        mainCurrency: input.mainCurrency,
         cfTurnstileResponse: input.cfTurnstileResponse || '',
       },
       RegisterReq,

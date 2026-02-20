@@ -237,7 +237,7 @@ export const DataExportSettings = ({ onBack }: DataExportSettingsProps) => {
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+        <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 text-red-700 dark:bg-red-950/40 dark:border-red-900 dark:text-red-300 rounded-lg">
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
           <span className="text-sm">{error}</span>
         </div>

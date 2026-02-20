@@ -141,7 +141,7 @@ const TaskCenterModal = () => {
             case 'RUNNING': return <Loader2 size={14} className="text-blue-500 animate-spin" />;
             case 'COMPLETED': return <CheckCircle2 size={14} className="text-green-500" />;
             case 'FAILED': return <XCircle size={14} className="text-red-500" />;
-            case 'CANCELLED': return <X size={14} className="text-slate-400" />;
+            case 'CANCELLED': return <X size={14} className="text-slate-400 dark:text-slate-500" />;
             default: return null;
         }
     };
@@ -378,7 +378,7 @@ const TaskCenterModal = () => {
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        className="h-7 px-2 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                                        className="h-7 px-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
                                                         onClick={() => cancelMutation.mutate(task.id)}
                                                         disabled={cancelMutation.isPending}
                                                     >
@@ -389,7 +389,7 @@ const TaskCenterModal = () => {
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        className="h-7 px-2 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                                                        className="h-7 px-2 text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
                                                         onClick={() => retryMutation.mutate(task.id)}
                                                         disabled={retryMutation.isPending}
                                                     >
