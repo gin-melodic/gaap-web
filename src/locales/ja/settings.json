@@ -23,6 +23,7 @@
   "new_password_placeholder": "8文字以上",
   "confirm_password_placeholder": "新しいパスワードを再入力",
   "confirm_change": "変更を確認",
+  "passwords_not_match": "パスワードが一致しません",
   "subscription_title": "プランを選択",
   "subscription_subtitle": "GAAPの完全な財務管理機能をロック解除",
   "most_popular": "一番人気",

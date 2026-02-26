@@ -11,6 +11,16 @@ import { User } from "../../user/v1/user";
 
 export const protobufPackage = "auth.v1";
 
+export interface UpdatePasswordReq {
+  password: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface UpdatePasswordRes {
+  base: BaseResponse | undefined;
+}
+
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
@@ -93,6 +103,158 @@ export interface Disable2FAReq {
 export interface Disable2FARes {
   base: BaseResponse | undefined;
 }
+
+function createBaseUpdatePasswordReq(): UpdatePasswordReq {
+  return { password: "", newPassword: "", confirmPassword: "" };
+}
+
+export const UpdatePasswordReq: MessageFns<UpdatePasswordReq> = {
+  encode(message: UpdatePasswordReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.password !== "") {
+      writer.uint32(10).string(message.password);
+    }
+    if (message.newPassword !== "") {
+      writer.uint32(18).string(message.newPassword);
+    }
+    if (message.confirmPassword !== "") {
+      writer.uint32(26).string(message.confirmPassword);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdatePasswordReq {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdatePasswordReq();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.password = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.newPassword = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.confirmPassword = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdatePasswordReq {
+    return {
+      password: isSet(object.password) ? globalThis.String(object.password) : "",
+      newPassword: isSet(object.newPassword) ? globalThis.String(object.newPassword) : "",
+      confirmPassword: isSet(object.confirmPassword) ? globalThis.String(object.confirmPassword) : "",
+    };
+  },
+
+  toJSON(message: UpdatePasswordReq): unknown {
+    const obj: any = {};
+    if (message.password !== "") {
+      obj.password = message.password;
+    }
+    if (message.newPassword !== "") {
+      obj.newPassword = message.newPassword;
+    }
+    if (message.confirmPassword !== "") {
+      obj.confirmPassword = message.confirmPassword;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdatePasswordReq>, I>>(base?: I): UpdatePasswordReq {
+    return UpdatePasswordReq.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdatePasswordReq>, I>>(object: I): UpdatePasswordReq {
+    const message = createBaseUpdatePasswordReq();
+    message.password = object.password ?? "";
+    message.newPassword = object.newPassword ?? "";
+    message.confirmPassword = object.confirmPassword ?? "";
+    return message;
+  },
+};
+
+function createBaseUpdatePasswordRes(): UpdatePasswordRes {
+  return { base: undefined };
+}
+
+export const UpdatePasswordRes: MessageFns<UpdatePasswordRes> = {
+  encode(message: UpdatePasswordRes, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.base !== undefined) {
+      BaseResponse.encode(message.base, writer.uint32(2042).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdatePasswordRes {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdatePasswordRes();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 255: {
+          if (tag !== 2042) {
+            break;
+          }
+
+          message.base = BaseResponse.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdatePasswordRes {
+    return { base: isSet(object.base) ? BaseResponse.fromJSON(object.base) : undefined };
+  },
+
+  toJSON(message: UpdatePasswordRes): unknown {
+    const obj: any = {};
+    if (message.base !== undefined) {
+      obj.base = BaseResponse.toJSON(message.base);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdatePasswordRes>, I>>(base?: I): UpdatePasswordRes {
+    return UpdatePasswordRes.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdatePasswordRes>, I>>(object: I): UpdatePasswordRes {
+    const message = createBaseUpdatePasswordRes();
+    message.base = (object.base !== undefined && object.base !== null)
+      ? BaseResponse.fromPartial(object.base)
+      : undefined;
+    return message;
+  },
+};
 
 function createBaseAuthResponse(): AuthResponse {
   return { accessToken: "", refreshToken: "", user: undefined, sessionKey: "" };
@@ -1317,6 +1479,8 @@ export interface AuthService {
   Enable2FA(request: Enable2FAReq): Promise<Enable2FARes>;
   /** Disable 2FA */
   Disable2FA(request: Disable2FAReq): Promise<Disable2FARes>;
+  /** Update password */
+  UpdatePassword(request: UpdatePasswordReq): Promise<UpdatePasswordRes>;
 }
 
 export const AuthServiceServiceName = "auth.v1.AuthService";
@@ -1333,6 +1497,7 @@ export class AuthServiceClientImpl implements AuthService {
     this.Generate2FA = this.Generate2FA.bind(this);
     this.Enable2FA = this.Enable2FA.bind(this);
     this.Disable2FA = this.Disable2FA.bind(this);
+    this.UpdatePassword = this.UpdatePassword.bind(this);
   }
   Login(request: LoginReq): Promise<LoginRes> {
     const data = LoginReq.encode(request).finish();
@@ -1374,6 +1539,12 @@ export class AuthServiceClientImpl implements AuthService {
     const data = Disable2FAReq.encode(request).finish();
     const promise = this.rpc.request(this.service, "Disable2FA", data);
     return promise.then((data) => Disable2FARes.decode(new BinaryReader(data)));
+  }
+
+  UpdatePassword(request: UpdatePasswordReq): Promise<UpdatePasswordRes> {
+    const data = UpdatePasswordReq.encode(request).finish();
+    const promise = this.rpc.request(this.service, "UpdatePassword", data);
+    return promise.then((data) => UpdatePasswordRes.decode(new BinaryReader(data)));
   }
 }
 

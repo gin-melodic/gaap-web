@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGlobal } from '@/context/GlobalContext';
-import { useGenerate2FA, useEnable2FA, useDisable2FA } from '@/lib/hooks';
+import { useGenerate2FA, useEnable2FA, useDisable2FA, useUpdatePassword } from '@/lib/hooks';
 import { sha256 } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
@@ -32,12 +32,24 @@ export const UserProfile = ({ onBack }: { onBack: () => void }) => {
   const [, setSecret] = useState('');
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showDisable2FAModal, setShowDisable2FAModal] = useState(false);
 
   const generate2FA = useGenerate2FA();
   const enable2FA = useEnable2FA();
   const disable2FA = useDisable2FA();
+  const updatePassword = useUpdatePassword();
+
+  useEffect(() => {
+    if (!showPasswordModal) {
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    }
+  }, [showPasswordModal]);
 
   const handleGenerate2FA = async () => {
     try {
@@ -82,10 +94,27 @@ export const UserProfile = ({ onBack }: { onBack: () => void }) => {
     }
   };
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setShowPasswordModal(false);
-    toast.success(t('common:success'));
+    if (newPassword !== confirmPassword) {
+      toast.error(t('settings:passwords_not_match'));
+      return;
+    }
+    try {
+      console.log('[DEBUG] Submitting password change:', { password: '***', newPassword, confirmPassword });
+      const hashedCurrentPassword = await sha256(currentPassword);
+      await updatePassword.mutateAsync({
+        password: hashedCurrentPassword,
+        newPassword,
+        confirmPassword,
+      });
+      setShowPasswordModal(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (e: unknown) {
+      console.error('[DEBUG] Password change error:', e);
+    }
   };
 
   const isPending = generate2FA.isPending || enable2FA.isPending || disable2FA.isPending;
@@ -221,9 +250,27 @@ export const UserProfile = ({ onBack }: { onBack: () => void }) => {
             <DialogTitle>{t('settings:change_password_title')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handlePasswordSubmit} className="space-y-4 py-4">
-            <Input type="password" required placeholder={t('settings:current_password_placeholder')} />
-            <Input type="password" required placeholder={t('settings:new_password_placeholder')} />
-            <Input type="password" required placeholder={t('settings:confirm_password_placeholder')} />
+            <Input 
+              type="password" 
+              required 
+              placeholder={t('settings:current_password_placeholder')} 
+              value={currentPassword}
+              onChange={e => setCurrentPassword(e.target.value)}
+            />
+            <Input 
+              type="password" 
+              required 
+              placeholder={t('settings:new_password_placeholder')} 
+              value={newPassword}
+              onChange={e => setNewPassword(e.target.value)}
+            />
+            <Input 
+              type="password" 
+              required 
+              placeholder={t('settings:confirm_password_placeholder')} 
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+            />
             <div className="flex justify-end gap-3 pt-4">
               <Button type="button" variant="ghost" onClick={() => setShowPasswordModal(false)}>{t('common:cancel')}</Button>
               <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white">{t('settings:confirm_change')}</Button>

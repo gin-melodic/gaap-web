@@ -118,6 +118,7 @@ export interface GetAccountTransactionCountReq {
 
 export interface GetAccountTransactionCountRes {
   count: number;
+  countWithoutEquity: number;
   base: BaseResponse | undefined;
 }
 
@@ -1609,13 +1610,16 @@ export const GetAccountTransactionCountReq: MessageFns<GetAccountTransactionCoun
 };
 
 function createBaseGetAccountTransactionCountRes(): GetAccountTransactionCountRes {
-  return { count: 0, base: undefined };
+  return { count: 0, countWithoutEquity: 0, base: undefined };
 }
 
 export const GetAccountTransactionCountRes: MessageFns<GetAccountTransactionCountRes> = {
   encode(message: GetAccountTransactionCountRes, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.count !== 0) {
       writer.uint32(8).int32(message.count);
+    }
+    if (message.countWithoutEquity !== 0) {
+      writer.uint32(16).int32(message.countWithoutEquity);
     }
     if (message.base !== undefined) {
       BaseResponse.encode(message.base, writer.uint32(2042).fork()).join();
@@ -1638,6 +1642,14 @@ export const GetAccountTransactionCountRes: MessageFns<GetAccountTransactionCoun
           message.count = reader.int32();
           continue;
         }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.countWithoutEquity = reader.int32();
+          continue;
+        }
         case 255: {
           if (tag !== 2042) {
             break;
@@ -1658,6 +1670,7 @@ export const GetAccountTransactionCountRes: MessageFns<GetAccountTransactionCoun
   fromJSON(object: any): GetAccountTransactionCountRes {
     return {
       count: isSet(object.count) ? globalThis.Number(object.count) : 0,
+      countWithoutEquity: isSet(object.countWithoutEquity) ? globalThis.Number(object.countWithoutEquity) : 0,
       base: isSet(object.base) ? BaseResponse.fromJSON(object.base) : undefined,
     };
   },
@@ -1666,6 +1679,9 @@ export const GetAccountTransactionCountRes: MessageFns<GetAccountTransactionCoun
     const obj: any = {};
     if (message.count !== 0) {
       obj.count = Math.round(message.count);
+    }
+    if (message.countWithoutEquity !== 0) {
+      obj.countWithoutEquity = Math.round(message.countWithoutEquity);
     }
     if (message.base !== undefined) {
       obj.base = BaseResponse.toJSON(message.base);
@@ -1681,6 +1697,7 @@ export const GetAccountTransactionCountRes: MessageFns<GetAccountTransactionCoun
   ): GetAccountTransactionCountRes {
     const message = createBaseGetAccountTransactionCountRes();
     message.count = object.count ?? 0;
+    message.countWithoutEquity = object.countWithoutEquity ?? 0;
     message.base = (object.base !== undefined && object.base !== null)
       ? BaseResponse.fromPartial(object.base)
       : undefined;

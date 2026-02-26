@@ -42,7 +42,7 @@ const command = [
   `--ts_proto_out="${outDir}"`,
   `--proto_path="${protoRoot}"`,
   ...protoFiles.map(f => `"${f}"`),
-  '--ts_proto_opt=esModuleInterop=true,forceLong=string'
+  '--ts_proto_opt=esModuleInterop=true,forceLong=string,snakeToCamel=true'
 ].join(' ');
 
 console.log(`Generating ${protoFiles.length} protos...`);

@@ -35,6 +35,7 @@ export {
   useGenerate2FA,
   useEnable2FA,
   useDisable2FA,
+  useUpdatePassword,
   authKeys,
 } from './useAuth';
 

@@ -23,6 +23,7 @@
   "new_password_placeholder": "At least 8 characters",
   "confirm_password_placeholder": "Re-enter new password",
   "confirm_change": "Confirm Change",
+  "passwords_not_match": "Passwords do not match",
   "subscription_title": "Choose your plan",
   "subscription_subtitle": "Unlock full GAAP capabilities",
   "most_popular": "Most Popular",

@@ -23,6 +23,7 @@
   "new_password_placeholder": "至少 8 個字元",
   "confirm_password_placeholder": "再次輸入新密碼",
   "confirm_change": "確認修改",
+  "passwords_not_match": "兩次輸入的密碼不一致",
   "subscription_title": "選擇適合您的方案",
   "subscription_subtitle": "解鎖完整的 GAAP 財務管理能力",
   "most_popular": "最受歡迎",

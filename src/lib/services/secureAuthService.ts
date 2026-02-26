@@ -22,6 +22,8 @@ import {
   Enable2FARes,
   Disable2FAReq,
   Disable2FARes,
+  UpdatePasswordReq,
+  UpdatePasswordRes,
 } from '../proto/auth/v1/auth';
 
 import {
@@ -146,6 +148,13 @@ export const secureAuthService = {
    */
   disable2FA: async (code: string, password: string): Promise<Disable2FARes> => {
     return secureRequest('/auth/disable2-f-a', { code, password }, Disable2FAReq, Disable2FARes, 'session');
+  },
+
+  /**
+   * Update password
+   */
+  updatePassword: async (password: string, newPassword: string, confirmPassword: string): Promise<UpdatePasswordRes> => {
+    return secureRequest('/auth/update-password', { password, newPassword, confirmPassword }, UpdatePasswordReq, UpdatePasswordRes, 'session');
   },
 
   /**
