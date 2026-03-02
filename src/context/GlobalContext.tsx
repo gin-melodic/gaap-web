@@ -12,6 +12,7 @@ interface User {
   avatar: string | null;
   plan: UserLevelType;
   twoFactorEnabled?: boolean;
+  mainCurrency?: string;
 }
 
 interface Theme {
@@ -62,7 +63,7 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User>({ email: '', nickname: '', avatar: null, plan: UserLevelType.UNRECOGNIZED });
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
   const [exchangeRatesLastUpdated, setExchangeRatesLastUpdated] = useState<number | null>(null);
-  const [baseCurrency, setBaseCurrency] = useState('CNY');
+  const [baseCurrency, setBaseCurrency] = useState('USD');
 
   const [currencies, setCurrencies] = useState(['CNY', 'USD', 'HKD', 'EUR', 'JPY']);
   const [currentTheme, setCurrentTheme] = useState<Theme>(THEMES[0]);
@@ -122,7 +123,12 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
             avatar: data.user.avatar || null,
             plan: data.user.plan ?? UserLevelType.UNRECOGNIZED,
             twoFactorEnabled: data.user.twoFactorEnabled ?? false,
+            mainCurrency: data.user.mainCurrency || '',
           });
+          // Use user mainCurrency as initial baseCurrency if available
+          if (data.user.mainCurrency) {
+            setBaseCurrency(data.user.mainCurrency);
+          }
           setIsLoggedIn(true);
         } else {
           throw new Error('Invalid user profile data');
