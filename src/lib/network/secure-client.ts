@@ -165,7 +165,7 @@ export async function secureRequest<TReq, TRes>(
   const fullUrl = url.startsWith('/') ? `${API_BASE_PATH}${url}` : url;
   const secretKey = getKeyForType(keyType);
 
-  console.log('[DEBUG] secureRequest:', url, reqData);
+  console.log('[DEBUG] secureRequest:', url, 'keyType=', keyType);
 
   // 1. Create message from partial
   const message = ReqType.fromPartial(reqData as TReq);
