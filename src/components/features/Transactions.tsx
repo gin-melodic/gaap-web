@@ -59,7 +59,7 @@ const Transactions = () => {
 
   const [newTx, setNewTx] = useState({ amount: '', note: '', from: '', to: '', date: getCurrentDateTime() });
 
-  const formatCurrency = (amount: Money | number, currency = 'CNY') => {
+  const formatCurrency = (amount: Money | number, currency = 'USD') => {
     let val = amount;
     // Also handle Money encoded object
     if (typeof amount === 'object' && amount !== null && ('units' in amount || 'nanos' in amount)) {
@@ -86,8 +86,7 @@ const Transactions = () => {
 
   // Helper to safely get currency from an account
   const getAccountCurrency = (account?: Account) => {
-    // If account.balance is undefined, default to CNY
-    return account?.balance?.currencyCode || 'CNY';
+    return account?.balance?.currencyCode || 'USD';
   };
 
   const currentCurrency = getAccountCurrency(accounts.find(a => a.id === newTx.from));
@@ -165,7 +164,7 @@ const Transactions = () => {
         const res = await createAccount.mutateAsync({
           name: newIncomeName,
           type: AccountType.ACCOUNT_TYPE_INCOME,
-          currency: 'CNY',
+          currency: 'USD',
           balance: 0,
           isGroup: false,
           date: getCurrentDateTime(),
@@ -442,7 +441,7 @@ const Transactions = () => {
           const fromAcc = accounts.find(a => a.id === tx.from);
           const toAcc = accounts.find(a => a.id === tx.to);
           const isOpeningBalance = tx.type === TransactionType.TRANSACTION_TYPE_OPENING_BALANCE;
-          const txCurrency = tx.amount?.currencyCode || 'CNY';
+          const txCurrency = tx.amount?.currencyCode || 'USD';
           return (
             <Card
               key={tx.id}

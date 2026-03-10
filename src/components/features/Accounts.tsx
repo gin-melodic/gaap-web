@@ -32,7 +32,7 @@ const Accounts = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const itemsPerPage = 10;
 
-  const formatCurrency = (amount: number | Money, currency = 'CNY') => {
+  const formatCurrency = (amount: number | Money, currency = 'USD') => {
     let val = 0;
     if (typeof amount === 'number') {
       val = amount;
@@ -42,7 +42,7 @@ const Accounts = () => {
     }
 
     try {
-      return new Intl.NumberFormat('zh-CN', { style: 'currency', currency }).format(val);
+      return new Intl.NumberFormat(currency === 'CNY' ? 'zh-CN' : 'en-US', { style: 'currency', currency }).format(val);
     } catch {
       return `${currency} ${val.toFixed(2)}`;
     }
@@ -108,7 +108,7 @@ const Accounts = () => {
     };
 
     // Safe access to currency
-    const currency = account.balance?.currencyCode || 'CNY';
+    const currency = account.balance?.currencyCode || 'USD';
     // Safe access to balance value
     const balanceVal = account.balance; // Money object
 
@@ -128,7 +128,7 @@ const Accounts = () => {
           </div>
           {groupBalance !== undefined && (
             <div className="text-right">
-              <div className="font-bold text-[var(--text-main)]">{formatCurrency(groupBalance, 'CNY')}</div>
+              <div className="font-bold text-[var(--text-main)]">{formatCurrency(groupBalance, 'USD')}</div>
               <div className="text-[10px] text-slate-400">≈ {t('common:total')}</div>
             </div>
           )}
@@ -164,7 +164,7 @@ const Accounts = () => {
         <div className="text-right">
           <div className="font-bold text-[var(--text-main)]">{formatCurrency(MoneyHelper.from(balanceVal).toNumber(), currency)}</div>
           {currency !== 'CNY' && (
-            <div className="text-[10px] text-slate-400">≈ {formatCurrency(MoneyHelper.from(balanceVal).toNumber() * (EXCHANGE_RATES[currency] || 1), 'CNY')}</div>
+            <div className="text-[10px] text-slate-400">≈ {formatCurrency(MoneyHelper.from(balanceVal).toNumber() * (EXCHANGE_RATES[currency] || 1), 'USD')}</div>
           )}
         </div>
       </div>
@@ -174,7 +174,7 @@ const Accounts = () => {
   const renderAccountCard = (parentAccount: Account) => {
     const children = accounts.filter(a => a.parentId === parentAccount.id);
     const groupBalance = children.reduce((sum, child) => {
-      const childIso = child.balance?.currencyCode || 'CNY';
+      const childIso = child.balance?.currencyCode || 'USD';
       const rate = EXCHANGE_RATES[childIso] || 1;
       const balVal = MoneyHelper.from(child.balance).toNumber();
       return sum + (balVal * rate);

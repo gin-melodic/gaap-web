@@ -41,7 +41,7 @@ const COLORS = [
 const BalanceTrendChart = () => {
   const { t } = useTranslation(['dashboard', 'common']);
   const { data: profile } = useProfile();
-  const mainCurrency = profile?.user?.mainCurrency || 'CNY';
+  const mainCurrency = profile?.user?.mainCurrency || 'USD';
 
   const { accounts } = useAllAccounts();
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(['all']);
@@ -91,14 +91,14 @@ const BalanceTrendChart = () => {
         // Prefer the per-day balance currency; fallback to account's currency or default
         const currency = balance?.currencyCode || acc?.balance?.currencyCode || DEFAULT_CURRENCY_CODE;
         const accRate = (EXCHANGE_RATES[currency] || 1);
-        
+
         let amount = 0;
         try {
           amount = MoneyHelper.from(balance).toNumber();
         } catch (error) {
           console.error(`Error parsing balance for account ${id}:`, error);
         }
-        
+
         const converted = amount * (accRate / baseRate);
 
         convertedBalances[id] = converted;

@@ -14,7 +14,7 @@ import { MoneyHelper } from '@/lib/utils/money';
 const Dashboard = () => {
   const { t } = useTranslation(['dashboard', 'common']);
   const { data: profile } = useProfile();
-  const mainCurrency = profile?.user?.mainCurrency || 'CNY';
+  const mainCurrency = profile?.user?.mainCurrency || 'USD';
 
   const { accounts } = useAllAccountsSuspense();
 

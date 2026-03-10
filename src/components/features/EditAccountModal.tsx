@@ -53,7 +53,7 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
   const [number, setNumber] = useState(account.number || '');
   const [remarks, setRemarks] = useState(account.remarks || '');
   const [balance, setBalance] = useState(() => account.balance ? MoneyHelper.from(account.balance).toNumber().toString() : '0');
-  const [currency, setCurrency] = useState(account.balance?.currencyCode || 'CNY');
+  const [currency, setCurrency] = useState(account.balance?.currencyCode || 'USD');
 
   // Group account state
   const isGroup = account.isGroup;
@@ -63,7 +63,7 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
       return accountChildren.map(c => ({
         id: c.id,
         name: c.name,
-        currency: c.balance?.currencyCode || 'CNY',
+        currency: c.balance?.currencyCode || 'USD',
         balance: c.balance ? MoneyHelper.from(c.balance).toNumber().toString() : '0',
         isDefault: false,
         isNew: false
@@ -81,7 +81,7 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
     setChildren([...children, {
       id: `new_${Date.now()}`,
       name: '',
-      currency: 'CNY',
+      currency: 'USD',
       balance: '0',
       isDefault: false,
       isNew: true

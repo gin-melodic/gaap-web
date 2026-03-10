@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { UserLevelType } from '@/lib/hooks';
+import { UserLevelType, authKeys } from '@/lib/hooks';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { secureAuthService } from '@/lib/services/secureAuthService';
 
@@ -19,6 +20,7 @@ export const CurrencySettings = ({ onBack, onUpgrade }: { onBack: () => void; on
   const [newCurrency, setNewCurrency] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isUpdatingBase, setIsUpdatingBase] = useState(false);
+  const queryClient = useQueryClient();
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +42,7 @@ export const CurrencySettings = ({ onBack, onUpgrade }: { onBack: () => void; on
           mainCurrency: currency
         });
         setBaseCurrency(currency);
+        queryClient.invalidateQueries({ queryKey: authKeys.profile });
         setConfirmingBase(null);
         toast.success(t('settings:base_currency_updated'));
       } catch (error) {
@@ -150,10 +153,10 @@ export const CurrencySettings = ({ onBack, onUpgrade }: { onBack: () => void; on
                     onClick={() => handleSetBaseCurrency(curr)}
                     disabled={isUpdatingBase || (isSelected && !isConfirming)}
                     className={`h-9 relative transition-all duration-200 ${isSelected
-                        ? 'bg-[var(--primary)] text-white'
-                        : isConfirming
-                          ? 'bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200'
-                          : 'border-[var(--border)] text-[var(--text-main)] hover:bg-[var(--bg-main)]'
+                      ? 'bg-[var(--primary)] text-white'
+                      : isConfirming
+                        ? 'bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200'
+                        : 'border-[var(--border)] text-[var(--text-main)] hover:bg-[var(--bg-main)]'
                       }`}
                   >
                     {isConfirming ? (

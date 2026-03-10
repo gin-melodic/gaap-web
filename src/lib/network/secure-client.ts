@@ -173,6 +173,10 @@ export async function secureRequest<TReq, TRes>(
   // 2. Serialize (Protobuf Encode)
   const rawBytes = ReqType.encode(message).finish();
 
+  // [DEBUG] Print request payload after decryption (original request data)
+  console.log('[GATEWAY] Request URL:', url);
+  console.log('[GATEWAY] Request Payload (decrypted):', JSON.parse(JSON.stringify(message, null, 2)));
+
   // 3. Encrypt (AES-GCM)
   const { ciphertext, iv } = await encryptPayload(rawBytes, secretKey);
 
@@ -258,7 +262,13 @@ export async function secureRequest<TReq, TRes>(
   const decryptedBytes = await decryptPayload(resCiphertext, resIv, secretKey);
 
   // 11. Deserialize (Protobuf Decode)
-  return ResType.decode(decryptedBytes);
+  const decodedResponse = ResType.decode(decryptedBytes);
+
+  // [DEBUG] Print response payload after decryption
+  console.log('[GATEWAY] Response URL:', url);
+  console.log('[GATEWAY] Response Payload (decrypted):', JSON.parse(JSON.stringify(decodedResponse, null, 2)));
+
+  return decodedResponse;
 }
 
 // ============================================================================
