@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,8 @@ import { useGlobal } from '@/context/GlobalContext';
 
 import { sha256 } from '@/lib/utils';
 
-import { useRegister } from '@/lib/hooks';
+import { useRegister, useCurrencyList } from '@/lib/hooks';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function RegisterPage() {
   const { t } = useTranslation(['auth', 'common', 'settings']);
@@ -24,6 +25,31 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [nickname, setNickname] = useState('');
   const [turnstileToken, setTurnstileToken] = useState('');
+  const [mainCurrency, setMainCurrency] = useState('');
+
+  const { data: currencyData, isLoading: isLoadingCurrencies } = useCurrencyList();
+
+  useEffect(() => {
+    if (currencyData?.currencies) {
+      // eslint-disable-next-line
+      setMainCurrency((prev) => {
+        if (prev) return prev; // Only set once
+        let defaultCurrency = 'USD';
+        if (typeof navigator !== 'undefined') {
+          const lang = navigator.language.toLowerCase();
+          if (lang.startsWith('zh-cn')) defaultCurrency = 'CNY';
+          else if (lang.startsWith('zh')) defaultCurrency = 'HKD';
+          else if (lang.startsWith('ja')) defaultCurrency = 'JPY';
+          else if (lang.startsWith('en-gb')) defaultCurrency = 'GBP';
+          else if (['de', 'fr', 'es', 'it', 'nl'].some(l => lang.startsWith(l))) defaultCurrency = 'EUR';
+
+          const exists = currencyData.currencies.some((c: { code: string }) => c.code === defaultCurrency);
+          if (!exists) defaultCurrency = 'USD';
+        }
+        return defaultCurrency;
+      });
+    }
+  }, [currencyData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +68,8 @@ export default function RegisterPage() {
         email,
         password: hashedPassword,
         nickname,
-        cfTurnstileResponse: turnstileToken
+        cfTurnstileResponse: turnstileToken,
+        mainCurrency: mainCurrency || 'USD',
       });
 
       // Registration with auto-login successful - update global context with user data
@@ -82,6 +109,25 @@ export default function RegisterPage() {
               required
               placeholder={t('settings:nickname')}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="mainCurrency">{t('auth:main_currency')}</Label>
+            <Select
+              value={mainCurrency}
+              onValueChange={setMainCurrency}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={isLoadingCurrencies ? t('common:loading') : t('auth:main_currency_placeholder')} />
+              </SelectTrigger>
+              <SelectContent>
+                {currencyData?.currencies?.map((currency: { code: string }) => (
+                  <SelectItem key={currency.code} value={currency.code}>
+                    {currency.code}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

@@ -24,6 +24,8 @@ import {
   Disable2FARes,
   UpdatePasswordReq,
   UpdatePasswordRes,
+  GetCurrencyListReq,
+  GetCurrencyListRes,
 } from '../proto/auth/v1/auth';
 
 import {
@@ -35,7 +37,7 @@ import {
 } from '../proto/user/v1/user';
 
 // Re-export types for convenience
-export type { LoginRes, RegisterRes, RefreshTokenRes, UserInput };
+export type { LoginRes, RegisterRes, RefreshTokenRes, UserInput, GetCurrencyListRes };
 
 /**
  * Secure Auth Service using ALE + Protobuf
@@ -162,6 +164,13 @@ export const secureAuthService = {
    */
   getProfile: async (): Promise<GetUserProfileRes> => {
     return secureRequest('/user/get-profile', {}, GetUserProfileReq, GetUserProfileRes, 'session');
+  },
+
+  /**
+   * Get currency list
+   */
+  getCurrencyList: async (): Promise<GetCurrencyListRes> => {
+    return secureRequest('/auth/get-currency-list', {}, GetCurrencyListReq, GetCurrencyListRes, 'bootstrap', { includeToken: false });
   },
 
   /**

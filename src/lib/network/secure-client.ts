@@ -133,7 +133,8 @@ export function resetNetworkState() {
 /** Redirect to login page */
 function redirectToLogin() {
   tokenStorage.clear();
-  if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+  const publicPaths = ['/login', '/register'];
+  if (typeof window !== 'undefined' && !publicPaths.some(p => window.location.pathname.includes(p))) {
     window.location.href = '/login';
   }
 }
@@ -225,7 +226,9 @@ export async function secureRequest<TReq, TRes>(
       }
       redirectToLogin();
     }
-    throw new ApiError(`API Error: ${response.status} ${response.statusText}`, response.status);
+    if (response.status !== 401) {
+      throw new ApiError(`API Error: ${response.status} ${response.statusText}`, response.status);
+    }
   }
 
   // 9. Read response body (binary)

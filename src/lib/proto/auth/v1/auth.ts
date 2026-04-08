@@ -48,6 +48,7 @@ export interface RegisterReq {
   password: string;
   nickname: string;
   cfTurnstileResponse: string;
+  mainCurrency: string;
 }
 
 export interface RegisterRes {
@@ -101,6 +102,18 @@ export interface Disable2FAReq {
 }
 
 export interface Disable2FARes {
+  base: BaseResponse | undefined;
+}
+
+export interface CurrencyInfo {
+  code: string;
+}
+
+export interface GetCurrencyListReq {
+}
+
+export interface GetCurrencyListRes {
+  currencies: CurrencyInfo[];
   base: BaseResponse | undefined;
 }
 
@@ -553,7 +566,7 @@ export const LoginRes: MessageFns<LoginRes> = {
 };
 
 function createBaseRegisterReq(): RegisterReq {
-  return { email: "", password: "", nickname: "", cfTurnstileResponse: "" };
+  return { email: "", password: "", nickname: "", cfTurnstileResponse: "", mainCurrency: "" };
 }
 
 export const RegisterReq: MessageFns<RegisterReq> = {
@@ -569,6 +582,9 @@ export const RegisterReq: MessageFns<RegisterReq> = {
     }
     if (message.cfTurnstileResponse !== "") {
       writer.uint32(34).string(message.cfTurnstileResponse);
+    }
+    if (message.mainCurrency !== "") {
+      writer.uint32(42).string(message.mainCurrency);
     }
     return writer;
   },
@@ -612,6 +628,14 @@ export const RegisterReq: MessageFns<RegisterReq> = {
           message.cfTurnstileResponse = reader.string();
           continue;
         }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.mainCurrency = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -627,6 +651,7 @@ export const RegisterReq: MessageFns<RegisterReq> = {
       password: isSet(object.password) ? globalThis.String(object.password) : "",
       nickname: isSet(object.nickname) ? globalThis.String(object.nickname) : "",
       cfTurnstileResponse: isSet(object.cfTurnstileResponse) ? globalThis.String(object.cfTurnstileResponse) : "",
+      mainCurrency: isSet(object.mainCurrency) ? globalThis.String(object.mainCurrency) : "",
     };
   },
 
@@ -644,6 +669,9 @@ export const RegisterReq: MessageFns<RegisterReq> = {
     if (message.cfTurnstileResponse !== "") {
       obj.cfTurnstileResponse = message.cfTurnstileResponse;
     }
+    if (message.mainCurrency !== "") {
+      obj.mainCurrency = message.mainCurrency;
+    }
     return obj;
   },
 
@@ -656,6 +684,7 @@ export const RegisterReq: MessageFns<RegisterReq> = {
     message.password = object.password ?? "";
     message.nickname = object.nickname ?? "";
     message.cfTurnstileResponse = object.cfTurnstileResponse ?? "";
+    message.mainCurrency = object.mainCurrency ?? "";
     return message;
   },
 };
@@ -1464,6 +1493,187 @@ export const Disable2FARes: MessageFns<Disable2FARes> = {
   },
 };
 
+function createBaseCurrencyInfo(): CurrencyInfo {
+  return { code: "" };
+}
+
+export const CurrencyInfo: MessageFns<CurrencyInfo> = {
+  encode(message: CurrencyInfo, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.code !== "") {
+      writer.uint32(10).string(message.code);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CurrencyInfo {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCurrencyInfo();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.code = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CurrencyInfo {
+    return { code: isSet(object.code) ? globalThis.String(object.code) : "" };
+  },
+
+  toJSON(message: CurrencyInfo): unknown {
+    const obj: any = {};
+    if (message.code !== "") {
+      obj.code = message.code;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CurrencyInfo>, I>>(base?: I): CurrencyInfo {
+    return CurrencyInfo.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CurrencyInfo>, I>>(object: I): CurrencyInfo {
+    const message = createBaseCurrencyInfo();
+    message.code = object.code ?? "";
+    return message;
+  },
+};
+
+function createBaseGetCurrencyListReq(): GetCurrencyListReq {
+  return {};
+}
+
+export const GetCurrencyListReq: MessageFns<GetCurrencyListReq> = {
+  encode(_: GetCurrencyListReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetCurrencyListReq {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetCurrencyListReq();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): GetCurrencyListReq {
+    return {};
+  },
+
+  toJSON(_: GetCurrencyListReq): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetCurrencyListReq>, I>>(base?: I): GetCurrencyListReq {
+    return GetCurrencyListReq.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetCurrencyListReq>, I>>(_: I): GetCurrencyListReq {
+    const message = createBaseGetCurrencyListReq();
+    return message;
+  },
+};
+
+function createBaseGetCurrencyListRes(): GetCurrencyListRes {
+  return { currencies: [], base: undefined };
+}
+
+export const GetCurrencyListRes: MessageFns<GetCurrencyListRes> = {
+  encode(message: GetCurrencyListRes, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.currencies) {
+      CurrencyInfo.encode(v!, writer.uint32(10).fork()).join();
+    }
+    if (message.base !== undefined) {
+      BaseResponse.encode(message.base, writer.uint32(2042).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetCurrencyListRes {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetCurrencyListRes();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.currencies.push(CurrencyInfo.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 255: {
+          if (tag !== 2042) {
+            break;
+          }
+
+          message.base = BaseResponse.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetCurrencyListRes {
+    return {
+      currencies: globalThis.Array.isArray(object?.currencies)
+        ? object.currencies.map((e: any) => CurrencyInfo.fromJSON(e))
+        : [],
+      base: isSet(object.base) ? BaseResponse.fromJSON(object.base) : undefined,
+    };
+  },
+
+  toJSON(message: GetCurrencyListRes): unknown {
+    const obj: any = {};
+    if (message.currencies?.length) {
+      obj.currencies = message.currencies.map((e) => CurrencyInfo.toJSON(e));
+    }
+    if (message.base !== undefined) {
+      obj.base = BaseResponse.toJSON(message.base);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetCurrencyListRes>, I>>(base?: I): GetCurrencyListRes {
+    return GetCurrencyListRes.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetCurrencyListRes>, I>>(object: I): GetCurrencyListRes {
+    const message = createBaseGetCurrencyListRes();
+    message.currencies = object.currencies?.map((e) => CurrencyInfo.fromPartial(e)) || [];
+    message.base = (object.base !== undefined && object.base !== null)
+      ? BaseResponse.fromPartial(object.base)
+      : undefined;
+    return message;
+  },
+};
+
 export interface AuthService {
   /** User login */
   Login(request: LoginReq): Promise<LoginRes>;
@@ -1481,6 +1691,8 @@ export interface AuthService {
   Disable2FA(request: Disable2FAReq): Promise<Disable2FARes>;
   /** Update password */
   UpdatePassword(request: UpdatePasswordReq): Promise<UpdatePasswordRes>;
+  /** Get currency list */
+  GetCurrencyList(request: GetCurrencyListReq): Promise<GetCurrencyListRes>;
 }
 
 export const AuthServiceServiceName = "auth.v1.AuthService";
@@ -1498,6 +1710,7 @@ export class AuthServiceClientImpl implements AuthService {
     this.Enable2FA = this.Enable2FA.bind(this);
     this.Disable2FA = this.Disable2FA.bind(this);
     this.UpdatePassword = this.UpdatePassword.bind(this);
+    this.GetCurrencyList = this.GetCurrencyList.bind(this);
   }
   Login(request: LoginReq): Promise<LoginRes> {
     const data = LoginReq.encode(request).finish();
@@ -1545,6 +1758,12 @@ export class AuthServiceClientImpl implements AuthService {
     const data = UpdatePasswordReq.encode(request).finish();
     const promise = this.rpc.request(this.service, "UpdatePassword", data);
     return promise.then((data) => UpdatePasswordRes.decode(new BinaryReader(data)));
+  }
+
+  GetCurrencyList(request: GetCurrencyListReq): Promise<GetCurrencyListRes> {
+    const data = GetCurrencyListReq.encode(request).finish();
+    const promise = this.rpc.request(this.service, "GetCurrencyList", data);
+    return promise.then((data) => GetCurrencyListRes.decode(new BinaryReader(data)));
   }
 }
 

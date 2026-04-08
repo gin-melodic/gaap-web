@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGlobal } from '@/context/GlobalContext';
 import { useGenerate2FA, useEnable2FA, useDisable2FA, useUpdatePassword } from '@/lib/hooks';
@@ -43,13 +43,14 @@ export const UserProfile = ({ onBack }: { onBack: () => void }) => {
   const disable2FA = useDisable2FA();
   const updatePassword = useUpdatePassword();
 
-  useEffect(() => {
-    if (!showPasswordModal) {
+  const handlePasswordModalOpenChange = (open: boolean) => {
+    setShowPasswordModal(open);
+    if (!open) {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     }
-  }, [showPasswordModal]);
+  };
 
   const handleGenerate2FA = async () => {
     try {
@@ -108,10 +109,7 @@ export const UserProfile = ({ onBack }: { onBack: () => void }) => {
         newPassword,
         confirmPassword,
       });
-      setShowPasswordModal(false);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
+      handlePasswordModalOpenChange(false);
     } catch (e: unknown) {
       console.error('[DEBUG] Password change error:', e);
     }
@@ -244,35 +242,35 @@ export const UserProfile = ({ onBack }: { onBack: () => void }) => {
         </Card>
       </div>
 
-      <Dialog open={showPasswordModal} onOpenChange={setShowPasswordModal}>
+      <Dialog open={showPasswordModal} onOpenChange={handlePasswordModalOpenChange}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t('settings:change_password_title')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handlePasswordSubmit} className="space-y-4 py-4">
-            <Input 
-              type="password" 
-              required 
-              placeholder={t('settings:current_password_placeholder')} 
+            <Input
+              type="password"
+              required
+              placeholder={t('settings:current_password_placeholder')}
               value={currentPassword}
               onChange={e => setCurrentPassword(e.target.value)}
             />
-            <Input 
-              type="password" 
-              required 
-              placeholder={t('settings:new_password_placeholder')} 
+            <Input
+              type="password"
+              required
+              placeholder={t('settings:new_password_placeholder')}
               value={newPassword}
               onChange={e => setNewPassword(e.target.value)}
             />
-            <Input 
-              type="password" 
-              required 
-              placeholder={t('settings:confirm_password_placeholder')} 
+            <Input
+              type="password"
+              required
+              placeholder={t('settings:confirm_password_placeholder')}
               value={confirmPassword}
               onChange={e => setConfirmPassword(e.target.value)}
             />
             <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="ghost" onClick={() => setShowPasswordModal(false)}>{t('common:cancel')}</Button>
+              <Button type="button" variant="ghost" onClick={() => handlePasswordModalOpenChange(false)}>{t('common:cancel')}</Button>
               <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white">{t('settings:confirm_change')}</Button>
             </div>
           </form>

@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 export const authKeys = {
   profile: ['auth', 'profile'] as const,
   twoFactor: ['auth', '2fa'] as const,
+  currencyList: ['auth', 'currencyList'] as const,
 };
 
 export function useProfile() {
@@ -18,8 +19,15 @@ export function useProfile() {
   });
 }
 
+export function useCurrencyList() {
+  return useQuery({
+    queryKey: authKeys.currencyList,
+    queryFn: () => secureAuthService.getCurrencyList(),
+    staleTime: 1000 * 60 * 60 * 24, // 24 hours since it rarely changes
+  });
+}
+
 export function useLogin() {
-  const { t } = useTranslation(['auth', 'common']);
   const queryClient = useQueryClient();
 
   return useMutation({
