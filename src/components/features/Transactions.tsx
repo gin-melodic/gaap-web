@@ -314,31 +314,31 @@ const Transactions = () => {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4 py-4">
               <div>
-                <Label className="text-xs font-bold text-slate-500 uppercase mb-1 block">
+                <Label className="text-xs font-bold text-slate-500 dark:text-slate-300 uppercase mb-1 block">
                   {t('transactions:date')} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   type="datetime-local"
                   step="1"
-                  className="bg-white font-bold"
+                  className="bg-white dark:bg-slate-800 dark:border-slate-700 font-bold"
                   value={newTx.date}
                   onChange={e => setNewTx({ ...newTx, date: e.target.value })}
                   required
                 />
               </div>
               <div>
-                <Label className="text-xs font-bold text-slate-500 uppercase">
+                <Label className="text-xs font-bold text-slate-500 dark:text-slate-300 uppercase">
                   {t('transactions:amount')} <span className="text-red-500">*</span>
                 </Label>
-                <div className="flex items-baseline border-b-2 border-slate-200 focus-within:border-indigo-600 transition-colors">
-                  <span className="text-2xl font-bold text-slate-400 shrink-0 mr-2">
+                <div className="flex items-baseline border-b-2 border-slate-200 dark:border-slate-700 focus-within:border-indigo-600 transition-colors">
+                  <span className="text-2xl font-bold text-slate-400 dark:text-slate-500 shrink-0 mr-2">
                     {getCurrencySymbol(currentCurrency)}
                   </span>
                   <Input
                     type="number"
                     autoFocus
                     placeholder="0.00"
-                    className="text-3xl md:text-3xl font-bold border-none px-0 py-2 shadow-none placeholder:text-slate-300 focus-visible:ring-0 h-auto"
+                    className="text-3xl md:text-3xl font-bold border-none px-0 py-2 shadow-none placeholder:text-slate-300 dark:placeholder:text-slate-500 text-slate-900 dark:text-slate-100 focus-visible:ring-0 h-auto"
                     onChange={e => setNewTx({ ...newTx, amount: e.target.value })}
                     value={newTx.amount}
                   />
@@ -393,23 +393,23 @@ const Transactions = () => {
                 </div>
               </div>
               {isCreatingIncome && (
-                <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-100 animate-in fade-in slide-in-from-top-2">
+                <div className="bg-indigo-50 dark:bg-indigo-950/30 p-3 rounded-lg border border-indigo-100 dark:border-indigo-900 animate-in fade-in slide-in-from-top-2">
                   <Label className="text-xs font-bold text-indigo-600 uppercase mb-1 block">
                     {t('transactions:new_income_name')} <span className="text-red-500">*</span>
                   </Label>
-                  <Input type="text" className="bg-white" placeholder={t('transactions:income_placeholder')} value={newIncomeName} onChange={e => setNewIncomeName(e.target.value)} required />
+                  <Input type="text" className="bg-white dark:bg-slate-800 dark:border-slate-700" placeholder={t('transactions:income_placeholder')} value={newIncomeName} onChange={e => setNewIncomeName(e.target.value)} required />
                 </div>
               )}
               {isCreatingExpense && (
-                <div className="bg-orange-50 p-3 rounded-lg border border-orange-100 animate-in fade-in slide-in-from-top-2">
+                <div className="bg-orange-50 dark:bg-orange-950/30 p-3 rounded-lg border border-orange-100 dark:border-orange-900 animate-in fade-in slide-in-from-top-2">
                   <Label className="text-xs font-bold text-orange-600 uppercase mb-1 block">
                     {t('transactions:new_expense_name')} <span className="text-red-500">*</span>
                   </Label>
-                  <Input type="text" className="bg-white" placeholder={t('transactions:expense_placeholder')} value={newExpenseName} onChange={e => setNewExpenseName(e.target.value)} required />
+                  <Input type="text" className="bg-white dark:bg-slate-800 dark:border-slate-700" placeholder={t('transactions:expense_placeholder')} value={newExpenseName} onChange={e => setNewExpenseName(e.target.value)} required />
                 </div>
               )}
               <div>
-                <Label className="text-xs font-bold text-slate-500 uppercase mb-1 block">{t('transactions:note')}</Label>
+                <Label className="text-xs font-bold text-slate-500 dark:text-slate-300 uppercase mb-1 block">{t('transactions:note')}</Label>
                 <Input type="text" placeholder={t('transactions:note_placeholder')} value={newTx.note} onChange={e => setNewTx({ ...newTx, note: e.target.value })} />
               </div>
               <div className="pt-2 flex gap-3">
@@ -417,7 +417,7 @@ const Transactions = () => {
                   <Button
                     type="button"
                     variant="destructive"
-                    className="flex-1 py-6 rounded-xl font-bold bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 shadow-none"
+                    className="flex-1 py-6 rounded-xl font-bold bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-950/60 border border-red-200 dark:border-red-900 shadow-none"
                     onClick={() => handleDelete(editingTxId)}
                     disabled={isPending}
                   >

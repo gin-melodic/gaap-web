@@ -11,6 +11,7 @@ interface User {
   nickname: string;
   avatar: string | null;
   plan: UserLevelType;
+  mainCurrency?: string;
   twoFactorEnabled?: boolean;
   mainCurrency?: string;
 }
@@ -60,12 +61,12 @@ const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
 export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState<User>({ email: '', nickname: '', avatar: null, plan: UserLevelType.UNRECOGNIZED });
+  const [user, setUser] = useState<User>({ email: '', nickname: '', avatar: null, plan: UserLevelType.UNRECOGNIZED, mainCurrency: 'USD' });
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
   const [exchangeRatesLastUpdated, setExchangeRatesLastUpdated] = useState<number | null>(null);
   const [baseCurrency, setBaseCurrency] = useState('USD');
 
-  const [currencies, setCurrencies] = useState(['CNY', 'USD', 'HKD', 'EUR', 'JPY']);
+  const [currencies, setCurrencies] = useState(['USD', 'CNY', 'HKD', 'EUR', 'JPY']);
   const [currentTheme, setCurrentTheme] = useState<Theme>(THEMES[0]);
   const [settingsView, setSettingsView] = useState<SettingsView>('MAIN');
   const [isTaskCenterOpen, setIsTaskCenterOpen] = useState(false);
@@ -116,12 +117,15 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
         const data = await secureAuthService.getProfile();
 
         if (data && data.user) {
+          const profileMainCurrency = (data.user.mainCurrency || '').toUpperCase();
+
           // Map the protobuf user response to our User type
           setUser({
             email: data.user.email || '',
             nickname: data.user.nickname || '',
             avatar: data.user.avatar || null,
             plan: data.user.plan ?? UserLevelType.UNRECOGNIZED,
+            mainCurrency: profileMainCurrency || 'CNY',
             twoFactorEnabled: data.user.twoFactorEnabled ?? false,
             mainCurrency: data.user.mainCurrency || '',
           });
@@ -142,7 +146,7 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
           localStorage.removeItem('token');
           localStorage.removeItem('refreshToken');
           setIsLoggedIn(false);
-          setUser({ email: '', nickname: '', avatar: null, plan: UserLevelType.UNRECOGNIZED });
+          setUser({ email: '', nickname: '', avatar: null, plan: UserLevelType.UNRECOGNIZED, mainCurrency: 'CNY' });
         } else if (error instanceof ApiError && (error.code === 503 || error.code === 502 || error.code === 504)) {
           // Backend service unavailable - keep tokens, user can retry later
           console.warn('Backend service unavailable, will retry later');
@@ -200,7 +204,7 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = () => {
     setIsLoggedIn(false);
-    setUser({ email: '', nickname: '', avatar: null, plan: UserLevelType.UNRECOGNIZED });
+    setUser({ email: '', nickname: '', avatar: null, plan: UserLevelType.UNRECOGNIZED, mainCurrency: 'CNY' });
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     // Redirect to login page

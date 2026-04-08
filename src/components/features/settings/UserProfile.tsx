@@ -198,7 +198,7 @@ export const UserProfile = ({ onBack }: { onBack: () => void }) => {
             <div className="flex justify-between items-start">
               <div><h3 className="text-sm font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2">{t('settings:2fa_title')}</h3><p className="text-sm text-[var(--text-muted)] max-w-md">{t('settings:2fa_desc')}</p></div>
               <div
-                className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors ${user.twoFactorEnabled ? 'bg-[var(--primary)]' : 'bg-slate-200'}`}
+                className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors ${user.twoFactorEnabled ? 'bg-[var(--primary)]' : 'bg-slate-200 dark:bg-slate-700'}`}
                 onClick={() => {
                   if (user.twoFactorEnabled) {
                     setShowDisable2FAModal(true);
@@ -208,13 +208,13 @@ export const UserProfile = ({ onBack }: { onBack: () => void }) => {
                   }
                 }}
               >
-                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform ${user.twoFactorEnabled ? 'translate-x-6' : ''}`}></div>
+                <div className={`w-4 h-4 rounded-full bg-white dark:bg-slate-100 shadow-sm transform transition-transform ${user.twoFactorEnabled ? 'translate-x-6' : ''}`}></div>
               </div>
             </div>
             {(show2FA && !user.twoFactorEnabled) && (
               <div className="mt-6 bg-[var(--bg-main)] p-4 rounded-xl border border-[var(--border)] animate-in fade-in slide-in-from-top-2">
                 <div className="flex flex-col md:flex-row gap-6 items-center">
-                  <div className="bg-white p-2 rounded-lg border border-slate-100 shadow-sm">
+                  <div className="bg-white dark:bg-slate-800 p-2 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm">
                     {qrUrl && <QRCodeSVG value={qrUrl} size={120} />}
                   </div>
                   <div className="flex-1 space-y-3">
@@ -224,7 +224,7 @@ export const UserProfile = ({ onBack }: { onBack: () => void }) => {
                       <Input
                         type="text"
                         placeholder={t('settings:enter_6_digit_code')}
-                        className="w-32 text-center tracking-widest text-slate-800 bg-white"
+                        className="w-32 text-center tracking-widest text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
                         maxLength={6}
                         value={code}
                         onChange={e => setCode(e.target.value)}
@@ -237,7 +237,7 @@ export const UserProfile = ({ onBack }: { onBack: () => void }) => {
                 </div>
               </div>
             )}
-            {user.twoFactorEnabled && <div className="mt-4 flex items-center gap-2 text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg w-fit text-sm font-medium"><CheckCircle2 size={16} /> {t('settings:2fa_activated')}</div>}
+            {user.twoFactorEnabled && <div className="mt-4 flex items-center gap-2 text-emerald-600 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-2 rounded-lg w-fit text-sm font-medium"><CheckCircle2 size={16} /> {t('settings:2fa_activated')}</div>}
           </CardContent>
         </Card>
       </div>
@@ -283,7 +283,7 @@ export const UserProfile = ({ onBack }: { onBack: () => void }) => {
             <DialogTitle>{t('settings:disable_2fa_title')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleDisable2FA} className="space-y-4 py-4">
-            <p className="text-sm text-slate-500">{t('settings:disable_2fa_desc')}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-300">{t('settings:disable_2fa_desc')}</p>
             <Input
               type="password"
               required

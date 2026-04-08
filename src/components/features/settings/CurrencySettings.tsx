@@ -114,7 +114,7 @@ export const CurrencySettings = ({ onBack, onUpgrade }: { onBack: () => void; on
         <h2 className="text-2xl font-bold text-[var(--text-main)]">{t('settings:currency_management')}</h2>
         <div className="flex flex-col items-end gap-1">
           {user.plan === UserLevelType.USER_LEVEL_TYPE_PRO && (
-            <div className="flex items-center gap-2 text-xs text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full font-medium">
+            <div className="flex items-center gap-2 text-xs text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300 px-3 py-1.5 rounded-full font-medium">
               <Sparkles size={12} />
               {isRefreshing ? t('settings:syncing') : t('settings:realtime_rates_active')}
             </div>
@@ -128,7 +128,7 @@ export const CurrencySettings = ({ onBack, onUpgrade }: { onBack: () => void; on
             <Button
               onClick={onUpgrade}
               variant="outline"
-              className="flex items-center gap-2 text-xs border-amber-300 text-amber-600 hover:bg-amber-50 px-3 py-1.5 h-auto"
+              className="flex items-center gap-2 text-xs border-amber-300 text-amber-600 hover:bg-amber-50 dark:border-amber-900 dark:text-amber-300 dark:hover:bg-amber-950/40 px-3 py-1.5 h-auto"
             >
               <Sparkles size={12} />
               {t('settings:upgrade_for_auto_sync')}
@@ -149,7 +149,7 @@ export const CurrencySettings = ({ onBack, onUpgrade }: { onBack: () => void; on
                 return (
                   <Button
                     key={curr}
-                    variant={isSelected ? "default" : "outline"}
+                    variant="outline"
                     onClick={() => handleSetBaseCurrency(curr)}
                     disabled={isUpdatingBase || (isSelected && !isConfirming)}
                     className={`h-9 relative transition-all duration-200 ${isSelected
@@ -219,7 +219,7 @@ export const CurrencySettings = ({ onBack, onUpgrade }: { onBack: () => void; on
                           type="number"
                           value={editRate}
                           onChange={(e) => setEditRate(e.target.value)}
-                          className="w-24 h-8 text-sm bg-[var(--bg-card)]"
+                          className="w-24 h-8 text-sm bg-[var(--bg-card)] text-[var(--text-main)] border-[var(--border)]"
                           autoFocus
                           placeholder="Rate"
                         />
@@ -236,7 +236,7 @@ export const CurrencySettings = ({ onBack, onUpgrade }: { onBack: () => void; on
                               setEditingCurrency(curr);
                               setEditRate(exchangeRates[curr]?.toString() || '');
                             }}
-                            className="h-8 w-8 p-0 text-[var(--text-muted)] hover:text-[var(--primary)]"
+                            className="h-8 w-8 p-0 text-[var(--text-muted)] hover:text-[var(--primary)] hover:bg-[var(--bg-main)]"
                           >
                             <div className="w-4 h-4"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" /></svg></div>
                           </Button>
@@ -246,7 +246,7 @@ export const CurrencySettings = ({ onBack, onUpgrade }: { onBack: () => void; on
                             variant="ghost"
                             size="sm"
                             onClick={() => deleteCurrency(curr)}
-                            className="h-8 w-8 p-0 text-[var(--text-muted)] hover:text-red-500"
+                            className="h-8 w-8 p-0 text-[var(--text-muted)] hover:text-red-500 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40"
                           >
                             <div className="w-4 h-4"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg></div>
                           </Button>

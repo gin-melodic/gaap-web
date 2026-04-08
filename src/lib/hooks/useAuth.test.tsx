@@ -153,13 +153,14 @@ describe('useAuth Hooks', () => {
       const { Wrapper } = createWrapper();
       const { result } = renderHook(() => useRegister(), { wrapper: Wrapper });
 
-      result.current.mutate({ email: 'test@example.com', password: 'password', nickname: 'test', cfTurnstileResponse: '' });
+      result.current.mutate({ email: 'test@example.com', password: 'password', nickname: 'test', mainCurrency: 'USD', cfTurnstileResponse: '' });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(secureAuthService.register).toHaveBeenCalledWith({
         email: 'test@example.com',
         password: 'password',
         nickname: 'test',
+        mainCurrency: 'USD',
         cfTurnstileResponse: '',
       });
     });

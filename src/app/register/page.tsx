@@ -5,6 +5,7 @@ import { Turnstile } from '@marsidev/react-turnstile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -13,12 +14,11 @@ import { useGlobal } from '@/context/GlobalContext';
 import { sha256 } from '@/lib/utils';
 
 import { useRegister, useCurrencyList } from '@/lib/hooks';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function RegisterPage() {
   const { t } = useTranslation(['auth', 'common', 'settings']);
   const router = useRouter();
-  const { login: contextLogin } = useGlobal();
+  const { login: contextLogin, currencies } = useGlobal();
   const registerMutation = useRegister();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -92,22 +92,23 @@ export default function RegisterPage() {
   const loading = registerMutation.isPending;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 space-y-6">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4">
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-8 space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-slate-900">{t('auth:register_title')}</h1>
-          <p className="text-slate-500 mt-2">{t('auth:register_subtitle')}</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{t('auth:register_title')}</h1>
+          <p className="text-slate-500 dark:text-slate-300 mt-2">{t('auth:register_subtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="nickname">{t('settings:nickname')}</Label>
+            <Label htmlFor="nickname" className="text-slate-700 dark:text-slate-200">{t('settings:nickname')}</Label>
             <Input
               id="nickname"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               required
               placeholder={t('settings:nickname')}
+              className="placeholder:text-slate-400 dark:placeholder:text-slate-400 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
             />
           </div>
 
@@ -139,11 +140,28 @@ export default function RegisterPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="name@example.com"
+              className="placeholder:text-slate-400 dark:placeholder:text-slate-400 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">{t('common:password')}</Label>
+            <Label htmlFor="mainCurrency" className="text-slate-700 dark:text-slate-200">{t('common:currency')}</Label>
+            <Select value={mainCurrency} onValueChange={setMainCurrency}>
+              <SelectTrigger id="mainCurrency" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                <SelectValue placeholder={t('common:currency')} />
+              </SelectTrigger>
+              <SelectContent>
+                {currencies.map((currency) => (
+                  <SelectItem key={currency} value={currency}>
+                    {currency}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password" className="text-slate-700 dark:text-slate-200">{t('common:password')}</Label>
             <Input
               id="password"
               type="password"
@@ -152,11 +170,12 @@ export default function RegisterPage() {
               required
               placeholder="••••••••"
               minLength={8}
+              className="placeholder:text-slate-400 dark:placeholder:text-slate-400 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">{t('auth:confirm_password')}</Label>
+            <Label htmlFor="confirmPassword" className="text-slate-700 dark:text-slate-200">{t('auth:confirm_password')}</Label>
             <Input
               id="confirmPassword"
               type="password"
@@ -165,6 +184,7 @@ export default function RegisterPage() {
               required
               placeholder="••••••••"
               minLength={8}
+              className="placeholder:text-slate-400 dark:placeholder:text-slate-400 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
             />
           </div>
 
@@ -180,7 +200,7 @@ export default function RegisterPage() {
           </Button>
         </form>
 
-        <div className="text-center text-sm text-slate-500">
+        <div className="text-center text-sm text-slate-500 dark:text-slate-300">
           {t('auth:have_account')}
           <a href="/login" className="text-indigo-600 font-bold hover:underline ml-1">
             {t('auth:login_directly')}

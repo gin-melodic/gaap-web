@@ -361,7 +361,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
                           </Tooltip>
                         </TooltipProvider>
                         {children.length > 1 && (
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleRemoveChild(child.id)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40" onClick={() => handleRemoveChild(child.id)}>
                             <Trash2 size={14} />
                           </Button>
                         )}

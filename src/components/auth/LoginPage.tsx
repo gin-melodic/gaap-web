@@ -109,7 +109,7 @@ const LoginPage = () => {
   const loading = loginMutation.isPending;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex">
       {/* Left Side: Marketing Display Area (Desktop) */}
       <div className="hidden lg:flex lg:w-1/4 bg-indigo-900 text-white p-12 flex-col justify-between relative overflow-hidden">
         {/* Background Decoration */}
@@ -163,7 +163,7 @@ const LoginPage = () => {
       </div>
 
       {/* Right Side: Login Form */}
-      <div className="w-full lg:w-3/4 flex items-center justify-center p-4 lg:p-8 bg-white relative">
+      <div className="w-full lg:w-3/4 flex items-center justify-center p-4 lg:p-8 bg-white dark:bg-slate-900 relative">
         <div className="absolute top-4 right-4">
           <LanguageSwitcher />
         </div>
@@ -174,10 +174,10 @@ const LoginPage = () => {
                 <Wallet className="text-white w-6 h-6" />
               </div>
             </div>
-            <h2 className="text-3xl font-bold text-slate-900">
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
               {t('auth:welcome')}
             </h2>
-            <p className="mt-2 text-slate-500">
+            <p className="mt-2 text-slate-500 dark:text-slate-300">
               {t('auth:login_description')}
             </p>
           </div>
@@ -186,9 +186,9 @@ const LoginPage = () => {
             {step === 1 ? (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="email">{t('common:email')}</Label>
+                  <Label htmlFor="email" className="text-slate-700 dark:text-slate-200">{t('common:email')}</Label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
                       <Mail size={18} />
                     </div>
                     <Input
@@ -196,7 +196,7 @@ const LoginPage = () => {
                       type="email"
                       required
                       placeholder="name@company.com"
-                      className="pl-10 py-6 rounded-xl placeholder:text-slate-300 text-slate-900 bg-white border-slate-200"
+                      className="pl-10 py-6 rounded-xl placeholder:text-slate-400 dark:placeholder:text-slate-400 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
                       value={email}
                       onChange={e => setEmail(e.target.value)}
                     />
@@ -204,9 +204,9 @@ const LoginPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password">{t('common:password')}</Label>
+                  <Label htmlFor="password" className="text-slate-700 dark:text-slate-200">{t('common:password')}</Label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
                       <Lock size={18} />
                     </div>
                     <Input
@@ -214,7 +214,7 @@ const LoginPage = () => {
                       type="password"
                       required
                       placeholder="••••••••"
-                      className="pl-10 py-6 rounded-xl placeholder:text-slate-300 text-slate-900 bg-white border-slate-200"
+                      className="pl-10 py-6 rounded-xl placeholder:text-slate-400 dark:placeholder:text-slate-400 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
                       value={password}
                       onChange={e => setPassword(e.target.value)}
                     />
@@ -225,15 +225,15 @@ const LoginPage = () => {
                   <Turnstile
                     siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
                     onSuccess={(token) => setTurnstileToken(token)}
-                    options={{ theme: 'light' }}
+                    options={{ theme: 'auto' }}
                   />
                 </div>
               </>
             ) : (
               <div className="space-y-2 animate-in fade-in slide-in-from-right duration-300">
-                <Label htmlFor="code">{t('auth:enter_2fa_code')}</Label>
+                <Label htmlFor="code" className="text-slate-700 dark:text-slate-200">{t('auth:enter_2fa_code')}</Label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
                     <ShieldCheck size={18} />
                   </div>
                   <Input
@@ -241,7 +241,7 @@ const LoginPage = () => {
                     type="text"
                     required
                     placeholder="••••••"
-                    className="pl-10 py-6 rounded-xl tracking-widest text-center text-lg placeholder:text-slate-300 text-slate-900 bg-white border-slate-200"
+                    className="pl-10 py-6 rounded-xl tracking-widest text-center text-lg placeholder:text-slate-400 dark:placeholder:text-slate-400 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
                     value={code}
                     onChange={e => setCode(e.target.value)}
                     maxLength={6}
@@ -251,7 +251,7 @@ const LoginPage = () => {
                 <Button
                   type="button"
                   variant="link"
-                  className="text-sm text-slate-500"
+                  className="text-sm text-slate-500 dark:text-slate-300"
                   onClick={() => setStep(1)}
                 >
                   {t('auth:back_to_login')}
@@ -266,10 +266,10 @@ const LoginPage = () => {
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200"></div>
+              <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-slate-500">{t('auth:or_continue_with')}</span>
+              <span className="px-4 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-300">{t('auth:or_continue_with')}</span>
             </div>
           </div>
 
@@ -277,11 +277,11 @@ const LoginPage = () => {
             <Button
               variant="outline"
               type="button"
-              onClick={() => {
-                contextLogin({ email: 'github_user@example.com', nickname: 'GitHub User', plan: UserLevelType.USER_LEVEL_TYPE_PRO });
-                router.push('/dashboard');
-              }}
-              className="flex items-center justify-center gap-2 py-6 rounded-xl hover:bg-slate-50"
+              // onClick={() => {
+              //   contextLogin({ email: 'github_user@example.com', nickname: 'GitHub User', plan: UserLevelType.USER_LEVEL_TYPE_PRO });
+              //   router.push('/dashboard');
+              // }}
+              className="flex items-center justify-center gap-2 py-6 rounded-xl text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
             >
               <GithubIcon size={20} />
               <span>GitHub</span>
@@ -289,11 +289,11 @@ const LoginPage = () => {
             <Button
               variant="outline"
               type="button"
-              onClick={() => {
-                contextLogin({ email: 'wechat_user@example.com', nickname: t('auth:default_wechat_username'), plan: UserLevelType.USER_LEVEL_TYPE_FREE });
-                router.push('/dashboard');
-              }}
-              className="flex items-center justify-center gap-2 py-6 rounded-xl hover:bg-slate-50"
+              // onClick={() => {
+              //   contextLogin({ email: 'wechat_user@example.com', nickname: t('auth:default_wechat_username'), plan: UserLevelType.USER_LEVEL_TYPE_FREE });
+              //   router.push('/dashboard');
+              // }}
+              className="flex items-center justify-center gap-2 py-6 rounded-xl text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
             >
               <MessageCircle size={20} className="text-green-600" />
               <span>微信</span>
@@ -301,7 +301,7 @@ const LoginPage = () => {
           </div>
 
           <div className="text-center text-sm">
-            <span className="text-slate-500">
+            <span className="text-slate-500 dark:text-slate-300">
               {t('auth:no_account')}
             </span>
             <Link

@@ -17,9 +17,9 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen font-sans overflow-hidden bg-slate-50">
+      <div className="flex h-screen font-sans overflow-hidden bg-slate-50 dark:bg-slate-950">
         {/* Sidebar Skeleton */}
-        <div className="hidden md:flex flex-col w-64 border-r border-slate-200 h-full p-4 gap-4 bg-white">
+        <div className="hidden md:flex flex-col w-64 border-r border-slate-200 dark:border-slate-800 h-full p-4 gap-4 bg-white dark:bg-slate-900">
           <div className="flex items-center gap-3 px-4 mb-4 mt-2">
             <Skeleton className="w-8 h-8 rounded-lg" />
             <Skeleton className="h-6 w-24" />
@@ -29,7 +29,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
               <Skeleton key={i} className="h-12 w-full rounded-xl" />
             ))}
           </div>
-          <div className="mt-auto px-4 py-4 border-t border-slate-100">
+          <div className="mt-auto px-4 py-4 border-t border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2">
               <Skeleton className="w-8 h-8 rounded-full" />
               <div className="space-y-1">
