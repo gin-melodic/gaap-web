@@ -18,7 +18,7 @@ import { useRegister, useCurrencyList } from '@/lib/hooks';
 export default function RegisterPage() {
   const { t } = useTranslation(['auth', 'common', 'settings']);
   const router = useRouter();
-  const { login: contextLogin, currencies } = useGlobal();
+  const { login: contextLogin } = useGlobal();
   const registerMutation = useRegister();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -142,22 +142,6 @@ export default function RegisterPage() {
               placeholder="name@example.com"
               className="placeholder:text-slate-400 dark:placeholder:text-slate-400 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="mainCurrency" className="text-slate-700 dark:text-slate-200">{t('common:currency')}</Label>
-            <Select value={mainCurrency} onValueChange={setMainCurrency}>
-              <SelectTrigger id="mainCurrency" className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-                <SelectValue placeholder={t('common:currency')} />
-              </SelectTrigger>
-              <SelectContent>
-                {currencies.map((currency) => (
-                  <SelectItem key={currency} value={currency}>
-                    {currency}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="space-y-2">
