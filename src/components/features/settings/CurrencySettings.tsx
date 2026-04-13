@@ -79,7 +79,7 @@ export const CurrencySettings = ({ onBack, onUpgrade }: { onBack: () => void; on
             }
           });
           setExchangeRate(baseCurrency, 1);
-          toast.success(t('settings:rates_synced'));
+          // Remove toast from automatic sync to prevent duplicate notifications during StrictMode or dependency updates
         } catch (error) {
           console.error('Failed to fetch rates:', error);
           toast.error(t('settings:sync_failed'));

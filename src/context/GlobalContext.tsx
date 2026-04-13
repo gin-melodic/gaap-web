@@ -13,7 +13,6 @@ interface User {
   plan: UserLevelType;
   mainCurrency?: string;
   twoFactorEnabled?: boolean;
-  mainCurrency?: string;
 }
 
 interface Theme {
@@ -117,7 +116,7 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
         const data = await secureAuthService.getProfile();
 
         if (data && data.user) {
-          const profileMainCurrency = (data.user.mainCurrency || '').toUpperCase();
+          const profileMainCurrency = (data.user.mainCurrency || 'USD').toUpperCase();
 
           // Map the protobuf user response to our User type
           setUser({
@@ -127,7 +126,6 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
             plan: data.user.plan ?? UserLevelType.UNRECOGNIZED,
             mainCurrency: profileMainCurrency || 'CNY',
             twoFactorEnabled: data.user.twoFactorEnabled ?? false,
-            mainCurrency: data.user.mainCurrency || '',
           });
           // Use user mainCurrency as initial baseCurrency if available
           if (data.user.mainCurrency) {

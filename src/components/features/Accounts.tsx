@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { useAllAccountsSuspense, Account, AccountType, Money } from '@/lib/hooks';
 import { useTranslation } from 'react-i18next';
 import { ACCOUNT_TYPES, EXCHANGE_RATES } from '@/lib/data';
+import { useGlobal } from '@/context/GlobalContext';
 import { MoneyHelper } from '@/lib/utils/money';
 import {
   Plus,
@@ -24,6 +25,7 @@ import EditAccountModal from './EditAccountModal';
 const Accounts = () => {
   const { t } = useTranslation(['accounts', 'common']);
   const { accounts } = useAllAccountsSuspense();
+  const { baseCurrency, exchangeRates } = useGlobal();
   // We use string IDs for tabs, but map them to Enums for filtering
   const [activeTab, setActiveTab] = useState('ALL');
   const [page, setPage] = useState(1);
@@ -128,8 +130,8 @@ const Accounts = () => {
           </div>
           {groupBalance !== undefined && (
             <div className="text-right">
-              <div className="font-bold text-[var(--text-main)]">{formatCurrency(groupBalance, 'USD')}</div>
-              <div className="text-[10px] text-slate-400">≈ {t('common:total')}</div>
+              <div className="font-bold text-[var(--text-main)]">≈ {formatCurrency(groupBalance, baseCurrency)}</div>
+              <div className="text-[10px] text-slate-400">{t('common:total')}</div>
             </div>
           )}
         </div>
@@ -175,9 +177,22 @@ const Accounts = () => {
     const children = accounts.filter(a => a.parentId === parentAccount.id);
     const groupBalance = children.reduce((sum, child) => {
       const childIso = child.balance?.currencyCode || 'USD';
-      const rate = EXCHANGE_RATES[childIso] || 1;
       const balVal = MoneyHelper.from(child.balance).toNumber();
-      return sum + (balVal * rate);
+
+      if (childIso === baseCurrency) {
+        return sum + balVal;
+      }
+
+      // convert to USD
+      const childToUSDRate = exchangeRates[childIso] || EXCHANGE_RATES[childIso] || 1;
+      // const childToUSDBalance = balVal * childFromUSDRate;
+      const childValInUSD = balVal / childToUSDRate;
+
+      // convert USD to base currency
+      const childToBasecurrency = exchangeRates[baseCurrency] || EXCHANGE_RATES[baseCurrency] || 1;
+      const childValInBase = childValInUSD * childToBasecurrency
+      
+      return sum + childValInBase;
     }, 0);
 
     return (
