@@ -115,6 +115,19 @@ export const UserProfile = ({ onBack }: { onBack: () => void }) => {
     }
   };
 
+  const handleSaveNickname = async () => {
+    try {
+      // Note: We are using the global updateUser here as a temporary fix 
+      // because there is no specific useUpdateUserProfile hook yet.
+      // In a real scenario, we should implement a proper API call via a hook.
+      await updateUser({ nickname });
+      toast.success(t('common:save_success'));
+    } catch (e: unknown) {
+      console.error(e);
+      toast.error(t('common:save_failed'));
+    }
+  };
+
   const isPending = generate2FA.isPending || enable2FA.isPending || disable2FA.isPending;
 
   return (
@@ -150,7 +163,7 @@ export const UserProfile = ({ onBack }: { onBack: () => void }) => {
                 />
               </div>
             </div>
-            <Button className="bg-[var(--primary)] text-white hover:opacity-90">{t('settings:save_changes')}</Button>
+            <Button className="bg-[var(--primary)] text-white hover:opacity-90" onClick={handleSaveNickname}>{t('settings:save_changes')}</Button>
           </CardContent>
         </Card>
 

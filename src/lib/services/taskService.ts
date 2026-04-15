@@ -1,9 +1,10 @@
 import apiRequest, { API_BASE_PATH } from '../api';
+import { TaskStatusType, TaskTypeType } from '@/lib/constants/taskEnums';
 
 export interface Task {
   id: string;
-  type: string;
-  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  type: TaskTypeType;
+  status: TaskStatusType;
   payload: unknown;
   result?: unknown;
   progress: number;
@@ -18,8 +19,8 @@ export interface Task {
 export interface TaskQuery {
   page?: number;
   limit?: number;
-  status?: Task['status'];
-  type?: string;
+  status?: TaskStatusType;
+  type?: TaskTypeType;
   [key: string]: string | number | undefined;
 }
 

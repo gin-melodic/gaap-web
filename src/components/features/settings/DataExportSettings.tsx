@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import apiRequest, { API_BASE_PATH } from '@/lib/api';
+import { dataService } from '@/lib/services/dataService';
+import { TaskStatus as TaskStatusEnum } from '@/lib/constants/taskEnums';
 
 interface DataExportSettingsProps {
   onBack: () => void;
@@ -18,7 +19,7 @@ type DateRangePreset = '7d' | '30d' | '90d' | '1y' | '3y' | 'custom';
 
 interface TaskStatus {
   taskId: string;
-  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+  status: number;
   progress: number;
   payload?: {
     startDate: string;
@@ -97,14 +98,11 @@ export const DataExportSettings = ({ onBack }: DataExportSettingsProps) => {
         throw new Error(t('settings:data_export.select_date_range'));
       }
 
-      const response = await apiRequest<{ taskId: string }>(`${API_BASE_PATH}/data/export-data`, {
-        method: 'POST',
-        body: JSON.stringify({ startDate, endDate }),
-      });
+      const response = await dataService.exportData({ startDate, endDate });
 
       setExportTask({
         taskId: response.taskId,
-        status: 'PENDING',
+        status: TaskStatusEnum.PENDING,
         progress: 0,
       });
 
@@ -130,15 +128,14 @@ export const DataExportSettings = ({ onBack }: DataExportSettingsProps) => {
       const formData = new FormData();
       formData.append('file', importFile);
 
-      const response = await apiRequest<{ taskId: string }>(`${API_BASE_PATH}/data/import-data`, {
-        method: 'POST',
-        body: formData,
-        headers: {}, // Let browser set Content-Type for multipart
-      });
+      // Convert file to Uint8Array for protobuf request
+      const arrayBuffer = await importFile.arrayBuffer();
+      const fileContent = new Uint8Array(arrayBuffer);
+      const response = await dataService.importData(fileContent, importFile.name);
 
       setImportTask({
         taskId: response.taskId,
-        status: 'PENDING',
+        status: TaskStatusEnum.PENDING,
         progress: 0,
       });
 
@@ -157,18 +154,38 @@ export const DataExportSettings = ({ onBack }: DataExportSettingsProps) => {
 
     const poll = async () => {
       try {
-        const response = await apiRequest<TaskStatus>(`${API_BASE_PATH}/data/get-export-status`, {
-          method: 'POST',
-          body: JSON.stringify({ taskId }),
-        });
+        const response = await dataService.getExportStatus(taskId);
+        const taskData = response.task;
+        if (!taskData) return;
+
+        // Map protobuf Task to local TaskStatus interface
+        const statusResponse: TaskStatus = {
+          taskId: taskData.id,
+          status: taskData.status as any,
+          progress: taskData.progress,
+          payload: taskData.payload ? {
+            startDate: taskData.payload.startDate,
+            endDate: taskData.payload.endDate,
+          } : undefined,
+          result: taskData.result ? {
+            fileName: taskData.result.fileName,
+            accountsExported: taskData.result.accountsExported,
+            transactionsExported: taskData.result.transactionsExported,
+            accountsImported: taskData.result.accountsImported,
+            transactionsImported: taskData.result.transactionsImported,
+            accountsSkipped: taskData.result.accountsSkipped,
+            transactionsSkipped: taskData.result.transactionsSkipped,
+            error: taskData.result.error,
+          } : undefined,
+        };
 
         if (type === 'export') {
-          setExportTask(response);
+          setExportTask(statusResponse);
         } else {
-          setImportTask(response);
+          setImportTask(statusResponse);
         }
 
-        if (response.status === 'COMPLETED' || response.status === 'FAILED') {
+        if (statusResponse.status === TaskStatusEnum.COMPLETED || statusResponse.status === TaskStatusEnum.FAILED) {
           return;
         }
 
@@ -188,18 +205,7 @@ export const DataExportSettings = ({ onBack }: DataExportSettingsProps) => {
     if (!exportTask?.taskId) return;
 
     try {
-      const response = await fetch(`${API_BASE_PATH}/data/download-export`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ taskId: exportTask.taskId }),
-      });
-
-      if (!response.ok) throw new Error('Download failed');
-
-      const blob = await response.blob();
+      const blob = await dataService.downloadExport(exportTask.taskId);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -302,13 +308,13 @@ export const DataExportSettings = ({ onBack }: DataExportSettingsProps) => {
             <div className="p-4 bg-[var(--bg-main)] rounded-lg space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-[var(--text-muted)]">
-                  {exportTask.status === 'PENDING' && t('settings:data_export.status_pending')}
-                  {exportTask.status === 'RUNNING' && t('settings:data_export.status_running')}
-                  {exportTask.status === 'COMPLETED' && t('settings:data_export.status_completed')}
-                  {exportTask.status === 'FAILED' && t('settings:data_export.status_failed')}
+                  {exportTask.status === TaskStatusEnum.PENDING && t('settings:data_export.status_pending')}
+                  {exportTask.status === TaskStatusEnum.RUNNING && t('settings:data_export.status_running')}
+                  {exportTask.status === TaskStatusEnum.COMPLETED && t('settings:data_export.status_completed')}
+                  {exportTask.status === TaskStatusEnum.FAILED && t('settings:data_export.status_failed')}
                 </span>
-                {exportTask.status === 'COMPLETED' && <CheckCircle className="h-5 w-5 text-green-500" />}
-                {exportTask.status === 'FAILED' && <AlertCircle className="h-5 w-5 text-red-500" />}
+                {exportTask.status === TaskStatusEnum.COMPLETED && <CheckCircle className="h-5 w-5 text-green-500" />}
+                {exportTask.status === TaskStatusEnum.FAILED && <AlertCircle className="h-5 w-5 text-red-500" />}
               </div>
 
               {exportTask.payload && (
@@ -317,7 +323,7 @@ export const DataExportSettings = ({ onBack }: DataExportSettingsProps) => {
                 </div>
               )}
 
-              {exportTask.status === 'RUNNING' && (
+              {exportTask.status === TaskStatusEnum.RUNNING && (
                 <div className="w-full bg-[var(--border)] rounded-full h-2">
                   <div
                     className="bg-[var(--primary)] h-2 rounded-full transition-all"
@@ -325,7 +331,7 @@ export const DataExportSettings = ({ onBack }: DataExportSettingsProps) => {
                   />
                 </div>
               )}
-              {exportTask.status === 'COMPLETED' && exportTask.result && (
+              {exportTask.status === TaskStatusEnum.COMPLETED && exportTask.result && (
                 <div className="text-sm text-[var(--text-muted)]">
                   {t('settings:data_export.export_result', {
                     accounts: exportTask.result.accountsExported,
@@ -333,7 +339,7 @@ export const DataExportSettings = ({ onBack }: DataExportSettingsProps) => {
                   })}
                 </div>
               )}
-              {exportTask.status === 'FAILED' && exportTask.result?.error && (
+              {exportTask.status === TaskStatusEnum.FAILED && exportTask.result?.error && (
                 <div className="text-sm text-red-500">{exportTask.result.error}</div>
               )}
             </div>
@@ -342,7 +348,7 @@ export const DataExportSettings = ({ onBack }: DataExportSettingsProps) => {
           <div className="flex gap-2">
             <Button
               onClick={handleExport}
-              disabled={isExporting || exportTask?.status === 'RUNNING'}
+              disabled={isExporting || exportTask?.status === TaskStatusEnum.RUNNING}
               className="flex-1"
             >
               {isExporting ? (
@@ -352,7 +358,7 @@ export const DataExportSettings = ({ onBack }: DataExportSettingsProps) => {
               )}
               {t('settings:data_export.start_export')}
             </Button>
-            {exportTask?.status === 'COMPLETED' && (
+            {exportTask?.status === TaskStatusEnum.COMPLETED && (
               <Button onClick={handleDownload} variant="outline">
                 <FileArchive className="mr-2 h-4 w-4" />
                 {t('settings:data_export.download')}
@@ -395,15 +401,15 @@ export const DataExportSettings = ({ onBack }: DataExportSettingsProps) => {
             <div className="p-4 bg-[var(--bg-main)] rounded-lg space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-[var(--text-muted)]">
-                  {importTask.status === 'PENDING' && t('settings:data_export.status_pending')}
-                  {importTask.status === 'RUNNING' && t('settings:data_export.status_importing')}
-                  {importTask.status === 'COMPLETED' && t('settings:data_export.status_completed')}
-                  {importTask.status === 'FAILED' && t('settings:data_export.status_failed')}
+                  {importTask.status === TaskStatusEnum.PENDING && t('settings:data_export.status_pending')}
+                  {importTask.status === TaskStatusEnum.RUNNING && t('settings:data_export.status_importing')}
+                  {importTask.status === TaskStatusEnum.COMPLETED && t('settings:data_export.status_completed')}
+                  {importTask.status === TaskStatusEnum.FAILED && t('settings:data_export.status_failed')}
                 </span>
-                {importTask.status === 'COMPLETED' && <CheckCircle className="h-5 w-5 text-green-500" />}
-                {importTask.status === 'FAILED' && <AlertCircle className="h-5 w-5 text-red-500" />}
+                {importTask.status === TaskStatusEnum.COMPLETED && <CheckCircle className="h-5 w-5 text-green-500" />}
+                {importTask.status === TaskStatusEnum.FAILED && <AlertCircle className="h-5 w-5 text-red-500" />}
               </div>
-              {importTask.status === 'RUNNING' && (
+              {importTask.status === TaskStatusEnum.RUNNING && (
                 <div className="w-full bg-[var(--border)] rounded-full h-2">
                   <div
                     className="bg-[var(--primary)] h-2 rounded-full transition-all"
@@ -411,7 +417,7 @@ export const DataExportSettings = ({ onBack }: DataExportSettingsProps) => {
                   />
                 </div>
               )}
-              {importTask.status === 'COMPLETED' && importTask.result && (
+              {importTask.status === TaskStatusEnum.COMPLETED && importTask.result && (
                 <div className="text-sm text-[var(--text-muted)]">
                   {(() => {
                     const r = importTask.result;
@@ -422,7 +428,7 @@ export const DataExportSettings = ({ onBack }: DataExportSettingsProps) => {
                   })()}
                 </div>
               )}
-              {importTask.status === 'FAILED' && importTask.result?.error && (
+              {importTask.status === TaskStatusEnum.FAILED && importTask.result?.error && (
                 <div className="text-sm text-red-500">{importTask.result.error}</div>
               )}
             </div>
@@ -430,7 +436,7 @@ export const DataExportSettings = ({ onBack }: DataExportSettingsProps) => {
 
           <Button
             onClick={handleImport}
-            disabled={isImporting || !importFile || importTask?.status === 'RUNNING'}
+            disabled={isImporting || !importFile || importTask?.status === TaskStatusEnum.RUNNING}
             className="w-full"
           >
             {isImporting ? (

@@ -40,6 +40,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
   const { currencies, addCurrency: globalAddCurrency, user } = useGlobal();
   const { accounts } = useAllAccounts();
   const createAccount = useCreateAccount();
+  const { baseCurrency } = useGlobal();
 
   const [type, setType] = useState<AccountType>(AccountType.ACCOUNT_TYPE_ASSET);
   const [isGroup, setIsGroup] = useState(false);
@@ -49,12 +50,12 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
   const [remarks, setRemarks] = useState('');
 
   // Simple account state
-  const [currency, setCurrency] = useState('USD');
+  const [currency, setCurrency] = useState(baseCurrency);
   const [balance, setBalance] = useState('0');
 
   // Group account state
   const [children, setChildren] = useState(() => [
-    { id: Date.now().toString(), name: '', currency: 'USD', balance: '0', isDefault: true }
+    { id: Date.now().toString(), name: '', currency: baseCurrency, balance: '0', isDefault: true }
   ]);
 
   const [saveAndContinue, setSaveAndContinue] = useState(false);
@@ -77,7 +78,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
   }, [isOpen]);
 
   const handleAddChild = () => {
-    setChildren([...children, { id: Date.now().toString(), name: '', currency: 'USD', balance: '0', isDefault: false }]);
+    setChildren([...children, { id: Date.now().toString(), name: '', currency: baseCurrency, balance: '0', isDefault: false }]);
   };
 
   const handleRemoveChild = (id: string) => {
@@ -108,7 +109,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
     setNumber('');
     setRemarks('');
     setBalance('0');
-    setChildren([{ id: Date.now().toString(), name: '', currency: 'USD', balance: '0', isDefault: true }]);
+    setChildren([{ id: Date.now().toString(), name: '', currency: baseCurrency, balance: '0', isDefault: true }]);
   };
 
   const handleSubmit = async () => {
@@ -132,7 +133,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
           type,
           isGroup: true,
           balance: 0,
-          currency: 'USD',
+          currency: baseCurrency,
           date: finalDate,
           ...(number ? { number } : {}),
           ...(remarks ? { remarks } : {}),

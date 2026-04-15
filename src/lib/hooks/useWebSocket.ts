@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useGlobal } from '@/context/GlobalContext';
+import { TaskStatusType, TaskTypeType } from '@/lib/constants/taskEnums';
 
 export type WebSocketStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 
@@ -9,8 +10,8 @@ export interface WebSocketMessage {
     type: 'TASK_UPDATE' | 'PING' | 'PONG';
     payload?: {
         taskId: string;
-        status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
-        taskType: string;
+        status: TaskStatusType;
+        taskType: TaskTypeType;
         result?: unknown;
     };
 }
