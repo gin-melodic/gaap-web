@@ -1,5 +1,7 @@
 {
   "my_accounts": "マイアカウント",
+  "show_equity": "資本口座を表示",
+  "hide_equity": "資本口座を非表示",
   "account_group": "アカウントグループ",
   "no_accounts_found": "アカウントが見つかりません",
   "filter_accounts": "アカウントをフィルタ...",

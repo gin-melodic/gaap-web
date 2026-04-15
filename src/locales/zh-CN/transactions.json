@@ -1,5 +1,6 @@
 {
   "history": "交易流水",
+  "show_opening_balance": "显示期初余额交易",
   "date": "交易时间",
   "add_transaction": "记一笔",
   "new_transaction": "新交易 (复式)",

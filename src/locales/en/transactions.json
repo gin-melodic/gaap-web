@@ -1,5 +1,6 @@
 {
   "history": "Transaction History",
+  "show_opening_balance": "Show Opening Balance Transactions",
   "date": "Transaction Time",
   "add_transaction": "Add Transaction",
   "new_transaction": "New Transaction (Double Entry)",

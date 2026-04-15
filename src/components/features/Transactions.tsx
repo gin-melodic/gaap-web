@@ -290,6 +290,8 @@ const Transactions = () => {
     });
   };
 
+  const [showOpeningBalance, setShowOpeningBalance] = useState(false);
+
   const isPending = createTransaction.isPending ||
     updateTransactionMutation.isPending ||
     deleteTransactionMutation.isPending ||
@@ -298,7 +300,18 @@ const Transactions = () => {
   return (
     <div className="h-full flex flex-col relative pb-20 md:pb-0">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-[var(--text-main)]">{t('transactions:history')}</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-bold text-[var(--text-main)]">{t('transactions:history')}</h2>
+          <label className="flex items-center gap-2 cursor-pointer text-sm text-[var(--text-muted)] hover:text-[var(--text-main)] select-none">
+            <input
+              type="checkbox"
+              checked={showOpeningBalance}
+              onChange={() => setShowOpeningBalance(!showOpeningBalance)}
+              className="w-4 h-4 rounded border-[var(--border)] bg-[var(--bg-card)] text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer"
+            />
+            <span>{t('transactions:show_opening_balance')}</span>
+          </label>
+        </div>
         <Dialog open={showAddModal} onOpenChange={(open) => {
           setShowAddModal(open);
           if (!open) resetForm();
@@ -437,7 +450,10 @@ const Transactions = () => {
         </Dialog>
       </div>
       <div className="space-y-3 overflow-y-auto">
-        {transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(tx => {
+        {transactions
+          .filter(tx => showOpeningBalance || tx.type !== TransactionType.TRANSACTION_TYPE_OPENING_BALANCE)
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .map(tx => {
           const fromAcc = accounts.find(a => a.id === tx.from);
           const toAcc = accounts.find(a => a.id === tx.to);
           const isOpeningBalance = tx.type === TransactionType.TRANSACTION_TYPE_OPENING_BALANCE;

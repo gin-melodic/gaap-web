@@ -50,6 +50,8 @@ const Accounts = () => {
     }
   };
 
+  const [showEquity, setShowEquity] = useState(false);
+
   const tabToEnum: Record<string, AccountType | undefined> = useMemo(() => ({
     'ASSET': AccountType.ACCOUNT_TYPE_ASSET,
     'LIABILITY': AccountType.ACCOUNT_TYPE_LIABILITY,
@@ -59,6 +61,10 @@ const Accounts = () => {
 
   const topLevelAccounts = useMemo(() => {
     let filtered = accounts.filter(a => !a.parentId);
+
+    if (!showEquity) {
+      filtered = filtered.filter(a => a.type !== AccountType.ACCOUNT_TYPE_EQUITY);
+    }
 
     if (activeTab !== 'ALL') {
       const targetType = tabToEnum[activeTab];
@@ -83,7 +89,7 @@ const Accounts = () => {
       return dateB - dateA;
     });
     return filtered;
-  }, [accounts, activeTab, searchQuery, tabToEnum]);
+  }, [accounts, activeTab, searchQuery, tabToEnum, showEquity]);
 
   const totalPages = Math.ceil(topLevelAccounts.length / itemsPerPage);
 
@@ -216,7 +222,18 @@ const Accounts = () => {
   return (
     <div className="space-y-6 pb-20 md:pb-0">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold text-[var(--text-main)]">{t('accounts:my_accounts')}</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-bold text-[var(--text-main)]">{t('accounts:my_accounts')}</h2>
+          <label className="flex items-center gap-2 cursor-pointer text-sm text-[var(--text-muted)] hover:text-[var(--text-main)] select-none">
+            <input
+              type="checkbox"
+              checked={showEquity}
+              onChange={() => setShowEquity(!showEquity)}
+              className="w-4 h-4 rounded border-[var(--border)] bg-[var(--bg-card)] text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer"
+            />
+            <span>{t('accounts:show_equity')}</span>
+          </label>
+        </div>
         <Button onClick={() => setIsAddModalOpen(true)} className="bg-[var(--primary)] text-white hover:opacity-90 shadow-lg shadow-indigo-200/20" size="icon">
           <Plus size={20} />
         </Button>

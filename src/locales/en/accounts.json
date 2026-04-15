@@ -1,5 +1,7 @@
 {
   "my_accounts": "My Accounts",
+  "show_equity": "Show Equity Accounts",
+  "hide_equity": "Hide Equity Accounts",
   "account_group": "Account Group",
   "no_accounts_found": "No accounts found",
   "filter_accounts": "Filter accounts...",

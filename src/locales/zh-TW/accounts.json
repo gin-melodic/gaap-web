@@ -1,5 +1,7 @@
 {
   "my_accounts": "我的帳戶",
+  "show_equity": "顯示權益帳戶",
+  "hide_equity": "隱藏權益帳戶",
   "account_group": "帳戶群組",
   "no_accounts_found": "未找到相關帳戶",
   "filter_accounts": "篩選帳戶...",
