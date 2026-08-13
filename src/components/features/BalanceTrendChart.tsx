@@ -25,6 +25,7 @@ import { ChevronDown, Loader2 } from 'lucide-react';
 import { MoneyHelper } from '@/lib/utils/money';
 import { DailyBalance } from '@/lib/types';
 import Decimal from 'decimal.js';
+import { resolveDisplayCurrency } from '@/lib/utils/display-currency';
 
 const COLORS = [
   'var(--primary)',
@@ -40,9 +41,12 @@ const COLORS = [
 const BalanceTrendChart = () => {
   const { t } = useTranslation(['dashboard', 'common']);
   const { data: profile } = useProfile();
-  const mainCurrency = profile?.user?.mainCurrency || 'USD';
 
   const { accounts } = useAllAccounts();
+  const mainCurrency = resolveDisplayCurrency(
+    profile?.user?.mainCurrency,
+    accounts.map((account) => account.balance ?? {}),
+  );
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(['all']);
 
   // Filter valid asset accounts for the dropdown

@@ -9,13 +9,19 @@ import { Card, CardContent } from '@/components/ui/card';
 import BalanceTrendChart from './BalanceTrendChart';
 import { MoneyHelper } from '@/lib/utils/money';
 import Decimal from 'decimal.js';
+import { resolveDisplayCurrency } from '@/lib/utils/display-currency';
 
 const Dashboard = () => {
   const { t } = useTranslation(['dashboard', 'common']);
   const { data: profile } = useProfile();
-  const mainCurrency = profile?.user?.mainCurrency || 'USD';
 
   const { accounts } = useAllAccountsSuspense();
+  const { transactions } = useAllTransactions();
+  const mainCurrency = resolveDisplayCurrency(
+    profile?.user?.mainCurrency,
+    accounts.map((account) => account.balance ?? {}),
+    transactions.map((transaction) => transaction.amount ?? {}),
+  );
 
   const summary = useMemo(() => {
     let assets = MoneyHelper.fromAmount('0', mainCurrency);
@@ -31,8 +37,6 @@ const Dashboard = () => {
     return { assets, liabilities, netWorth: assets.sub(liabilities) };
   }, [accounts, mainCurrency]);
 
-
-  const { transactions } = useAllTransactions();
 
   const monthlyStats = useMemo(() => {
     const now = new Date();
