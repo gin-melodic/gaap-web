@@ -50,7 +50,14 @@ RUN --mount=type=cache,target=/root/.npm npm ci
 COPY . .
 
 # Build Next.js for production
+ARG NEXT_PUBLIC_ALE_BOOTSTRAP_KEY
+ARG NEXT_PUBLIC_TURNSTILE_SITE_KEY
+ENV NEXT_PUBLIC_ALE_BOOTSTRAP_KEY=${NEXT_PUBLIC_ALE_BOOTSTRAP_KEY}
+ENV NEXT_PUBLIC_TURNSTILE_SITE_KEY=${NEXT_PUBLIC_TURNSTILE_SITE_KEY}
 ENV NEXT_TELEMETRY_DISABLED=1
+RUN test "${#NEXT_PUBLIC_ALE_BOOTSTRAP_KEY}" -eq 64 \
+  && case "${NEXT_PUBLIC_ALE_BOOTSTRAP_KEY}" in *[!0-9a-fA-F]*) exit 1;; esac \
+  && test -n "${NEXT_PUBLIC_TURNSTILE_SITE_KEY}"
 RUN --mount=type=cache,target=/app/.next/cache npm run build
 
 # ==================== Production Runtime ====================

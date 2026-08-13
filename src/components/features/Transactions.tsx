@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { useAllTransactionsSuspense, useAllAccountsSuspense, useCreateTransaction, useUpdateTransaction, useDeleteTransaction, useCreateAccount } from '@/lib/hooks';
 import { TransactionType, AccountType, Account, Transaction, Money } from '@/lib/types';
 import { MoneyHelper } from '@/lib/utils/money';
+import { resolveTransactionType } from '@/lib/utils/transaction-type';
+import { accountService } from '@/lib/services/accountService';
 import { useTranslation } from 'react-i18next';
 import { Plus, ArrowRightLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -28,11 +30,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from '@/components/ui/label';
+import { useGlobal } from '@/context/GlobalContext';
+import { toast } from 'sonner';
 
 const Transactions = () => {
   const { t } = useTranslation(['transactions', 'common']);
   const { transactions } = useAllTransactionsSuspense();
   const { accounts } = useAllAccountsSuspense();
+  const { baseCurrency } = useGlobal();
   const createTransaction = useCreateTransaction();
   const updateTransactionMutation = useUpdateTransaction();
   const deleteTransactionMutation = useDeleteTransaction();
@@ -59,19 +64,9 @@ const Transactions = () => {
 
   const [newTx, setNewTx] = useState({ amount: '', note: '', from: '', to: '', date: getCurrentDateTime() });
 
-  const formatCurrency = (amount: Money | number, currency = 'USD') => {
-    let val = amount;
-    // Also handle Money encoded object
-    if (typeof amount === 'object' && amount !== null && ('units' in amount || 'nanos' in amount)) {
-      // Check if it has 'units' (string) or needs coercion
-      val = MoneyHelper.from(amount).toNumber();
-    }
-
-    try {
-      return new Intl.NumberFormat('zh-CN', { style: 'currency', currency }).format(val as number);
-    } catch {
-      return `${currency} ${Number(val).toFixed(2)}`;
-    }
+  const formatCurrency = (amount: Money | undefined, currency = baseCurrency) => {
+    if (!amount) return MoneyHelper.fromAmount('0', currency).formatCurrency();
+    return MoneyHelper.from(amount).formatCurrency();
   };
 
   const getCurrencySymbol = (currencyCode: string) => {
@@ -86,7 +81,7 @@ const Transactions = () => {
 
   // Helper to safely get currency from an account
   const getAccountCurrency = (account?: Account) => {
-    return account?.balance?.currencyCode || 'USD';
+    return account?.balance?.currencyCode || baseCurrency;
   };
 
   const currentCurrency = getAccountCurrency(accounts.find(a => a.id === newTx.from));
@@ -155,23 +150,27 @@ const Transactions = () => {
     e.preventDefault();
     if (!newTx.amount || !newTx.from || !newTx.to) return;
 
+    const createdAccountIds: string[] = [];
     try {
       let finalFromAccount = newTx.from;
       let finalToAccount = newTx.to;
+      let fromAccount = accounts.find(a => a.id === newTx.from);
+      let toAccount = accounts.find(a => a.id === newTx.to);
 
       if (newTx.from === 'NEW_INCOME') {
         if (!newIncomeName) return;
         const res = await createAccount.mutateAsync({
           name: newIncomeName,
           type: AccountType.ACCOUNT_TYPE_INCOME,
-          currency: 'USD',
-          balance: 0,
+          currency: getAccountCurrency(accounts.find(a => a.id === newTx.to)),
+          balance: '0',
           isGroup: false,
           date: getCurrentDateTime(),
         });
-        if (res.account) {
-          finalFromAccount = res.account.id;
-        }
+        if (!res.account) throw new Error('income account creation returned no account');
+        finalFromAccount = res.account.id;
+        fromAccount = res.account;
+        createdAccountIds.push(res.account.id);
       }
 
       if (newTx.to === 'NEW_EXPENSE') {
@@ -182,22 +181,19 @@ const Transactions = () => {
           name: newExpenseName,
           type: AccountType.ACCOUNT_TYPE_EXPENSE,
           currency: sourceCurrency,
-          balance: 0,
+          balance: '0',
           isGroup: false,
           date: getCurrentDateTime(),
         });
-        if (res.account) {
-          finalToAccount = res.account.id;
-        }
+        if (!res.account) throw new Error('expense account creation returned no account');
+        finalToAccount = res.account.id;
+        toAccount = res.account;
+        createdAccountIds.push(res.account.id);
       }
 
-      const fromAccount = finalFromAccount === newTx.from ? accounts.find(a => a.id === newTx.from) : undefined;
-      const toAccount = finalToAccount === newTx.to ? accounts.find(a => a.id === newTx.to) : undefined;
+      if (!fromAccount || !toAccount) throw new Error('transaction account not found');
       const fromCurrency = getAccountCurrency(fromAccount);
-
-      let type = TransactionType.TRANSACTION_TYPE_TRANSFER;
-      if (toAccount?.type === AccountType.ACCOUNT_TYPE_EXPENSE) type = TransactionType.TRANSACTION_TYPE_EXPENSE;
-      if (fromAccount?.type === AccountType.ACCOUNT_TYPE_INCOME) type = TransactionType.TRANSACTION_TYPE_INCOME;
+      const type = resolveTransactionType(fromAccount.type, toAccount.type);
 
       let finalNote = newTx.note;
       if (!finalNote) {
@@ -217,7 +213,7 @@ const Transactions = () => {
       const txData = {
         from: finalFromAccount,
         to: finalToAccount,
-        amount: parseFloat(newTx.amount),
+        amount: newTx.amount,
         currency: fromCurrency,
         type,
         note: finalNote,
@@ -232,7 +228,13 @@ const Transactions = () => {
 
       setShowAddModal(false);
       resetForm();
-    } catch {
+    } catch (error) {
+      // If the follow-up transaction fails, remove only accounts created by this
+      // submission. The API refuses deletion if a transaction was committed.
+      await Promise.allSettled(createdAccountIds.map(id => accountService.delete(id)));
+      if (error instanceof Error && error.message === 'invalid account type combination') {
+        toast.error(t('transactions:invalid_account_combination'));
+      }
       // Error is already handled by the hook with toast
     }
   };
@@ -249,9 +251,9 @@ const Transactions = () => {
 
   const handleEdit = (tx: Transaction) => {
     // tx.amount is Money (proto). Construct a helper from it.
-    const amountVal = MoneyHelper.from(tx.amount).toNumber();
+    const amountVal = MoneyHelper.from(tx.amount).format(9);
     setNewTx({
-      amount: amountVal.toString(),
+      amount: amountVal,
       note: tx.note,
       from: tx.from,
       to: tx.to,
@@ -457,7 +459,7 @@ const Transactions = () => {
           const fromAcc = accounts.find(a => a.id === tx.from);
           const toAcc = accounts.find(a => a.id === tx.to);
           const isOpeningBalance = tx.type === TransactionType.TRANSACTION_TYPE_OPENING_BALANCE;
-          const txCurrency = tx.amount?.currencyCode || 'USD';
+          const txCurrency = tx.amount?.currencyCode || baseCurrency;
           return (
             <Card
               key={tx.id}
@@ -475,7 +477,7 @@ const Transactions = () => {
                     </div>
                     <div className="text-xs text-[var(--text-muted)]">{formatDateForDisplay(tx.date)}</div>
                   </div>
-                  <div className={`font-mono font-bold text-lg ${tx.type === TransactionType.TRANSACTION_TYPE_EXPENSE ? 'text-[var(--text-main)]' : tx.type === TransactionType.TRANSACTION_TYPE_INCOME ? 'text-emerald-600' : tx.type === TransactionType.TRANSACTION_TYPE_OPENING_BALANCE ? 'text-purple-600' : 'text-[var(--primary)]'}`}>{formatCurrency(tx.amount || 0, txCurrency)}</div>
+                  <div className={`font-mono font-bold text-lg ${tx.type === TransactionType.TRANSACTION_TYPE_EXPENSE ? 'text-[var(--text-main)]' : tx.type === TransactionType.TRANSACTION_TYPE_INCOME ? 'text-emerald-600' : tx.type === TransactionType.TRANSACTION_TYPE_OPENING_BALANCE ? 'text-purple-600' : 'text-[var(--primary)]'}`}>{formatCurrency(tx.amount, txCurrency)}</div>
                 </div>
                 <div className="flex items-center gap-2 text-sm bg-[var(--bg-main)] p-2 rounded-lg mt-1 border border-[var(--border)]">
                   <span className="text-[var(--text-muted)] truncate max-w-[45%]">{fromAcc ? getFullAccountName(fromAcc, accounts) : t('transactions:unknown_account')}</span>

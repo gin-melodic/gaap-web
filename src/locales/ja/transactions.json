@@ -22,6 +22,7 @@
   "note": "備考",
   "note_placeholder": "例：スーパーでの買い物",
   "confirm_add": "記帳を確定",
+  "invalid_account_combination": "収益口座から費用口座へ直接記帳できません。どちらかに資産または負債口座を選択してください。",
   "unnamed_transaction": "名称未設定の取引",
   "unknown_account": "不明なアカウント",
   "edit_transaction": "取引を編集",

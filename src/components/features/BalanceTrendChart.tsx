@@ -21,11 +21,10 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { AccountType, useAllAccounts, useBalanceTrend, useProfile } from '@/lib/hooks';
-import { EXCHANGE_RATES } from '@/lib/data';
 import { ChevronDown, Loader2 } from 'lucide-react';
 import { MoneyHelper } from '@/lib/utils/money';
 import { DailyBalance } from '@/lib/types';
-import { DEFAULT_CURRENCY_CODE } from '@/lib/utils/constant';
+import Decimal from 'decimal.js';
 
 const COLORS = [
   'var(--primary)',
@@ -79,33 +78,24 @@ const BalanceTrendChart = () => {
   const chartData = useMemo(() => {
     if (!trendData?.data || !Array.isArray(trendData.data)) return [];
 
-    const baseRate = EXCHANGE_RATES[mainCurrency] || 1;
-
     const td = trendData.data.map((d: DailyBalance) => {
-      let allTotal = 0;
+      let allTotal = new Decimal(0);
       const convertedBalances: Record<string, number> = {};
       const balances = d.balances || {};
 
       Object.entries(balances).forEach(([id, balance]) => {
         const acc = accounts.find(a => a.id === id);
-        // Prefer the per-day balance currency; fallback to account's currency or default
-        const currency = balance?.currencyCode || acc?.balance?.currencyCode || DEFAULT_CURRENCY_CODE;
-        const accRate = (EXCHANGE_RATES[currency] || 1);
-
         let amount = 0;
         try {
-          amount = MoneyHelper.from(balance).toNumber();
-        } catch (error) {
-          console.error(`Error parsing balance for account ${id}:`, error);
+          const money = MoneyHelper.from(balance);
+          if (money.currency && money.currency !== mainCurrency) return;
+          amount = money.toChartNumber();
+          if (acc && acc.type === AccountType.ACCOUNT_TYPE_ASSET) {
+            allTotal = allTotal.plus(money.toDecimal());
+          }
+        } catch {
         }
-
-        const converted = amount * (accRate / baseRate);
-
-        convertedBalances[id] = converted;
-
-        if (acc && acc.type === AccountType.ACCOUNT_TYPE_ASSET) {
-          allTotal += converted;
-        }
+        convertedBalances[id] = amount;
       });
 
       // Ensure selected accounts always have a numeric value (0 when missing)
@@ -121,7 +111,7 @@ const BalanceTrendChart = () => {
         date: d.date,
         displayDate: d.date.substring(5), // MM-DD
         ...convertedBalances,
-        all: allTotal
+        all: allTotal.toNumber()
       };
     });
     return td;
@@ -208,11 +198,12 @@ const BalanceTrendChart = () => {
                   color: 'var(--text-main)',
                   borderRadius: '8px'
                 }}
-                formatter={(value: number, name: string) => {
+                formatter={(value, name) => {
                   const label = name === 'all'
                     ? t('dashboard:all_assets')
                     : accounts.find(a => a.id === name)?.name || name;
-                  return [`${currencySymbol}${value.toFixed(2)}`, label];
+                  const numericValue = typeof value === 'number' ? value : Number(value ?? 0);
+                  return [`${currencySymbol}${numericValue.toFixed(2)}`, label];
                 }}
               />
               <Legend />

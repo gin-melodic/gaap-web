@@ -9,7 +9,7 @@ import { transactionKeys } from './useTransactions';
 import { useGlobal } from '@/context/GlobalContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { taskKeys } from './useTasks';
-import { TaskStatus, TaskType, TaskStatusType, TaskTypeType } from '@/lib/constants/taskEnums';
+import { TaskStatus, TaskType, TaskTypeType } from '@/lib/constants/taskEnums';
 
 /**
  * Hook that listens to WebSocket for task status changes and shows notifications
@@ -108,4 +108,3 @@ function getTypeText(type: TaskTypeType, t: (key: string) => string): string {
     }
     return String(type);
 }
-

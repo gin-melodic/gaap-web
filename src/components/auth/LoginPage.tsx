@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGlobal } from '@/context/GlobalContext';
-import { useLogin, UserLevelType } from '@/lib/hooks';
+import { useLogin } from '@/lib/hooks';
 import { useTranslation } from 'react-i18next';
 import { Turnstile } from '@marsidev/react-turnstile';
 import {
@@ -20,8 +20,7 @@ import { Label } from '@/components/ui/label';
 import { LanguageSwitcher } from '@/components/features/LanguageSwitcher';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { ApiError } from '@/lib/api';
-import { sha256 } from '@/lib/utils';
+import { classifyLoginError } from '@/lib/utils/login-error';
 
 const GithubIcon = ({ size = 24, className, ...props }: { size?: number, className?: string } & React.SVGProps<SVGSVGElement>) => (
   <svg
@@ -52,6 +51,7 @@ const LoginPage = () => {
   const [code, setCode] = useState('');
   const [step, setStep] = useState(1); // 1: Email/Password, 2: 2FA Code
   const [turnstileToken, setTurnstileToken] = useState('');
+  const [formError, setFormError] = useState('');
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -61,6 +61,7 @@ const LoginPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError('');
 
     if (step === 1 && !turnstileToken) {
       toast.error(t('auth:captcha_required'));
@@ -68,10 +69,9 @@ const LoginPage = () => {
     }
 
     try {
-      const hashedPassword = await sha256(password);
       const data = await loginMutation.mutateAsync({
         email,
-        password: hashedPassword,
+        password,
         code: step === 2 ? code : '',
         cfTurnstileResponse: turnstileToken
       });
@@ -85,24 +85,26 @@ const LoginPage = () => {
         email: data.auth.user.email,
         nickname: data.auth.user.nickname,
         avatar: data.auth.user.avatar,
-        plan: data.auth.user.plan
+        plan: data.auth.user.plan,
+        mainCurrency: data.auth.user.mainCurrency
       });
 
       toast.success(t('auth:login_success'), { duration: 4000 });
       router.push('/dashboard');
     } catch (err: unknown) {
-      if (err instanceof ApiError) {
-        if (err.message && err.message.includes('2FA code required')) {
-          setStep(2);
-          toast.info(t('auth:enter_2fa_code'), { duration: 4000 });
-          return;
-        }
-        if (err.message === 'invalid email or password') {
-          toast.error(t('auth:invalid_email_or_password'), { duration: 4000 });
-          return;
-        }
-      } else if (err instanceof Error) {
+      const errorKind = classifyLoginError(err);
+
+      if (errorKind === 'two-factor-required') {
+        setStep(2);
+        toast.info(t('auth:enter_2fa_code'), { duration: 4000 });
+        return;
       }
+
+      const message = errorKind === 'invalid-credentials'
+        ? t('auth:invalid_email_or_password')
+        : t('auth:login_failed');
+      setFormError(message);
+      toast.error(message, { duration: 4000 });
     }
   };
 
@@ -195,10 +197,14 @@ const LoginPage = () => {
                       id="email"
                       type="email"
                       required
+                      aria-invalid={Boolean(formError)}
                       placeholder="name@company.com"
-                      className="pl-10 py-6 rounded-xl placeholder:text-slate-400 dark:placeholder:text-slate-400 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                      className={`pl-10 py-6 rounded-xl placeholder:text-slate-400 dark:placeholder:text-slate-400 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 ${formError ? 'border-red-500 ring-2 ring-red-500/30 focus-visible:border-red-500 focus-visible:ring-red-500/40 dark:border-red-500' : 'border-slate-200 dark:border-slate-700'}`}
                       value={email}
-                      onChange={e => setEmail(e.target.value)}
+                      onChange={e => {
+                        setEmail(e.target.value);
+                        setFormError('');
+                      }}
                     />
                   </div>
                 </div>
@@ -213,10 +219,14 @@ const LoginPage = () => {
                       id="password"
                       type="password"
                       required
+                      aria-invalid={Boolean(formError)}
                       placeholder="••••••••"
-                      className="pl-10 py-6 rounded-xl placeholder:text-slate-400 dark:placeholder:text-slate-400 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                      className={`pl-10 py-6 rounded-xl placeholder:text-slate-400 dark:placeholder:text-slate-400 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 ${formError ? 'border-red-500 ring-2 ring-red-500/30 focus-visible:border-red-500 focus-visible:ring-red-500/40 dark:border-red-500' : 'border-slate-200 dark:border-slate-700'}`}
                       value={password}
-                      onChange={e => setPassword(e.target.value)}
+                      onChange={e => {
+                        setPassword(e.target.value);
+                        setFormError('');
+                      }}
                     />
                   </div>
                 </div>
@@ -240,10 +250,14 @@ const LoginPage = () => {
                     id="code"
                     type="text"
                     required
+                    aria-invalid={Boolean(formError)}
                     placeholder="••••••"
-                    className="pl-10 py-6 rounded-xl tracking-widest text-center text-lg placeholder:text-slate-400 dark:placeholder:text-slate-400 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                    className={`pl-10 py-6 rounded-xl tracking-widest text-center text-lg placeholder:text-slate-400 dark:placeholder:text-slate-400 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 ${formError ? 'border-red-500 ring-2 ring-red-500/30 focus-visible:border-red-500 focus-visible:ring-red-500/40 dark:border-red-500' : 'border-slate-200 dark:border-slate-700'}`}
                     value={code}
-                    onChange={e => setCode(e.target.value)}
+                    onChange={e => {
+                      setCode(e.target.value);
+                      setFormError('');
+                    }}
                     maxLength={6}
                     autoFocus
                   />
@@ -262,6 +276,7 @@ const LoginPage = () => {
             <Button type="submit" disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-6 rounded-xl font-bold shadow-lg shadow-indigo-200">
               {loading ? t('auth:logging_in') : (step === 1 ? t('auth:sign_in') : t('auth:verify_and_login'))}
             </Button>
+
           </form>
 
           <div className="relative">

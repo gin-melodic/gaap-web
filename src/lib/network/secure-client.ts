@@ -1,17 +1,13 @@
 /**
  * Unified Network Client for GAAP
  * 
- * Supports two modes:
- * 1. Legacy JSON mode (for gradual migration)
- * 2. ALE + Protobuf mode (secure, encrypted)
- * 
- * Usage:
- * - For legacy JSON: use jsonRequest()
- * - For ALE+Protobuf: use secureRequest()
+ * All business requests use ALE-encrypted Protobuf.
  */
 
 import { encryptPayload, decryptPayload, signRequest } from '../crypto/browser-crypto';
-import { API_BASE_PATH, ApiError } from '../api';
+import { API_BASE_PATH } from './config';
+import { ApiError } from './errors';
+import { ErrorResponse } from '../proto/base/base';
 
 // ============================================================================
 // Types
@@ -166,17 +162,11 @@ export async function secureRequest<TReq, TRes>(
   const fullUrl = url.startsWith('/') ? `${API_BASE_PATH}${url}` : url;
   const secretKey = getKeyForType(keyType);
 
-  console.log('[DEBUG] secureRequest:', url, 'keyType=', keyType);
-
   // 1. Create message from partial
   const message = ReqType.fromPartial(reqData as TReq);
 
   // 2. Serialize (Protobuf Encode)
   const rawBytes = ReqType.encode(message).finish();
-
-  // [DEBUG] Print request payload after decryption (original request data)
-  console.log('[GATEWAY] Request URL:', url);
-  console.log('[GATEWAY] Request Payload (decrypted):', JSON.parse(JSON.stringify(message, null, 2)));
 
   // 3. Encrypt (AES-GCM)
   const { ciphertext, iv } = await encryptPayload(rawBytes, secretKey);
@@ -215,63 +205,73 @@ export async function secureRequest<TReq, TRes>(
     body: body,
   });
 
-  // Handle non-OK responses
+  // 9. Read the Protobuf response body.
+  const resBuffer = await response.arrayBuffer();
+  let responseBytes: Uint8Array<ArrayBufferLike> = new Uint8Array(resBuffer);
+  const contentType = response.headers.get('content-type');
+  if (!contentType?.includes('application/octet-stream')) {
+    throw new ApiError('Invalid API response content type', response.status || 502);
+  }
+
+  const isEncrypted = response.headers.get('x-ale-encrypted') === '1';
+  const isUnencryptedSessionExpiry = response.status === 401
+    && keyType === 'session'
+    && response.headers.get('x-ale-session-expired') === '1';
+
+  if (!isEncrypted && !isUnencryptedSessionExpiry) {
+    throw new ApiError('API response was not ALE encrypted', 502);
+  }
+
+  if (isEncrypted) {
+    if (responseBytes.length < 12 + 16) {
+      throw new ApiError('Invalid encrypted API response', response.status || 502);
+    }
+    const responseIv = responseBytes.slice(0, 12);
+    const responseCiphertext = responseBytes.slice(12);
+    try {
+      responseBytes = await decryptPayload(responseCiphertext, responseIv, secretKey);
+    } catch {
+      // A session response encrypted with a different key cannot be inspected for
+      // its HTTP/protobuf error. Re-synchronize the key through the bootstrap-
+      // protected refresh endpoint, then repeat the original request once.
+      if (keyType === 'session' && retryOnUnauth) {
+        const refreshed = await attemptTokenRefresh();
+        if (refreshed) {
+          return secureRequest(url, reqData, ReqType, ResType, keyType, {
+            ...options,
+            retryOnUnauth: false,
+          });
+        }
+        redirectToLogin();
+        throw new ApiError('Secure session expired. Please login again.', 401);
+      }
+
+      throw new ApiError('Unable to verify secure API response', 502);
+    }
+  }
+
   if (!response.ok) {
-    // Check for 401 and attempt refresh
+    let errorData;
+    try {
+      errorData = ErrorResponse.decode(responseBytes);
+    } catch {
+      throw new ApiError(`API Error: ${response.status}`, response.status);
+    }
+
     if (response.status === 401 && retryOnUnauth) {
       const refreshed = await attemptTokenRefresh();
       if (refreshed) {
-        // Retry the request
-        return secureRequest(url, reqData, ReqType, ResType, keyType, { ...options, retryOnUnauth: false });
-      }
-      redirectToLogin();
-    }
-    if (response.status !== 401) {
-      throw new ApiError(`API Error: ${response.status} ${response.statusText}`, response.status);
-    }
-  }
-
-  // 9. Read response body (binary)
-  const resBuffer = await response.arrayBuffer();
-  const resBytes = new Uint8Array(resBuffer);
-
-  // Check if response is encrypted (binary) or JSON (error)
-  const contentType = response.headers.get('content-type');
-  if (contentType?.includes('application/json')) {
-    // Error response in JSON format
-    const text = new TextDecoder().decode(resBytes);
-    const errorData = JSON.parse(text);
-
-    if (errorData.code === 401 && retryOnUnauth) {
-      const refreshed = await attemptTokenRefresh();
-      if (refreshed) {
         return secureRequest(url, reqData, ReqType, ResType, keyType, { ...options, retryOnUnauth: false });
       }
       redirectToLogin();
     }
 
-    throw new ApiError(errorData.message || 'Unknown error', errorData.code || response.status);
+    throw new ApiError(errorData.message || 'API request failed', errorData.code || response.status, {
+      requestId: errorData.requestId,
+    });
   }
 
-  // 10. Decrypt response
-  if (resBytes.length < 12 + 16) {
-    // Response might be empty or unencrypted
-    return ResType.fromPartial({} as TRes);
-  }
-
-  const resIv = resBytes.slice(0, 12);
-  const resCiphertext = resBytes.slice(12);
-
-  const decryptedBytes = await decryptPayload(resCiphertext, resIv, secretKey);
-
-  // 11. Deserialize (Protobuf Decode)
-  const decodedResponse = ResType.decode(decryptedBytes);
-
-  // [DEBUG] Print response payload after decryption
-  console.log('[GATEWAY] Response URL:', url);
-  console.log('[GATEWAY] Response Payload (decrypted):', JSON.parse(JSON.stringify(decodedResponse, null, 2)));
-
-  return decodedResponse;
+  return ResType.decode(responseBytes);
 }
 
 // ============================================================================
@@ -411,8 +411,7 @@ export async function logout<TReq, TRes>(
   ResType: MessageFns<TRes>
 ): Promise<void> {
   try {
-    // Use the bootstrap key for auth endpoints (server ALE middleware for /auth/* is bootstrap)
-    await secureRequest('/auth/logout', {}, ReqType, ResType, 'bootstrap');
+    await secureRequest('/auth/logout', {}, ReqType, ResType, 'session');
   } finally {
     tokenStorage.clear();
     resetNetworkState();

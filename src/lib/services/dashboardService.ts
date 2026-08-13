@@ -1,11 +1,14 @@
-import apiRequest, { API_BASE_PATH } from '../api';
-import { GetBalanceTrendRes } from '../types';
+import { secureRequest } from '../network/secure-client';
+import {
+  GetBalanceTrendReq,
+  GetBalanceTrendRes,
+} from '../proto/dashboard/v1/dashboard';
 
 export const dashboardService = {
-    getBalanceTrend: (accounts?: string[]): Promise<GetBalanceTrendRes> => {
-        return apiRequest(`${API_BASE_PATH}/dashboard/get-balance-trend`, {
-            method: 'POST',
-            body: JSON.stringify({ accounts: accounts && accounts.length > 0 && !accounts.includes('all') ? accounts : undefined }),
-        });
-    },
+  getBalanceTrend: (accounts?: string[]): Promise<GetBalanceTrendRes> => secureRequest(
+    '/dashboard/get-balance-trend',
+    { accounts: accounts?.filter((account) => account !== 'all') ?? [] },
+    GetBalanceTrendReq,
+    GetBalanceTrendRes,
+  ),
 };

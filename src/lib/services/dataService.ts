@@ -1,51 +1,44 @@
-import apiRequest, { API_BASE_PATH } from '../api';
-import { 
-    ExportDataReq, ExportDataRes, 
-    ImportDataReq, ImportDataRes, 
-    DownloadExportReq, DownloadExportRes, 
-    GetExportStatusReq, GetExportStatusRes 
+import { secureRequest } from '../network/secure-client';
+import {
+  DownloadExportReq,
+  DownloadExportRes,
+  ExportDataReq,
+  ExportDataRes,
+  GetExportStatusReq,
+  GetExportStatusRes,
+  ImportDataReq,
+  ImportDataRes,
 } from '../proto/data/v1/data';
 
 export const dataService = {
-    exportData: async (params: { startDate: string; endDate: string }): Promise<ExportDataRes> => {
-        return apiRequest(`${API_BASE_PATH}/data/export-data`, {
-            method: 'POST',
-            body: JSON.stringify({ params }),
-        });
-    },
+  exportData: (params: { startDate: string; endDate: string }): Promise<ExportDataRes> => secureRequest(
+    '/data/export-data',
+    { params },
+    ExportDataReq,
+    ExportDataRes,
+  ),
 
-    importData: async (fileContent: Uint8Array, fileName: string): Promise<ImportDataRes> => {
-        // Note: For file uploads, the backend might still expect multipart/form-data 
-        // but based on the proto definition ImportDataReq uses bytes.
-        // If the API is strictly Protobuf over HTTP POST, we use JSON representation of the proto for simplicity 
-        // as apiRequest handles the wrapper. However, usually file uploads are handled via FormData.
-        // Given the current implementation in DataExportSettings.tsx uses FormData, 
-        // and typical GoFrame/Protobuf setups for files often keep multipart for the actual upload.
-        // But to follow "protobuf request" requirement:
-        return apiRequest(`${API_BASE_PATH}/data/import-data`, {
-            method: 'POST',
-            body: JSON.stringify({ fileContent, fileName }), 
-        });
-    },
+  importData: (fileContent: Uint8Array, fileName: string): Promise<ImportDataRes> => secureRequest(
+    '/data/import-data',
+    { fileContent, fileName },
+    ImportDataReq,
+    ImportDataRes,
+  ),
 
-    downloadExport: async (taskId: string): Promise<Blob> => {
-        const response = await fetch(`${API_BASE_PATH}/data/download-export`, {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ taskId }),
-        });
+  downloadExport: async (taskId: string): Promise<Blob> => {
+    const response = await secureRequest(
+      '/data/download-export',
+      { taskId },
+      DownloadExportReq,
+      DownloadExportRes,
+    );
+    return new Blob([response.fileContent as BlobPart], { type: 'application/json' });
+  },
 
-        if (!response.ok) throw new Error('Download failed');
-        return await response.blob();
-    },
-
-    getExportStatus: async (taskId: string): Promise<GetExportStatusRes> => {
-        return apiRequest(`${API_BASE_PATH}/data/get-export-status`, {
-            method: 'POST',
-            body: JSON.stringify({ taskId }),
-        });
-    },
+  getExportStatus: (taskId: string): Promise<GetExportStatusRes> => secureRequest(
+    '/data/get-export-status',
+    { taskId },
+    GetExportStatusReq,
+    GetExportStatusRes,
+  ),
 };

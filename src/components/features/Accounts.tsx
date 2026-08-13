@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { useAllAccountsSuspense, Account, AccountType, Money } from '@/lib/hooks';
+import { useAllAccountsSuspense, Account, AccountType } from '@/lib/hooks';
 import { useTranslation } from 'react-i18next';
-import { ACCOUNT_TYPES, EXCHANGE_RATES } from '@/lib/data';
+import { ACCOUNT_TYPES } from '@/lib/data';
 import { useGlobal } from '@/context/GlobalContext';
 import { MoneyHelper } from '@/lib/utils/money';
 import {
@@ -25,7 +25,7 @@ import EditAccountModal from './EditAccountModal';
 const Accounts = () => {
   const { t } = useTranslation(['accounts', 'common']);
   const { accounts } = useAllAccountsSuspense();
-  const { baseCurrency, exchangeRates } = useGlobal();
+  const { baseCurrency } = useGlobal();
   // We use string IDs for tabs, but map them to Enums for filtering
   const [activeTab, setActiveTab] = useState('ALL');
   const [page, setPage] = useState(1);
@@ -33,22 +33,6 @@ const Accounts = () => {
   const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const itemsPerPage = 10;
-
-  const formatCurrency = (amount: number | Money, currency = 'USD') => {
-    let val = 0;
-    if (typeof amount === 'number') {
-      val = amount;
-    } else {
-      // Assume Money proto or undefined
-      val = MoneyHelper.from(amount).toNumber();
-    }
-
-    try {
-      return new Intl.NumberFormat(currency === 'CNY' ? 'zh-CN' : 'en-US', { style: 'currency', currency }).format(val);
-    } catch {
-      return `${currency} ${val.toFixed(2)}`;
-    }
-  };
 
   const [showEquity, setShowEquity] = useState(false);
 
@@ -106,7 +90,7 @@ const Accounts = () => {
     { id: 'EXPENSE', label: t('common:expense') }
   ];
 
-  const AccountRow = ({ account, isChild = false, groupBalance, hasChildren = false }: { account: Account, isChild?: boolean, groupBalance?: number, hasChildren?: boolean }) => {
+  const AccountRow = ({ account, isChild = false, groupBalance, hasChildren = false }: { account: Account, isChild?: boolean, groupBalance?: MoneyHelper, hasChildren?: boolean }) => {
     const typeMeta = ACCOUNT_TYPES[account.type] || ACCOUNT_TYPES[AccountType.ACCOUNT_TYPE_ASSET];
     const TypeIcon = typeMeta.icon;
 
@@ -116,7 +100,7 @@ const Accounts = () => {
     };
 
     // Safe access to currency
-    const currency = account.balance?.currencyCode || 'USD';
+    const currency = account.balance?.currencyCode || baseCurrency;
     // Safe access to balance value
     const balanceVal = account.balance; // Money object
 
@@ -136,7 +120,7 @@ const Accounts = () => {
           </div>
           {groupBalance !== undefined && (
             <div className="text-right">
-              <div className="font-bold text-[var(--text-main)]">≈ {formatCurrency(groupBalance, baseCurrency)}</div>
+              <div className="font-bold text-[var(--text-main)]">{groupBalance.formatCurrency()}</div>
               <div className="text-[10px] text-slate-400">{t('common:total')}</div>
             </div>
           )}
@@ -162,7 +146,7 @@ const Accounts = () => {
           <div>
             <div className="font-medium text-[var(--text-main)] flex items-center gap-2">
               {account.name}
-              {currency !== 'CNY' && (
+              {currency !== baseCurrency && (
                 <span className="text-[10px] bg-[var(--bg-main)] text-[var(--text-muted)] px-1.5 py-0.5 rounded font-bold">{currency}</span>
               )}
             </div>
@@ -170,10 +154,7 @@ const Accounts = () => {
           </div>
         </div>
         <div className="text-right">
-          <div className="font-bold text-[var(--text-main)]">{formatCurrency(MoneyHelper.from(balanceVal).toNumber(), currency)}</div>
-          {currency !== 'CNY' && (
-            <div className="text-[10px] text-slate-400">≈ {formatCurrency(MoneyHelper.from(balanceVal).toNumber() * (EXCHANGE_RATES[currency] || 1), 'USD')}</div>
-          )}
+          <div className="font-bold text-[var(--text-main)]">{MoneyHelper.from(balanceVal).formatCurrency()}</div>
         </div>
       </div>
     );
@@ -181,25 +162,10 @@ const Accounts = () => {
 
   const renderAccountCard = (parentAccount: Account) => {
     const children = accounts.filter(a => a.parentId === parentAccount.id);
-    const groupBalance = children.reduce((sum, child) => {
-      const childIso = child.balance?.currencyCode || 'USD';
-      const balVal = MoneyHelper.from(child.balance).toNumber();
-
-      if (childIso === baseCurrency) {
-        return sum + balVal;
-      }
-
-      // convert to USD
-      const childToUSDRate = exchangeRates[childIso] || EXCHANGE_RATES[childIso] || 1;
-      // const childToUSDBalance = balVal * childFromUSDRate;
-      const childValInUSD = balVal / childToUSDRate;
-
-      // convert USD to base currency
-      const childToBasecurrency = exchangeRates[baseCurrency] || EXCHANGE_RATES[baseCurrency] || 1;
-      const childValInBase = childValInUSD * childToBasecurrency
-      
-      return sum + childValInBase;
-    }, 0);
+    const groupBalance = children.reduce(
+      (sum, child) => sum.add(MoneyHelper.from(child.balance)),
+      MoneyHelper.fromAmount('0', baseCurrency),
+    );
 
     return (
       <Card key={parentAccount.id} className="bg-[var(--bg-card)] border-[var(--border)] gap-0 p-0 shadow-sm mb-3 overflow-hidden transition-all hover:shadow-md">

@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { taskService, Task, TaskQuery } from '../services/taskService';
 import { toast } from 'sonner';
-import { TaskStatus, TaskStatusType } from '@/lib/constants/taskEnums';
+import { TaskStatus } from '@/lib/constants/taskEnums';
 
 // Query Keys
 export const taskKeys = {

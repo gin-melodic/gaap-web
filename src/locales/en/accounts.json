@@ -39,6 +39,7 @@
   "free_asset_limit_reached": "Free users can create up to 5 asset accounts. Upgrade to Pro for unlimited accounts.",
   "free_group_disabled": "Parent-child accounts are available for Pro users only. Upgrade to unlock multi-currency account management.",
   "delete_no_transactions_confirm": "This account has no transactions. Are you sure you want to delete it? The balance will be cleared and this action cannot be undone.",
+  "delete_with_transactions_beta_blocked": "The Beta cannot delete an account that has transactions. Keep this account for now; migration-based deletion will return in a later release.",
   "initial_balance_info": "An opening balance voucher will be generated automatically",
   "equity": "Equity",
   "create_success": "Account created successfully",

@@ -4,12 +4,13 @@ import { transactionService } from '../services';
 import { TransactionInput, TransactionQuery, TransactionSortBy, SortOrder } from '../types';
 import { toast } from 'sonner';
 import { accountKeys } from './useAccounts';
+import { dashboardKeys } from './useDashboard';
 import { MoneyHelper } from '../utils/money';
 
 
 // Extended Input type for UI Forms (Legacy compatibility)
 export interface TransactionFormInput extends Omit<TransactionInput, 'amount'> {
-  amount: number;
+  amount: string;
   currency: string;
 }
 
@@ -67,6 +68,7 @@ export function useCreateTransaction() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
       queryClient.invalidateQueries({ queryKey: accountKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
       toast.success(t('create_success'));
     },
     onError: (error: Error) => {
@@ -93,6 +95,7 @@ export function useUpdateTransaction() {
       queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
       queryClient.invalidateQueries({ queryKey: transactionKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: accountKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
       toast.success(t('update_success'));
     },
     onError: (error: Error) => {
@@ -110,6 +113,7 @@ export function useDeleteTransaction() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
       queryClient.invalidateQueries({ queryKey: accountKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
       toast.success(t('delete_success'));
     },
     onError: (error: Error) => {

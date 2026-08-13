@@ -3,6 +3,7 @@ import { accountService } from '../services';
 import { AccountInput, AccountQuery } from '../types';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { dashboardKeys } from './useDashboard';
 
 // Query Keys
 export const accountKeys = {
@@ -54,7 +55,7 @@ import { MoneyHelper } from '../utils/money';
 
 // Extended Input type for UI Forms
 export interface AccountFormInput extends Omit<AccountInput, 'balance'> {
-  balance?: number; // Optional initial balance
+  balance?: string; // Exact decimal input; never coerce financial values through number.
   currency?: string;
 }
 
@@ -84,6 +85,7 @@ export function useCreateAccount(options?: { silent?: boolean }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: accountKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
       if (!options?.silent) {
         toast.success(t('create_success'));
       }
@@ -111,6 +113,7 @@ export function useUpdateAccount() {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: accountKeys.lists() });
       queryClient.invalidateQueries({ queryKey: accountKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
       toast.success(t('update_success'));
     },
     onError: (error: Error) => {
@@ -129,6 +132,7 @@ export function useDeleteAccount() {
       accountService.delete(id, migrationTargets),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: accountKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
       if (result?.taskId) {
         toast.info(t('migration_task_started'));
       } else {

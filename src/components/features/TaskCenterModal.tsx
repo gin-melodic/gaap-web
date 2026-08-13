@@ -5,7 +5,7 @@ import { useGlobal } from '@/context/GlobalContext';
 import { useTasks, useCancelTask, useRetryTask, Task } from '@/lib/hooks/useTasks';
 import { useAllAccounts } from '@/lib/hooks/useAccounts';
 import { useTranslation } from 'react-i18next';
-import { TaskStatus, TaskType, TaskStatusType, TaskTypeType, getStatusText as getStatusTextEnum, getTaskTypeText } from '@/lib/constants/taskEnums';
+import { TaskStatus, TaskType, TaskStatusType, TaskTypeType, getStatusText as getStatusTextEnum } from '@/lib/constants/taskEnums';
 import {
     Dialog,
     DialogContent,

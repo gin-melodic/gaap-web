@@ -161,7 +161,7 @@ export const DataExportSettings = ({ onBack }: DataExportSettingsProps) => {
         // Map protobuf Task to local TaskStatus interface
         const statusResponse: TaskStatus = {
           taskId: taskData.id,
-          status: taskData.status as any,
+          status: taskData.status,
           progress: taskData.progress,
           payload: taskData.payload ? {
             startDate: taskData.payload.startDate,

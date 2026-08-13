@@ -22,6 +22,7 @@
   "note": "Note",
   "note_placeholder": "e.g., Grocery",
   "confirm_add": "Confirm",
+  "invalid_account_combination": "Income cannot be posted directly to an expense account. Select an asset or liability account on one side.",
   "unnamed_transaction": "Unnamed Transaction",
   "unknown_account": "Unknown Account",
   "edit_transaction": "Edit Transaction",

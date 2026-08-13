@@ -23,6 +23,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Trash2, CornerDownRight, Crown } from 'lucide-react';
 import { toast } from "sonner";
+import { MoneyHelper } from '@/lib/utils/money';
 import {
   Tooltip,
   TooltipContent,
@@ -37,9 +38,9 @@ interface AddAccountModalProps {
 
 const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
   const { t } = useTranslation(['accounts', 'common']);
-  const { currencies, addCurrency: globalAddCurrency, user } = useGlobal();
+  const { currencies, user } = useGlobal();
   const { accounts } = useAllAccounts();
-  const createAccount = useCreateAccount();
+  const createAccount = useCreateAccount({ silent: true });
   const { baseCurrency } = useGlobal();
 
   const [type, setType] = useState<AccountType>(AccountType.ACCOUNT_TYPE_ASSET);
@@ -59,17 +60,6 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
   ]);
 
   const [saveAndContinue, setSaveAndContinue] = useState(false);
-  const [isAddingCurrency, setIsAddingCurrency] = useState(false);
-  const [newCurrencyCode, setNewCurrencyCode] = useState('');
-
-  const handleAddCurrency = () => {
-    if (newCurrencyCode && newCurrencyCode.length === 3) {
-      globalAddCurrency(newCurrencyCode.toUpperCase());
-      setNewCurrencyCode('');
-      setIsAddingCurrency(false);
-    }
-  };
-
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -132,7 +122,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
           name,
           type,
           isGroup: true,
-          balance: 0,
+          balance: '0',
           currency: baseCurrency,
           date: finalDate,
           ...(number ? { number } : {}),
@@ -146,7 +136,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
               parentId: res.account.id,
               name: child.name || `${name} ${child.currency}`,
               type,
-              balance: parseFloat(child.balance) || 0,
+              balance: child.balance || '0',
               currency: child.currency,
               isGroup: false,
               date: finalDate
@@ -158,7 +148,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
         await createAccount.mutateAsync({
           name,
           type,
-          balance: parseFloat(balance) || 0,
+          balance: balance || '0',
           currency,
           date: finalDate,
           ...(number ? { number } : {}),
@@ -168,6 +158,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
       }
 
       resetForm();
+      toast.success(t('accounts:create_success'));
       if (!saveAndContinue) {
         onClose();
       }
@@ -253,7 +244,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
                 <div className="space-y-2">
                   <Label>{t('common:currency')}</Label>
                   <div className="flex gap-2">
-                    <Select value={currency} onValueChange={setCurrency}>
+                    <Select value={currency} onValueChange={setCurrency} disabled>
                       <SelectTrigger className="flex-1">
                         <SelectValue />
                       </SelectTrigger>
@@ -261,36 +252,12 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
                         {currencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                       </SelectContent>
                     </Select>
-                    <TooltipProvider delayDuration={100}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="outline" size="icon" onClick={() => setIsAddingCurrency(!isAddingCurrency)}>
-                            <Plus size={16} />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{t('accounts:quick_add_currency')}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
                   </div>
-                  {isAddingCurrency && (
-                    <div className="flex gap-2 mt-2 animate-in slide-in-from-top-2">
-                      <Input
-                        placeholder={t('accounts:currency_placeholder')}
-                        maxLength={3}
-                        className="uppercase"
-                        value={newCurrencyCode}
-                        onChange={e => setNewCurrencyCode(e.target.value)}
-                      />
-                      <Button size="sm" onClick={handleAddCurrency} disabled={newCurrencyCode.length !== 3}>{t('common:ok')}</Button>
-                    </div>
-                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>{t('accounts:initial_balance')}</Label>
                   <Input type="number" value={balance} onChange={e => setBalance(e.target.value)} />
-                  {parseFloat(balance) !== 0 && (type === AccountType.ACCOUNT_TYPE_ASSET || type === AccountType.ACCOUNT_TYPE_LIABILITY) && (
+                  {!MoneyHelper.fromAmount(balance || '0', currency).toDecimal().isZero() && (type === AccountType.ACCOUNT_TYPE_ASSET || type === AccountType.ACCOUNT_TYPE_LIABILITY) && (
                     <p className="text-xs text-purple-600">{t('accounts:initial_balance_info')}</p>
                   )}
                 </div>
@@ -330,7 +297,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
                         />
                       </div>
                       <div className="col-span-3">
-                        <Select value={child.currency} onValueChange={v => handleChildChange(child.id, 'currency', v)}>
+                        <Select value={child.currency} onValueChange={v => handleChildChange(child.id, 'currency', v)} disabled>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             {currencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}

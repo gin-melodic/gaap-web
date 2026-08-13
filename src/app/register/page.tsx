@@ -11,9 +11,13 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { useGlobal } from '@/context/GlobalContext';
 
-import { sha256 } from '@/lib/utils';
-
 import { useRegister, useCurrencyList } from '@/lib/hooks';
+import {
+  MAX_EMAIL_LENGTH,
+  MAX_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH,
+  validateRegistrationFields,
+} from '@/lib/utils/registration-validation';
 
 export default function RegisterPage() {
   const { t } = useTranslation(['auth', 'common', 'settings']);
@@ -53,20 +57,20 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const validationError = validateRegistrationFields(email, password, confirmPassword);
+    if (validationError) {
+      toast.error(t(`auth:${validationError}`));
+      return;
+    }
     if (!turnstileToken) {
       toast.error(t('auth:captcha_required'));
       return;
     }
-    if (password !== confirmPassword) {
-      toast.error(t('auth:password_mismatch'));
-      return;
-    }
 
     try {
-      const hashedPassword = await sha256(password);
       const data = await registerMutation.mutateAsync({
         email,
-        password: hashedPassword,
+        password,
         nickname,
         cfTurnstileResponse: turnstileToken,
         mainCurrency: mainCurrency || 'USD',
@@ -78,7 +82,8 @@ export default function RegisterPage() {
           email: data.auth.user.email,
           nickname: data.auth.user.nickname,
           avatar: data.auth.user.avatar,
-          plan: data.auth.user.plan
+          plan: data.auth.user.plan,
+          mainCurrency: data.auth.user.mainCurrency || mainCurrency
         });
       }
 
@@ -139,6 +144,7 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              maxLength={MAX_EMAIL_LENGTH}
               placeholder="name@example.com"
               className="placeholder:text-slate-400 dark:placeholder:text-slate-400 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
             />
@@ -153,7 +159,8 @@ export default function RegisterPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               placeholder="••••••••"
-              minLength={8}
+              minLength={MIN_PASSWORD_LENGTH}
+              maxLength={MAX_PASSWORD_LENGTH}
               className="placeholder:text-slate-400 dark:placeholder:text-slate-400 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
             />
           </div>
@@ -167,7 +174,8 @@ export default function RegisterPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               placeholder="••••••••"
-              minLength={8}
+              minLength={MIN_PASSWORD_LENGTH}
+              maxLength={MAX_PASSWORD_LENGTH}
               className="placeholder:text-slate-400 dark:placeholder:text-slate-400 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
             />
           </div>

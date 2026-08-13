@@ -37,9 +37,7 @@ export function useLogin() {
       // Clear ALL cached queries to prevent stale errors from being replayed
       queryClient.clear();
     },
-    onError: (error: Error) => {
-      console.error('[DEBUG] Login error:', error);
-    },
+    onError: () => undefined,
   });
 }
 
@@ -49,12 +47,10 @@ export function useRegister() {
 
   return useMutation({
     mutationFn: (input: RegisterInput) => secureAuthService.register(input),
-    onSuccess: (data) => {
+    onSuccess: () => {
       // Tokens are already handled by secureAuthService if auto-login is desired,
       // but usually register just creates the account.
       // However, secureAuthService.register in this codebase DOES auto-login (returns RegisterRes with auth tokens).
-      console.log('RegisterRes:', data);
-
       // Clear queries just in case
       queryClient.clear();
 

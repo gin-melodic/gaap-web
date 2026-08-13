@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { useGlobal } from '@/context/GlobalContext';
 import { useUpdateAccount, useDeleteAccount, useCreateAccount, useAllAccounts, AccountType, Account } from '@/lib/hooks';
 import { accountService } from '@/lib/services';
-import { ACCOUNT_TYPES } from '@/lib/data';
 import { MoneyHelper } from '@/lib/utils/money';
 import {
   Dialog,
@@ -46,13 +45,13 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
   const { accounts } = useAllAccounts();
   const updateAccountMutation = useUpdateAccount();
   const deleteAccountMutation = useDeleteAccount();
-  const createAccountMutation = useCreateAccount();
+  const createAccountMutation = useCreateAccount({ silent: true });
 
   const [name, setName] = useState(account.name);
   const [date, setDate] = useState(account.date || new Date().toISOString().split('T')[0]);
   const [number, setNumber] = useState(account.number || '');
   const [remarks, setRemarks] = useState(account.remarks || '');
-  const [balance, setBalance] = useState(() => account.balance ? MoneyHelper.from(account.balance).toNumber().toString() : '0');
+  const [balance, setBalance] = useState(() => account.balance ? MoneyHelper.from(account.balance).format(9) : '0');
   const [currency, setCurrency] = useState(account.balance?.currencyCode || baseCurrency);
 
   // Group account state
@@ -64,7 +63,7 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
         id: c.id,
         name: c.name,
         currency: c.balance?.currencyCode || baseCurrency,
-        balance: c.balance ? MoneyHelper.from(c.balance).toNumber().toString() : '0',
+        balance: c.balance ? MoneyHelper.from(c.balance).format(9) : '0',
         isDefault: false,
         isNew: false
       }));
@@ -73,7 +72,6 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
   });
 
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
-  const [migrationTargets, setMigrationTargets] = useState<Record<string, string>>({});
   const [transactionCount, setTransactionCount] = useState<number | null>(null);
   const [isLoadingCount, setIsLoadingCount] = useState(false);
 
@@ -117,7 +115,7 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
           date,
           number,
           remarks,
-          ...(!isGroup ? { balance: parseFloat(balance), currency } : {})
+          ...(!isGroup ? { balance: balance || '0', currency } : {})
         }
       });
 
@@ -128,7 +126,7 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
               parentId: account.id,
               name: child.name,
               type: account.type as AccountType,
-              balance: parseFloat(child.balance) || 0,
+              balance: child.balance || '0',
               currency: child.currency,
               isGroup: false,
               date
@@ -138,7 +136,7 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
               id: child.id,
               input: {
                 name: child.name,
-                balance: parseFloat(child.balance)
+                balance: child.balance || '0'
               }
             });
           }
@@ -149,20 +147,6 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
     } catch {
       // Error is already handled by the hook with toast
     }
-  };
-
-  const getAvailableTargets = (curr: string) => {
-    let accountsToDeleteIds = [account.id];
-    if (isGroup) {
-      accountsToDeleteIds = [...accountsToDeleteIds, ...accounts.filter(a => a.parentId === account.id).map(a => a.id)];
-    }
-
-    return accounts.filter(a =>
-      a.balance?.currencyCode === curr &&
-      a.type === account.type && // Filter by same account type
-      !accountsToDeleteIds.includes(a.id) &&
-      !a.isGroup
-    );
   };
 
   const prepareDelete = async () => {
@@ -177,24 +161,21 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
         totalCount += count;
       }
       setTransactionCount(totalCount);
-    } catch (error) {
-      console.error('Failed to get transaction count:', error);
-      // Default to require migration if we can't determine
+    } catch {
+      // Fail closed: an unknown count must never expose the delete action.
       setTransactionCount(1);
     } finally {
       setIsLoadingCount(false);
     }
-    setMigrationTargets({});
     setIsDeleteAlertOpen(true);
   };
 
   const handleDeleteConfirm = async () => {
+    if (transactionCount !== 0) return;
     try {
-      // For group accounts, the backend handles children deletion as part of the task
-      // Just create one migration task that includes all child accounts
       await deleteAccountMutation.mutateAsync({
         id: account.id,
-        migrationTargets
+        migrationTargets: {}
       });
 
       setIsDeleteAlertOpen(false);
@@ -207,27 +188,6 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
   const isPending = updateAccountMutation.isPending ||
     deleteAccountMutation.isPending ||
     createAccountMutation.isPending;
-
-  // Calculate if we have any blocked currencies (no targets available)
-  const requiredCurrencies = Object.keys(
-    [
-      isGroup ? null : account,
-      ...(isGroup ? children : [])
-    ].reduce((acc, curr) => {
-      // Fix: Account uses balance.currencyCode, ChildAccount uses currency
-      const currencyCode = (curr as Account)?.balance?.currencyCode || (curr as ChildAccount)?.currency;
-      if (curr && currencyCode) acc[currencyCode] = true;
-      return acc;
-    }, {} as Record<string, boolean>)
-  );
-
-  const blockedCurrencies = requiredCurrencies.filter(curr => getAvailableTargets(curr).length === 0);
-  const hasBlockedCurrencies = blockedCurrencies.length > 0;
-
-  // Check if all required fields are selected (for non-blocked currencies)
-  const isMigrationComplete = requiredCurrencies
-    .filter(curr => !blockedCurrencies.includes(curr))
-    .every(curr => !!migrationTargets[curr]);
 
   return (
     <>
@@ -353,48 +313,10 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
                   // No transactions - simple confirmation
                   <p>{t('accounts:delete_no_transactions_confirm')}</p>
                 ) : (
-                  // Has transactions - show migration UI
-                  <>
-                    <p>{t('accounts:delete_account_confirm')}</p>
-                    <div className="space-y-4">
-                      {requiredCurrencies.map(curr => {
-                        const targets = getAvailableTargets(curr);
-                        const isTargetMissing = targets.length === 0;
-
-                        return (
-                          <div key={curr} className="space-y-2">
-                            <Label>{t('accounts:migrate_balance_for', { currency: curr, defaultValue: `Migrate ${curr} balance to:` })}</Label>
-
-                            {isTargetMissing ? (
-                              <div className="text-sm text-red-500 flex items-center gap-2 border border-red-200 bg-red-50 p-2 rounded-md">
-                                <AlertTriangle size={14} className="shrink-0" />
-                                <span>
-                                  {t('accounts:no_available_funding_accounts', {
-                                    type: account?.type,
-                                    defaultValue: `No available ${account?.type ? t(`common:${ACCOUNT_TYPES[account.type]?.translationKey}`) : ''} funding accounts, please create one before proceeding with deletion`
-                                  })}
-                                </span>
-                              </div>
-                            ) : (
-                              <Select
-                                value={migrationTargets[curr]}
-                                onValueChange={(val) => setMigrationTargets(prev => ({ ...prev, [curr]: val }))}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder={t('accounts:select_account')} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {targets.map(t => (
-                                    <SelectItem key={t.id} value={t.id}>{t.name} ({t.balance?.currencyCode || ''})</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
+                  <div className="text-sm text-amber-700 dark:text-amber-300 flex items-start gap-2 border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 p-3 rounded-md">
+                    <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                    <span>{t('accounts:delete_with_transactions_beta_blocked')}</span>
+                  </div>
                 )}
               </div>
             </DialogDescription>
@@ -413,19 +335,7 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
               >
                 {isPending ? t('common:deleting') || '删除中...' : t('common:delete')}
               </Button>
-            ) : (
-              // Has transactions - require migration selection
-              <Button
-                variant="destructive"
-                onClick={(e: React.MouseEvent) => {
-                  e.preventDefault();
-                  if (!hasBlockedCurrencies && isMigrationComplete) handleDeleteConfirm();
-                }}
-                disabled={isPending || hasBlockedCurrencies || !isMigrationComplete || isLoadingCount}
-              >
-                {isPending ? t('common:deleting') || '删除中...' : t('common:delete')}
-              </Button>
-            )}
+            ) : null}
           </DialogFooter>
         </DialogContent>
       </Dialog>

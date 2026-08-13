@@ -22,6 +22,7 @@
   "note": "备注",
   "note_placeholder": "例如：超市购物",
   "confirm_add": "确认记账",
+  "invalid_account_combination": "收入账户不能直接记入支出账户，请选择资产或负债账户作为其中一方。",
   "unnamed_transaction": "未命名交易",
   "unknown_account": "未知账户",
   "edit_transaction": "编辑交易",

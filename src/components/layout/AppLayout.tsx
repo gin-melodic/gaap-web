@@ -2,18 +2,12 @@
 
 import React from 'react';
 import { useGlobal } from '@/context/GlobalContext';
-import { useTaskNotifications } from '@/lib/hooks';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
 import { Skeleton } from '@/components/ui/skeleton';
 
-// ... imports
-
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const { currentTheme, isLoggedIn, isLoading } = useGlobal();
-
-  // Monitor task completions and show notifications
-  useTaskNotifications();
 
   if (isLoading) {
     return (
