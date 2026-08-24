@@ -1,40 +1,82 @@
-import apiRequest from '../api';
-import { Account, AccountInput, AccountQuery, PaginatedResponse } from '../types';
+import { secureRequest } from '../network/secure-client';
+import {
+  ListAccountsReq,
+  ListAccountsRes,
+  GetAccountReq,
+  GetAccountRes,
+  CreateAccountReq,
+  CreateAccountRes,
+  UpdateAccountReq,
+  UpdateAccountRes,
+  DeleteAccountReq,
+  DeleteAccountRes,
+  GetAccountTransactionCountReq,
+  GetAccountTransactionCountRes,
+  AccountInput,
+} from '../proto/account/v1/account';
 
-const buildQueryString = (query?: Record<string, any>): string => {
-  if (!query) return '';
-  const params = new URLSearchParams();
-  Object.entries(query).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      params.set(key, String(value));
-    }
-  });
-  const qs = params.toString();
-  return qs ? '?' + qs : '';
-};
 
 export const accountService = {
-  list: (query?: AccountQuery): Promise<PaginatedResponse<Account>> =>
-    apiRequest(`/api/accounts${buildQueryString(query)}`),
+  list: async (query?: ListAccountsReq['query']): Promise<ListAccountsRes> => {
+    return secureRequest(
+      '/account/list-accounts',
+      { query },
+      ListAccountsReq,
+      ListAccountsRes
+    );
+  },
 
-  get: (id: string): Promise<Account> =>
-    apiRequest(`/api/accounts/${id}`),
+  get: async (id: string): Promise<GetAccountRes> => {
+    return secureRequest(
+      '/account/get-account',
+      { id },
+      GetAccountReq,
+      GetAccountRes
+    );
+  },
 
-  create: (input: AccountInput): Promise<Account> =>
-    apiRequest('/api/accounts', {
-      method: 'POST',
-      body: JSON.stringify(input),
-    }),
+  create: async (input: AccountInput): Promise<CreateAccountRes> => {
+    return secureRequest(
+      '/account/create-account',
+      {
+        input,
+      },
+      CreateAccountReq,
+      CreateAccountRes
+    );
+  },
 
-  update: (id: string, input: Partial<AccountInput>): Promise<Account> =>
-    apiRequest(`/api/accounts/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(input),
-    }),
+  update: async (id: string, input: Partial<AccountInput>): Promise<UpdateAccountRes> => {
+    return secureRequest(
+      '/account/update-account',
+      {
+        id,
+        input: input as AccountInput,
+      },
+      UpdateAccountReq,
+      UpdateAccountRes
+    );
+  },
 
-  delete: (id: string, migrationTargets?: Record<string, string>): Promise<{ taskId?: string }> =>
-    apiRequest(`/api/accounts/${id}`, {
-      method: 'DELETE',
-      body: migrationTargets ? JSON.stringify({ migrationTargets }) : undefined,
-    }),
+  delete: async (id: string, migrationTargets?: Record<string, string>): Promise<DeleteAccountRes> => {
+    return secureRequest(
+      '/account/delete-account',
+      {
+        id,
+        migrationTargets: migrationTargets || {}
+      },
+      DeleteAccountReq,
+      DeleteAccountRes
+    );
+  },
+
+  getTransactionCount: async (id: string): Promise<GetAccountTransactionCountRes> => {
+    return secureRequest(
+      '/account/get-account-transaction-count',
+      { id },
+      GetAccountTransactionCountReq,
+      GetAccountTransactionCountRes
+    );
+  },
 };
+

@@ -6,6 +6,9 @@
   "income": "收入",
   "expense": "支出",
   "trend_30_days": "近30天資產趨勢",
+  "balance_trend": "資產趨勢",
   "all_assets": "所有資產",
-  "select_accounts": "選擇帳戶"
+  "select_accounts": "選擇帳戶",
+  "select_trend_date_range": "選擇趨勢日期範圍",
+  "date_range_hint": "請選擇過去兩年內的開始和結束日期，包含首尾兩天。"
 }

@@ -1,5 +1,6 @@
 {
   "history": "取引履歴",
+  "show_opening_balance": "期首残高取引を表示",
   "date": "取引日時",
   "add_transaction": "記帳する",
   "new_transaction": "新規取引 (複式)",
@@ -21,11 +22,21 @@
   "note": "備考",
   "note_placeholder": "例：スーパーでの買い物",
   "confirm_add": "記帳を確定",
+  "invalid_account_combination": "収益口座から費用口座へ直接記帳できません。どちらかに資産または負債口座を選択してください。",
   "unnamed_transaction": "名称未設定の取引",
   "unknown_account": "不明なアカウント",
   "edit_transaction": "取引を編集",
   "delete_transaction": "取引を削除",
   "confirm_delete": "削除を確認",
   "delete_warning": "この取引を削除してもよろしいですか？この操作は取り消せません。",
-  "transfer": "振替"
+  "transfer": "振替",
+  "system_generated": "システム",
+  "opening_balance": "期首残高",
+  "cannot_edit_system": "システム生成の取引は編集できません",
+  "create_success": "取引を作成しました",
+  "create_error": "作成に失敗しました",
+  "update_success": "取引を更新しました",
+  "update_error": "更新に失敗しました",
+  "delete_success": "取引を削除しました",
+  "delete_error": "削除に失敗しました"
 }

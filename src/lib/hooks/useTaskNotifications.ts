@@ -1,19 +1,22 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { useWebSocket, WebSocketMessage } from './useWebSocket';
+import { useWebSocket } from './useWebSocket';
 import { accountKeys } from './useAccounts';
 import { transactionKeys } from './useTransactions';
 import { useGlobal } from '@/context/GlobalContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { taskKeys } from './useTasks';
+import { TaskStatus, TaskType, TaskTypeType } from '@/lib/constants/taskEnums';
 
 /**
  * Hook that listens to WebSocket for task status changes and shows notifications
  * when tasks complete or fail.
  */
+const notifiedTasks = new Set<string>();
+
 export function useTaskNotifications() {
     const { t } = useTranslation('settings');
     const { isLoggedIn, openTaskCenter } = useGlobal();
@@ -21,21 +24,21 @@ export function useTaskNotifications() {
     const { lastMessage, status } = useWebSocket();
 
     // Handle open task center (refresh data when opening)
-    const handleOpenTaskCenter = () => {
+    const handleOpenTaskCenter = useCallback(() => {
         openTaskCenter();
         queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
-    };
+    }, [openTaskCenter, queryClient]);
 
     // Refresh related data based on task type
-    const refreshRelatedData = (taskType: string) => {
-        if (taskType === 'ACCOUNT_MIGRATION') {
+    const refreshRelatedData = useCallback((taskType: TaskTypeType) => {
+        if (taskType === TaskType.ACCOUNT_MIGRATION) {
             // Refresh accounts and transactions after account migration
             queryClient.invalidateQueries({ queryKey: accountKeys.lists() });
             queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
         }
         // Always refresh task list
         queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
-    };
+    }, [queryClient]);
 
     // Handle WebSocket messages
     useEffect(() => {
@@ -46,17 +49,38 @@ export function useTaskNotifications() {
 
             console.log('[TaskNotifications] Received task update:', { taskId, taskStatus, taskType });
 
-            if (taskStatus === 'COMPLETED') {
+            // Skip if already notified for this completed/failed task
+            if ((taskStatus === TaskStatus.COMPLETED || taskStatus === TaskStatus.FAILED) && notifiedTasks.has(taskId)) {
+                return;
+            }
+
+            if (taskStatus === TaskStatus.COMPLETED) {
                 const typeText = getTypeText(taskType, t);
-                toast.success(t('task_completed_notification', { type: typeText }), {
+                let message = t('task_completed_notification', { type: typeText });
+
+                if (taskType === TaskType.DATA_IMPORT && lastMessage.payload.result) {
+                    const result = lastMessage.payload.result as {
+                        accountsImported?: number;
+                        transactionsImported?: number;
+                        accountsSkipped?: number;
+                        transactionsSkipped?: number;
+                    };
+                    const added = (result.accountsImported || 0) + (result.transactionsImported || 0);
+                    const updated = (result.accountsSkipped || 0) + (result.transactionsSkipped || 0);
+                    const duplicated = updated;
+                    message = t('settings:import_result_summary', { added, updated, duplicated });
+                }
+
+                toast.success(message, {
                     duration: 6000,
                     action: {
                         label: t('view_task_center'),
                         onClick: handleOpenTaskCenter,
                     },
                 });
+                notifiedTasks.add(taskId);
                 refreshRelatedData(taskType);
-            } else if (taskStatus === 'FAILED') {
+            } else if (taskStatus === TaskStatus.FAILED) {
                 const typeText = getTypeText(taskType, t);
                 toast.error(t('task_failed_notification', { type: typeText }), {
                     duration: 6000,
@@ -65,10 +89,11 @@ export function useTaskNotifications() {
                         onClick: handleOpenTaskCenter,
                     },
                 });
+                notifiedTasks.add(taskId);
                 refreshRelatedData(taskType);
             }
         }
-    }, [lastMessage, isLoggedIn, t, queryClient]);
+    }, [lastMessage, isLoggedIn, t, handleOpenTaskCenter, refreshRelatedData]);
 
     return {
         openTaskCenter: handleOpenTaskCenter,
@@ -77,10 +102,9 @@ export function useTaskNotifications() {
 }
 
 // Helper to get human-readable task type
-function getTypeText(type: string, t: (key: string) => string): string {
-    if (type === 'ACCOUNT_MIGRATION') {
+function getTypeText(type: TaskTypeType, t: (key: string) => string): string {
+    if (type === TaskType.ACCOUNT_MIGRATION) {
         return t('task_type_account_migration');
     }
-    return type;
+    return String(type);
 }
-

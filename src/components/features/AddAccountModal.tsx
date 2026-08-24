@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGlobal } from '@/context/GlobalContext';
-import { useCreateAccount, useAllAccounts, AccountType } from '@/lib/hooks';
+import { useCreateAccount, useAllAccounts, AccountType, UserLevelType } from '@/lib/hooks';
 import { ACCOUNT_TYPES } from '@/lib/data';
 import {
   Dialog,
@@ -22,8 +22,8 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Trash2, CornerDownRight, Crown } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
 import { toast } from "sonner";
+import { MoneyHelper } from '@/lib/utils/money';
 import {
   Tooltip,
   TooltipContent,
@@ -38,11 +38,12 @@ interface AddAccountModalProps {
 
 const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
   const { t } = useTranslation(['accounts', 'common']);
-  const { currencies, addCurrency: globalAddCurrency, user } = useGlobal();
+  const { currencies, user } = useGlobal();
   const { accounts } = useAllAccounts();
-  const createAccount = useCreateAccount();
+  const createAccount = useCreateAccount({ silent: true });
+  const { baseCurrency } = useGlobal();
 
-  const [type, setType] = useState<AccountType>(AccountType.ASSET);
+  const [type, setType] = useState<AccountType>(AccountType.ACCOUNT_TYPE_ASSET);
   const [isGroup, setIsGroup] = useState(false);
   const [name, setName] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -50,26 +51,15 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
   const [remarks, setRemarks] = useState('');
 
   // Simple account state
-  const [currency, setCurrency] = useState('CNY');
+  const [currency, setCurrency] = useState(baseCurrency);
   const [balance, setBalance] = useState('0');
 
   // Group account state
-  const [children, setChildren] = useState([
-    { id: Date.now().toString(), name: '', currency: 'CNY', balance: '0', isDefault: true }
+  const [children, setChildren] = useState(() => [
+    { id: Date.now().toString(), name: '', currency: baseCurrency, balance: '0', isDefault: true }
   ]);
 
   const [saveAndContinue, setSaveAndContinue] = useState(false);
-  const [isAddingCurrency, setIsAddingCurrency] = useState(false);
-  const [newCurrencyCode, setNewCurrencyCode] = useState('');
-
-  const handleAddCurrency = () => {
-    if (newCurrencyCode && newCurrencyCode.length === 3) {
-      globalAddCurrency(newCurrencyCode.toUpperCase());
-      setNewCurrencyCode('');
-      setIsAddingCurrency(false);
-    }
-  };
-
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -78,7 +68,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
   }, [isOpen]);
 
   const handleAddChild = () => {
-    setChildren([...children, { id: Date.now().toString(), name: '', currency: 'CNY', balance: '0', isDefault: false }]);
+    setChildren([...children, { id: Date.now().toString(), name: '', currency: baseCurrency, balance: '0', isDefault: false }]);
   };
 
   const handleRemoveChild = (id: string) => {
@@ -91,7 +81,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
     }
   };
 
-  const handleChildChange = (id: string, field: string, value: any) => {
+  const handleChildChange = (id: string, field: string, value: string) => {
     setChildren(children.map(c => {
       if (c.id === id) {
         return { ...c, [field]: value };
@@ -109,15 +99,16 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
     setNumber('');
     setRemarks('');
     setBalance('0');
-    setChildren([{ id: Date.now().toString(), name: '', currency: 'CNY', balance: '0', isDefault: true }]);
+    setChildren([{ id: Date.now().toString(), name: '', currency: baseCurrency, balance: '0', isDefault: true }]);
   };
 
   const handleSubmit = async () => {
     if (!name) return;
+    const finalDate = date || new Date().toISOString().split('T')[0];
 
     // FREE user ASSET limit check
-    if (type === AccountType.ASSET && user.plan === 'FREE') {
-      const currentAssetCount = accounts.filter(a => a.type === AccountType.ASSET && !a.parentId).length;
+    if (type === AccountType.ACCOUNT_TYPE_ASSET && user.plan === UserLevelType.USER_LEVEL_TYPE_FREE) {
+      const currentAssetCount = accounts.filter(a => a.type === AccountType.ACCOUNT_TYPE_ASSET && !a.parentId).length;
       if (currentAssetCount >= 5) {
         toast.error(t('accounts:free_asset_limit_reached'));
         return;
@@ -125,38 +116,41 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
     }
 
     try {
-      if (isGroup && (type === AccountType.ASSET || type === AccountType.LIABILITY)) {
+      if (isGroup && (type === AccountType.ACCOUNT_TYPE_ASSET || type === AccountType.ACCOUNT_TYPE_LIABILITY)) {
         // Create parent account first
-        const parent = await createAccount.mutateAsync({
+        const res = await createAccount.mutateAsync({
           name,
           type,
           isGroup: true,
-          balance: 0,
-          currency: 'CNY',
-          ...(date ? { date } : {}),
+          balance: '0',
+          currency: baseCurrency,
+          date: finalDate,
           ...(number ? { number } : {}),
           ...(remarks ? { remarks } : {}),
         });
 
-        // Create children with parentId
-        for (const child of children) {
-          await createAccount.mutateAsync({
-            parentId: parent.id,
-            name: child.name || `${name} ${child.currency}`,
-            type,
-            balance: parseFloat(child.balance) || 0,
-            currency: child.currency,
-            isGroup: false,
-          });
+        if (res.account?.id) {
+          // Create children with parentId
+          for (const child of children) {
+            await createAccount.mutateAsync({
+              parentId: res.account.id,
+              name: child.name || `${name} ${child.currency}`,
+              type,
+              balance: child.balance || '0',
+              currency: child.currency,
+              isGroup: false,
+              date: finalDate
+            });
+          }
         }
       } else {
         // Simple Account
         await createAccount.mutateAsync({
           name,
           type,
-          balance: parseFloat(balance) || 0,
+          balance: balance || '0',
           currency,
-          ...(date ? { date } : {}),
+          date: finalDate,
           ...(number ? { number } : {}),
           ...(remarks ? { remarks } : {}),
           isGroup: false,
@@ -164,16 +158,16 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
       }
 
       resetForm();
+      toast.success(t('accounts:create_success'));
       if (!saveAndContinue) {
         onClose();
       }
-    } catch (error) {
+    } catch {
       // Error is already handled by the hook with toast
     }
   };
 
-  const isPro = user.plan === 'PRO';
-  const canBeGroup = isPro && (type === AccountType.ASSET || type === AccountType.LIABILITY);
+  const isPro = user.plan === UserLevelType.USER_LEVEL_TYPE_PRO;
   const isPending = createAccount.isPending;
 
   return (
@@ -190,22 +184,23 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
               <div
                 key={key}
                 onClick={() => {
-                  setType(key as AccountType);
-                  if (key === AccountType.INCOME || key === AccountType.EXPENSE) setIsGroup(false);
+                  const typeVal = Number(key) as AccountType;
+                  setType(typeVal);
+                  if (typeVal === AccountType.ACCOUNT_TYPE_INCOME || typeVal === AccountType.ACCOUNT_TYPE_EXPENSE) setIsGroup(false);
                 }}
                 className={`
                   cursor-pointer rounded-xl border-2 p-4 flex flex-col items-center gap-2 transition-all
-                  ${type === key ? `border-[var(--primary)] bg-[var(--primary)]/5 ${value.color}` : 'border-transparent bg-[var(--bg-main)] text-[var(--text-muted)] hover:bg-[var(--bg-main)]/80'}
+                  ${type === Number(key) ? `border-[var(--primary)] bg-[var(--primary)]/5 ${value.color}` : 'border-transparent bg-[var(--bg-main)] text-[var(--text-muted)] hover:bg-[var(--bg-main)]/80'}
                 `}
               >
                 <value.icon size={24} />
-                <span className="text-sm font-bold">{t(`common:${key.toLowerCase()}`)}</span>
+                <span className="text-sm font-bold">{t(`common:${value.translationKey}`)}</span>
               </div>
             ))}
           </div>
 
           {/* Group Toggle - PRO only */}
-          {(type === AccountType.ASSET || type === AccountType.LIABILITY) && (
+          {(type === AccountType.ACCOUNT_TYPE_ASSET || type === AccountType.ACCOUNT_TYPE_LIABILITY) && (
             <div className={`flex items-center space-x-2 bg-[var(--bg-main)] p-3 pr-6 rounded-lg ${!isPro ? 'opacity-60' : ''}`}>
               <Checkbox
                 id="isGroup"
@@ -249,7 +244,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
                 <div className="space-y-2">
                   <Label>{t('common:currency')}</Label>
                   <div className="flex gap-2">
-                    <Select value={currency} onValueChange={setCurrency}>
+                    <Select value={currency} onValueChange={setCurrency} disabled>
                       <SelectTrigger className="flex-1">
                         <SelectValue />
                       </SelectTrigger>
@@ -257,35 +252,14 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
                         {currencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                       </SelectContent>
                     </Select>
-                    <TooltipProvider delayDuration={100}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="outline" size="icon" onClick={() => setIsAddingCurrency(!isAddingCurrency)}>
-                            <Plus size={16} />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{t('accounts:quick_add_currency')}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
                   </div>
-                  {isAddingCurrency && (
-                    <div className="flex gap-2 mt-2 animate-in slide-in-from-top-2">
-                      <Input
-                        placeholder={t('accounts:currency_placeholder')}
-                        maxLength={3}
-                        className="uppercase"
-                        value={newCurrencyCode}
-                        onChange={e => setNewCurrencyCode(e.target.value)}
-                      />
-                      <Button size="sm" onClick={handleAddCurrency} disabled={newCurrencyCode.length !== 3}>{t('common:ok')}</Button>
-                    </div>
-                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>{t('accounts:initial_balance')}</Label>
                   <Input type="number" value={balance} onChange={e => setBalance(e.target.value)} />
+                  {!MoneyHelper.fromAmount(balance || '0', currency).toDecimal().isZero() && (type === AccountType.ACCOUNT_TYPE_ASSET || type === AccountType.ACCOUNT_TYPE_LIABILITY) && (
+                    <p className="text-xs text-purple-600">{t('accounts:initial_balance_info')}</p>
+                  )}
                 </div>
               </div>
             )}
@@ -311,7 +285,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
               </div>
 
               <div className="space-y-3">
-                {children.map((child, index) => (
+                {children.map((child) => (
                   <div key={child.id} className="flex gap-3 items-start animate-in slide-in-from-left-2">
                     <div className="pt-3 text-[var(--text-muted)]"><CornerDownRight size={16} /></div>
                     <div className="grid grid-cols-12 gap-2 flex-1">
@@ -323,7 +297,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
                         />
                       </div>
                       <div className="col-span-3">
-                        <Select value={child.currency} onValueChange={v => handleChildChange(child.id, 'currency', v)}>
+                        <Select value={child.currency} onValueChange={v => handleChildChange(child.id, 'currency', v)} disabled>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             {currencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
@@ -355,7 +329,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
                           </Tooltip>
                         </TooltipProvider>
                         {children.length > 1 && (
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleRemoveChild(child.id)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40" onClick={() => handleRemoveChild(child.id)}>
                             <Trash2 size={14} />
                           </Button>
                         )}

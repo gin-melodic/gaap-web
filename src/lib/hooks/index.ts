@@ -9,6 +9,7 @@ export {
   useDeleteAccount,
   useAllAccounts,
   useAllAccountsSuspense,
+  useAccountTransactionCount,
   accountKeys,
 } from './useAccounts';
 
@@ -34,6 +35,8 @@ export {
   useGenerate2FA,
   useEnable2FA,
   useDisable2FA,
+  useUpdatePassword,
+  useCurrencyList,
   authKeys,
 } from './useAuth';
 

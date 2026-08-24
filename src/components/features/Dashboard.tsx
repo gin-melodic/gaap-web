@@ -3,69 +3,57 @@
 import React, { useMemo } from 'react';
 import { useAllAccountsSuspense, AccountType, useAllTransactions, useProfile } from '@/lib/hooks';
 import { useTranslation } from 'react-i18next';
-import { EXCHANGE_RATES } from '@/lib/data';
 import { TransactionType } from '@/lib/types';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import BalanceTrendChart from './BalanceTrendChart';
+import { MoneyHelper } from '@/lib/utils/money';
+import Decimal from 'decimal.js';
+import { resolveDisplayCurrency } from '@/lib/utils/display-currency';
 
 const Dashboard = () => {
   const { t } = useTranslation(['dashboard', 'common']);
   const { data: profile } = useProfile();
-  const mainCurrency = profile?.user?.mainCurrency || 'CNY';
 
   const { accounts } = useAllAccountsSuspense();
-
-  const formatCurrency = (amount: number, currency = mainCurrency) => {
-    try {
-      const locale = currency === 'CNY' ? 'zh-CN' : 'en-US';
-      return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(amount);
-    } catch (e) {
-      return `${currency} ${amount.toFixed(2)}`;
-    }
-  };
+  const { transactions } = useAllTransactions();
+  const mainCurrency = resolveDisplayCurrency(
+    profile?.user?.mainCurrency,
+    accounts.map((account) => account.balance ?? {}),
+    transactions.map((transaction) => transaction.amount ?? {}),
+  );
 
   const summary = useMemo(() => {
-    let assets = 0;
-    let liabilities = 0;
-
-    // Find rates relative to mainCurrency
-    const baseRate = EXCHANGE_RATES[mainCurrency] || 1;
+    let assets = MoneyHelper.fromAmount('0', mainCurrency);
+    let liabilities = MoneyHelper.fromAmount('0', mainCurrency);
 
     accounts.forEach(acc => {
       if (acc.isGroup) return;
 
-      const accRate = EXCHANGE_RATES[acc.currency] || 1;
-      const convertedBalance = acc.balance * (accRate / baseRate);
-
-      if (acc.type === AccountType.ASSET) assets += convertedBalance;
-      if (acc.type === AccountType.LIABILITY) liabilities += convertedBalance;
+      const balance = MoneyHelper.from(acc.balance);
+      if (acc.type === AccountType.ACCOUNT_TYPE_ASSET) assets = assets.add(balance);
+      if (acc.type === AccountType.ACCOUNT_TYPE_LIABILITY) liabilities = liabilities.add(balance);
     });
-    return { assets, liabilities, netWorth: assets - liabilities };
+    return { assets, liabilities, netWorth: assets.sub(liabilities) };
   }, [accounts, mainCurrency]);
 
-
-  const { transactions } = useAllTransactions();
 
   const monthlyStats = useMemo(() => {
     const now = new Date();
     const currentMonth = now.toISOString().slice(0, 7); // YYYY-MM
 
-    let income = 0;
-    let expense = 0;
-
-    const baseRate = EXCHANGE_RATES[mainCurrency] || 1;
+    let income = MoneyHelper.fromAmount('0', mainCurrency);
+    let expense = MoneyHelper.fromAmount('0', mainCurrency);
 
     transactions.forEach(tx => {
       // Check if transaction is in current month
       // Note: we're using string comparison which is safe for ISO format
       if (!tx.date.startsWith(currentMonth)) return;
 
-      const txRate = EXCHANGE_RATES[tx.currency] || 1;
-      const amount = tx.amount * (txRate / baseRate);
+      const amount = MoneyHelper.from(tx.amount);
 
-      if (tx.type === TransactionType.INCOME) income += amount;
-      if (tx.type === TransactionType.EXPENSE) expense += amount;
+      if (tx.type === TransactionType.TRANSACTION_TYPE_INCOME) income = income.add(amount);
+      if (tx.type === TransactionType.TRANSACTION_TYPE_EXPENSE) expense = expense.add(amount);
     });
 
     return { income, expense };
@@ -77,7 +65,7 @@ const Dashboard = () => {
         <Card className="bg-[var(--primary)] text-white shadow-lg shadow-indigo-200/50 border-none">
           <CardContent className="p-6">
             <div className="opacity-80 text-sm font-medium mb-1">{t('dashboard:net_worth', { currency: mainCurrency })}</div>
-            <div className="text-3xl font-bold">{formatCurrency(summary.netWorth)}</div>
+            <div className="text-3xl font-bold">{summary.netWorth.formatCurrency()}</div>
           </CardContent>
         </Card>
 
@@ -85,9 +73,9 @@ const Dashboard = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-2">
               <div className="text-[var(--text-muted)] text-sm font-medium">{t('dashboard:total_assets')}</div>
-              <div className="p-2 bg-emerald-50 rounded-lg"><TrendingUp className="w-4 h-4 text-emerald-600" /></div>
+              <div className="p-2 bg-emerald-50 dark:bg-emerald-950/40 rounded-lg"><TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-300" /></div>
             </div>
-            <div className="text-2xl font-bold text-[var(--text-main)]">{formatCurrency(summary.assets)}</div>
+            <div className="text-2xl font-bold text-[var(--text-main)]">{summary.assets.formatCurrency()}</div>
           </CardContent>
         </Card>
 
@@ -95,9 +83,9 @@ const Dashboard = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-2">
               <div className="text-[var(--text-muted)] text-sm font-medium">{t('dashboard:total_liabilities')}</div>
-              <div className="p-2 bg-red-50 rounded-lg"><TrendingDown className="w-4 h-4 text-red-600" /></div>
+              <div className="p-2 bg-red-50 dark:bg-red-950/40 rounded-lg"><TrendingDown className="w-4 h-4 text-red-600 dark:text-red-300" /></div>
             </div>
-            <div className="text-2xl font-bold text-[var(--text-main)]">{formatCurrency(summary.liabilities)}</div>
+            <div className="text-2xl font-bold text-[var(--text-main)]">{summary.liabilities.formatCurrency()}</div>
           </CardContent>
         </Card>
       </div>
@@ -109,15 +97,15 @@ const Dashboard = () => {
           <h3 className="text-[var(--text-main)] font-bold mb-4">{t('dashboard:monthly_overview', { currency: mainCurrency })}</h3>
           <div className="space-y-4">
             {(() => {
-              const maxAmount = Math.max(monthlyStats.income, monthlyStats.expense);
-              const incomePercent = maxAmount > 0 ? (monthlyStats.income / maxAmount) * 100 : 0;
-              const expensePercent = maxAmount > 0 ? (monthlyStats.expense / maxAmount) * 100 : 0;
+              const maxAmount = Decimal.max(monthlyStats.income.toDecimal(), monthlyStats.expense.toDecimal());
+              const incomePercent = maxAmount.gt(0) ? monthlyStats.income.toDecimal().div(maxAmount).times(100).toFixed(4) : '0';
+              const expensePercent = maxAmount.gt(0) ? monthlyStats.expense.toDecimal().div(maxAmount).times(100).toFixed(4) : '0';
               return (
                 <>
                   <div>
                     <div className="flex justify-between text-sm mb-1">
                       <span className="text-[var(--text-muted)]">{t('dashboard:income')}</span>
-                      <span className="font-medium text-[var(--text-main)]">{formatCurrency(monthlyStats.income)}</span>
+                      <span className="font-medium text-[var(--text-main)]">{monthlyStats.income.formatCurrency()}</span>
                     </div>
                     <div className="h-2 bg-[var(--bg-main)] rounded-full overflow-hidden">
                       <div className="h-full bg-emerald-500 rounded-full transition-all duration-300" style={{ width: `${incomePercent}%` }}></div>
@@ -126,7 +114,7 @@ const Dashboard = () => {
                   <div>
                     <div className="flex justify-between text-sm mb-1">
                       <span className="text-[var(--text-muted)]">{t('dashboard:expense')}</span>
-                      <span className="font-medium text-[var(--text-main)]">{formatCurrency(monthlyStats.expense)}</span>
+                      <span className="font-medium text-[var(--text-main)]">{monthlyStats.expense.formatCurrency()}</span>
                     </div>
                     <div className="h-2 bg-[var(--bg-main)] rounded-full overflow-hidden">
                       <div className="h-full bg-orange-500 rounded-full transition-all duration-300" style={{ width: `${expensePercent}%` }}></div>

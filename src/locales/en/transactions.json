@@ -1,5 +1,6 @@
 {
   "history": "Transaction History",
+  "show_opening_balance": "Show Opening Balance Transactions",
   "date": "Transaction Time",
   "add_transaction": "Add Transaction",
   "new_transaction": "New Transaction (Double Entry)",
@@ -21,11 +22,21 @@
   "note": "Note",
   "note_placeholder": "e.g., Grocery",
   "confirm_add": "Confirm",
+  "invalid_account_combination": "Income cannot be posted directly to an expense account. Select an asset or liability account on one side.",
   "unnamed_transaction": "Unnamed Transaction",
   "unknown_account": "Unknown Account",
   "edit_transaction": "Edit Transaction",
   "delete_transaction": "Delete Transaction",
   "confirm_delete": "Confirm Delete",
   "delete_warning": "Are you sure you want to delete this transaction? This action cannot be undone.",
-  "transfer": "Transfer"
+  "transfer": "Transfer",
+  "system_generated": "System",
+  "opening_balance": "Opening Balance",
+  "cannot_edit_system": "System-generated transactions cannot be edited",
+  "create_success": "Transaction created successfully",
+  "create_error": "Failed to create transaction",
+  "update_success": "Transaction updated successfully",
+  "update_error": "Failed to update transaction",
+  "delete_success": "Transaction deleted successfully",
+  "delete_error": "Failed to delete transaction"
 }

@@ -1,5 +1,6 @@
 {
   "history": "交易流水",
+  "show_opening_balance": "显示期初余额交易",
   "date": "交易时间",
   "add_transaction": "记一笔",
   "new_transaction": "新交易 (复式)",
@@ -21,11 +22,21 @@
   "note": "备注",
   "note_placeholder": "例如：超市购物",
   "confirm_add": "确认记账",
+  "invalid_account_combination": "收入账户不能直接记入支出账户，请选择资产或负债账户作为其中一方。",
   "unnamed_transaction": "未命名交易",
   "unknown_account": "未知账户",
   "edit_transaction": "编辑交易",
   "delete_transaction": "删除交易",
   "confirm_delete": "确认删除",
   "delete_warning": "您确定要删除这笔交易吗？此操作无法撤销。",
-  "transfer": "转账"
+  "transfer": "转账",
+  "system_generated": "系统",
+  "opening_balance": "期初余额",
+  "cannot_edit_system": "系统生成的交易不可编辑",
+  "create_success": "交易创建成功",
+  "create_error": "创建失败",
+  "update_success": "交易更新成功",
+  "update_error": "更新失败",
+  "delete_success": "交易删除成功",
+  "delete_error": "删除失败"
 }

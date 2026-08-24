@@ -1,19 +1,29 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { authService } from '../services';
+import { useTranslation } from 'react-i18next';
+import { secureAuthService } from '../services/secureAuthService';
 import { LoginInput, RegisterInput } from '../types';
 import { toast } from 'sonner';
 
 export const authKeys = {
   profile: ['auth', 'profile'] as const,
   twoFactor: ['auth', '2fa'] as const,
+  currencyList: ['auth', 'currencyList'] as const,
 };
 
 export function useProfile() {
   return useQuery({
     queryKey: authKeys.profile,
-    queryFn: () => authService.getProfile(),
+    queryFn: () => secureAuthService.getProfile(),
     retry: false,
-    enabled: typeof window !== 'undefined' && !!localStorage.getItem('token'),
+    enabled: typeof window !== 'undefined' && secureAuthService.isLoggedIn(),
+  });
+}
+
+export function useCurrencyList() {
+  return useQuery({
+    queryKey: authKeys.currencyList,
+    queryFn: () => secureAuthService.getCurrencyList(),
+    staleTime: 1000 * 60 * 60 * 24, // 24 hours since it rarely changes
   });
 }
 
@@ -21,23 +31,32 @@ export function useLogin() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: LoginInput) => authService.login(input),
-    onSuccess: (data) => {
-      if (data.accessToken) localStorage.setItem('token', data.accessToken);
-      if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
-      queryClient.invalidateQueries({ queryKey: authKeys.profile });
+    mutationFn: (input: LoginInput) => secureAuthService.login(input),
+    onSuccess: () => {
+      // Tokens are already handled by secureAuthService
+      // Clear ALL cached queries to prevent stale errors from being replayed
+      queryClient.clear();
     },
-    onError: (error: Error) => {
-      toast.error(error.message || '登录失败');
-    },
+    onError: () => undefined,
   });
 }
 
 export function useRegister() {
+  const { t } = useTranslation(['auth', 'common']);
+  const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: (input: RegisterInput) => authService.register(input),
-    onSuccess: () => toast.success('注册成功，请登录'),
-    onError: (error: Error) => toast.error(error.message || '注册失败'),
+    mutationFn: (input: RegisterInput) => secureAuthService.register(input),
+    onSuccess: () => {
+      // Tokens are already handled by secureAuthService if auto-login is desired,
+      // but usually register just creates the account.
+      // However, secureAuthService.register in this codebase DOES auto-login (returns RegisterRes with auth tokens).
+      // Clear queries just in case
+      queryClient.clear();
+
+      toast.success(t('register_success'));
+    },
+    // onError: (error: Error) => toast.error(error.message || '注册失败'),
   });
 }
 
@@ -45,48 +64,61 @@ export function useLogout() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => authService.logout(),
+    mutationFn: () => secureAuthService.logout(),
     onSuccess: () => {
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
+      secureAuthService.clearTokens();
       queryClient.clear();
     },
     onSettled: () => {
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
+      secureAuthService.clearTokens();
     },
   });
 }
 
 export function useGenerate2FA() {
   return useMutation({
-    mutationFn: () => authService.generate2FA(),
+    mutationFn: () => secureAuthService.generate2FA(),
   });
 }
 
 export function useEnable2FA() {
+  const { t } = useTranslation(['auth', 'common']);
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (code: string) => authService.enable2FA(code),
+    mutationFn: (code: string) => secureAuthService.enable2FA(code),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: authKeys.profile });
-      toast.success('两步验证已启用');
+      toast.success(t('2fa_enabled'));
     },
-    onError: (error: Error) => toast.error(error.message || '启用失败'),
+    onError: (error: Error) => toast.error(error.message || t('enable_failed')),
   });
 }
 
 export function useDisable2FA() {
+  const { t } = useTranslation(['auth', 'common']);
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ code, password }: { code: string; password: string }) =>
-      authService.disable2FA(code, password),
+      secureAuthService.disable2FA(code, password),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: authKeys.profile });
-      toast.success('两步验证已禁用');
+      toast.success(t('2fa_disabled'));
     },
-    onError: (error: Error) => toast.error(error.message || '禁用失败'),
+    onError: (error: Error) => toast.error(error.message || t('disable_failed')),
+  });
+}
+
+export function useUpdatePassword() {
+  const { t } = useTranslation(['auth', 'common']);
+
+  return useMutation({
+    mutationFn: ({ password, newPassword, confirmPassword }: { password: string; newPassword: string; confirmPassword: string }) =>
+      secureAuthService.updatePassword(password, newPassword, confirmPassword),
+    onSuccess: () => {
+      toast.success(t('password_updated'));
+    },
+    onError: (error: Error) => toast.error(error.message || t('update_password_failed')),
   });
 }

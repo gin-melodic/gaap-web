@@ -4,13 +4,13 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useGlobal } from '@/context/GlobalContext';
+import { UserLevelType } from '@/lib/hooks';
 import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard,
   Wallet,
   ArrowRightLeft,
-  Settings,
-  LogOut
+  Settings
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -18,8 +18,15 @@ import { Button } from '@/components/ui/button';
 const Sidebar = () => {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout, setSettingsView } = useGlobal();
+  const { user, setSettingsView } = useGlobal();
   const { t } = useTranslation('common');
+
+  // Localized plan label
+  const planLabel = user?.plan === UserLevelType.USER_LEVEL_TYPE_PRO
+    ? t('settings:plans.pro.name')
+    : user?.plan === UserLevelType.USER_LEVEL_TYPE_FREE
+      ? t('settings:plans.free.name')
+      : '';
 
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: t('dashboard') },
@@ -82,7 +89,7 @@ const Sidebar = () => {
           </Avatar>
           <div className="flex-1 min-w-0">
             <div className="truncate font-medium text-[var(--text-main)]">{user.nickname}</div>
-            <div className="text-xs capitalize">{user.plan} {t('plan')}</div>
+            <div className="text-xs capitalize">{planLabel} {t('plan')}</div>
           </div>
         </div>
       </div>

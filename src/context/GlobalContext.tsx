@@ -2,13 +2,16 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { THEMES } from '@/lib/data';
-import apiRequest, { ApiError } from '@/lib/api';
+import { ApiError } from '@/lib/network/errors';
+import { secureAuthService } from '@/lib/services/secureAuthService';
+import { UserLevelType } from '@/lib/proto/base/base';
 
 interface User {
   email: string;
   nickname: string;
   avatar: string | null;
-  plan: 'FREE' | 'PRO';
+  plan: UserLevelType;
+  mainCurrency?: string;
   twoFactorEnabled?: boolean;
 }
 
@@ -26,7 +29,7 @@ interface Theme {
   };
 }
 
-export type SettingsView = 'MAIN' | 'PROFILE' | 'SUBSCRIPTION' | 'CURRENCY' | 'THEME' | 'LANGUAGE' | 'TASKS';
+export type SettingsView = 'MAIN' | 'PROFILE' | 'SUBSCRIPTION' | 'CURRENCY' | 'THEME' | 'LANGUAGE' | 'TASKS' | 'DATA_EXPORT';
 
 interface GlobalContextType {
   user: User;
@@ -57,12 +60,12 @@ const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
 export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState<User>({ email: '', nickname: '', avatar: null, plan: 'FREE' });
+  const [user, setUser] = useState<User>({ email: '', nickname: '', avatar: null, plan: UserLevelType.UNRECOGNIZED, mainCurrency: 'USD' });
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
   const [exchangeRatesLastUpdated, setExchangeRatesLastUpdated] = useState<number | null>(null);
-  const [baseCurrency, setBaseCurrency] = useState('CNY');
+  const [baseCurrency, setBaseCurrency] = useState('USD');
 
-  const [currencies, setCurrencies] = useState(['CNY', 'USD', 'HKD', 'EUR', 'JPY']);
+  const [currencies, setCurrencies] = useState(['USD']);
   const [currentTheme, setCurrentTheme] = useState<Theme>(THEMES[0]);
   const [settingsView, setSettingsView] = useState<SettingsView>('MAIN');
   const [isTaskCenterOpen, setIsTaskCenterOpen] = useState(false);
@@ -73,7 +76,7 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
   // Check authentication status on mount
   useEffect(() => {
     const checkAuth = async () => {
-      let token = localStorage.getItem('token');
+      const token = localStorage.getItem('token');
       const storedState = localStorage.getItem('gaap_state');
 
       // Restore non-sensitive state from local storage first (preferences, etc)
@@ -81,11 +84,7 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
         try {
           const parsed = JSON.parse(storedState);
           // Only restore preferences, not data that should be fetched fresh
-          if (parsed.currencies) setCurrencies(parsed.currencies);
           if (parsed.currentTheme) setCurrentTheme(parsed.currentTheme);
-          if (parsed.exchangeRates) setExchangeRates(parsed.exchangeRates);
-          if (parsed.exchangeRatesLastUpdated) setExchangeRatesLastUpdated(parsed.exchangeRatesLastUpdated);
-          if (parsed.baseCurrency) setBaseCurrency(parsed.baseCurrency);
         } catch (e) {
           console.error('Failed to parse stored state', e);
         }
@@ -96,12 +95,38 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
+      // For ALE-encrypted endpoints, we also need a session key
+      const sessionKey = localStorage.getItem('sessionKey');
+      if (!sessionKey) {
+        // Token exists but no session key - user needs to re-login
+        // Clear all auth-related tokens/session state
+        secureAuthService.clearTokens();
+        localStorage.removeItem('sessionKey');
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        // Validate token by fetching profile
-        const data = await apiRequest<any>('/api/user/profile');
+        // Validate token by fetching profile using secure ALE-encrypted service
+        const data = await secureAuthService.getProfile();
 
         if (data && data.user) {
-          setUser(data.user);
+          const profileMainCurrency = (data.user.mainCurrency || 'USD').toUpperCase();
+
+          // Map the protobuf user response to our User type
+          setUser({
+            email: data.user.email || '',
+            nickname: data.user.nickname || '',
+            avatar: data.user.avatar || null,
+            plan: data.user.plan ?? UserLevelType.UNRECOGNIZED,
+            mainCurrency: profileMainCurrency || 'CNY',
+            twoFactorEnabled: data.user.twoFactorEnabled ?? false,
+          });
+          // Use user mainCurrency as initial baseCurrency if available
+          if (data.user.mainCurrency) {
+            setBaseCurrency(profileMainCurrency);
+            setCurrencies([profileMainCurrency]);
+          }
           setIsLoggedIn(true);
         } else {
           throw new Error('Invalid user profile data');
@@ -109,57 +134,33 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
 
       } catch (error) {
         // Handle token expiration / 401
+        // secureRequest already handles token refresh internally.
+        // If we receive a 401 here, it means the refresh failed or the token is invalid.
         if (error instanceof ApiError && error.code === 401) {
-          const refreshToken = localStorage.getItem('refreshToken');
-          if (!refreshToken) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
-            setIsLoggedIn(false);
-            setIsLoading(false);
-            return;
-          }
-
-          try {
-            const refreshData = await apiRequest<any>('/api/auth/refresh', {
-              method: 'POST',
-              body: JSON.stringify({ refreshToken })
-            });
-
-            const newToken = refreshData.accessToken;
-            if (newToken) {
-              localStorage.setItem('token', newToken);
-              if (refreshData.refreshToken) {
-                localStorage.setItem('refreshToken', refreshData.refreshToken);
-              }
-
-              // Retry profile fetch with new token
-              const userData = await apiRequest<any>('/api/user/profile');
-              if (userData && userData.user) {
-                setUser(userData.user);
-                setIsLoggedIn(true);
-              }
-            }
-          } catch (refreshErr) {
-            console.error('Refresh failed:', refreshErr);
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
-            setIsLoggedIn(false);
-            setUser({ email: '', nickname: '', avatar: null, plan: 'FREE' });
-          }
-        } else if (error instanceof ApiError && (error.code === 503 || error.code === 502 || error.code === 504)) {
-          // Backend service unavailable - keep tokens, user can retry later
-          console.warn('Backend service unavailable, will retry later');
-          // Don't clear tokens or logout - just leave current state
-        } else if (error instanceof Error && (error.message.includes('Network') || error.message.includes('fetch'))) {
-          // Network error - backend might be down
-          console.warn('Network error - backend may be unavailable');
-          // Don't clear tokens or logout - just leave current state  
-        } else {
-          console.error('Auth verification failed:', error);
           localStorage.removeItem('token');
           localStorage.removeItem('refreshToken');
           setIsLoggedIn(false);
-          setUser({ email: '', nickname: '', avatar: null, plan: 'FREE' });
+          setUser({ email: '', nickname: '', avatar: null, plan: UserLevelType.UNRECOGNIZED, mainCurrency: 'CNY' });
+        } else if (error instanceof ApiError && (error.code === 503 || error.code === 502 || error.code === 504)) {
+          // Backend service unavailable - keep tokens, user can retry later
+          // Don't clear tokens or logout - just leave current state
+        } else if (error instanceof Error && (error.message.includes('Network') || error.message.includes('fetch'))) {
+          // Network error - backend might be down
+          // Don't clear tokens or logout - just leave current state  
+        } else {
+          // Only clear if the token hasn't been updated (e.g. by a parallel login)
+          if (localStorage.getItem('token') === token) {
+            // We used to clear token here, but transient errors (500, 404 due to path issues) shouldn't logout the user.
+            // Only 401 should trigger logout (handled above).
+            // Do NOT clear token.
+            // localStorage.removeItem('token');
+            // localStorage.removeItem('refreshToken');
+
+            // However, we can't set isLoggedIn(true) if we don't have user data.
+            // The app might stay in a "loading" or "unauthenticated" state visually (missing sidebar).
+            // But at least a refresh won't redirect to login if the error was transient.
+            setIsLoggedIn(false);
+          }
         }
       } finally {
         setIsLoading(false);
@@ -173,23 +174,25 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (isLoading) return;
     const state = {
-      currencies,
       currentTheme,
-      exchangeRates,
-      exchangeRatesLastUpdated,
       baseCurrency
     };
     localStorage.setItem('gaap_state', JSON.stringify(state));
-  }, [currencies, currentTheme, exchangeRates, exchangeRatesLastUpdated, baseCurrency, isLoading]);
+  }, [currentTheme, baseCurrency, isLoading]);
 
   const login = (userData: Partial<User>) => {
     setUser(prev => ({ ...prev, ...userData }));
+    if (userData.mainCurrency) {
+      const normalizedCurrency = userData.mainCurrency.toUpperCase();
+      setBaseCurrency(normalizedCurrency);
+      setCurrencies([normalizedCurrency]);
+    }
     setIsLoggedIn(true);
   };
 
   const logout = () => {
     setIsLoggedIn(false);
-    setUser({ email: '', nickname: '', avatar: null, plan: 'FREE' });
+    setUser({ email: '', nickname: '', avatar: null, plan: UserLevelType.UNRECOGNIZED, mainCurrency: 'CNY' });
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     // Redirect to login page
@@ -199,11 +202,11 @@ export const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const addCurrency = (code: string) => {
-    if (!currencies.includes(code)) setCurrencies(prev => [...prev, code]);
+    if (code === baseCurrency) setCurrencies([baseCurrency]);
   };
 
   const deleteCurrency = (code: string) => {
-    setCurrencies(prev => prev.filter(c => c !== code));
+    if (code !== baseCurrency) setCurrencies([baseCurrency]);
   };
 
   const updateUser = (updates: Partial<User>) => {

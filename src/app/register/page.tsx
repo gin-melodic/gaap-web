@@ -1,79 +1,139 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { useGlobal } from '@/context/GlobalContext';
 
-import apiRequest, { ApiError } from '@/lib/api';
-import { sha256 } from '@/lib/utils';
+import { useRegister, useCurrencyList } from '@/lib/hooks';
+import {
+  MAX_EMAIL_LENGTH,
+  MAX_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH,
+  validateRegistrationFields,
+} from '@/lib/utils/registration-validation';
 
 export default function RegisterPage() {
   const { t } = useTranslation(['auth', 'common', 'settings']);
   const router = useRouter();
+  const { login: contextLogin } = useGlobal();
+  const registerMutation = useRegister();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [nickname, setNickname] = useState('');
   const [turnstileToken, setTurnstileToken] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [mainCurrency, setMainCurrency] = useState('');
+
+  const { data: currencyData, isLoading: isLoadingCurrencies } = useCurrencyList();
+
+  useEffect(() => {
+    if (currencyData?.currencies) {
+      // eslint-disable-next-line
+      setMainCurrency((prev) => {
+        if (prev) return prev; // Only set once
+        let defaultCurrency = 'USD';
+        if (typeof navigator !== 'undefined') {
+          const lang = navigator.language.toLowerCase();
+          if (lang.startsWith('zh-cn')) defaultCurrency = 'CNY';
+          else if (lang.startsWith('zh')) defaultCurrency = 'HKD';
+          else if (lang.startsWith('ja')) defaultCurrency = 'JPY';
+          else if (lang.startsWith('en-gb')) defaultCurrency = 'GBP';
+          else if (['de', 'fr', 'es', 'it', 'nl'].some(l => lang.startsWith(l))) defaultCurrency = 'EUR';
+
+          const exists = currencyData.currencies.some((c: { code: string }) => c.code === defaultCurrency);
+          if (!exists) defaultCurrency = 'USD';
+        }
+        return defaultCurrency;
+      });
+    }
+  }, [currencyData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const validationError = validateRegistrationFields(email, password, confirmPassword);
+    if (validationError) {
+      toast.error(t(`auth:${validationError}`));
+      return;
+    }
     if (!turnstileToken) {
       toast.error(t('auth:captcha_required'));
       return;
     }
-    setLoading(true);
 
     try {
-      const hashedPassword = await sha256(password);
-      await apiRequest('/api/auth/register', {
-        method: 'POST',
-        body: JSON.stringify({
-          email,
-          password: hashedPassword,
-          nickname,
-          cf_turnstile_response: turnstileToken
-        })
+      const data = await registerMutation.mutateAsync({
+        email,
+        password,
+        nickname,
+        cfTurnstileResponse: turnstileToken,
+        mainCurrency: mainCurrency || 'USD',
       });
 
-      toast.success(t('auth:register_success'));
-      router.push('/login');
-    } catch (err: unknown) {
-      if (err instanceof ApiError) {
-        toast.error(err.message);
-      } else if (err instanceof Error) {
-        toast.error(err.message);
-      } else {
-        toast.error(t('auth:unknown_error'));
+      // Registration with auto-login successful - update global context with user data
+      if (data && data.auth && data.auth.user) {
+        contextLogin({
+          email: data.auth.user.email,
+          nickname: data.auth.user.nickname,
+          avatar: data.auth.user.avatar,
+          plan: data.auth.user.plan,
+          mainCurrency: data.auth.user.mainCurrency || mainCurrency
+        });
       }
-    } finally {
-      setLoading(false);
+
+      router.push('/dashboard');
+    } catch {
+      // Error handled by hook
+      toast.error(t('auth:register_failed'), { duration: 4000 });
     }
   };
 
+  const loading = registerMutation.isPending;
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 space-y-6">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4">
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-8 space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-slate-900">{t('auth:register_title')}</h1>
-          <p className="text-slate-500 mt-2">{t('auth:register_subtitle')}</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{t('auth:register_title')}</h1>
+          <p className="text-slate-500 dark:text-slate-300 mt-2">{t('auth:register_subtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="nickname">{t('settings:nickname')}</Label>
+            <Label htmlFor="nickname" className="text-slate-700 dark:text-slate-200">{t('settings:nickname')}</Label>
             <Input
               id="nickname"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               required
               placeholder={t('settings:nickname')}
+              className="placeholder:text-slate-400 dark:placeholder:text-slate-400 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="mainCurrency">{t('auth:main_currency')}</Label>
+            <Select
+              value={mainCurrency}
+              onValueChange={setMainCurrency}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={isLoadingCurrencies ? t('common:loading') : t('auth:main_currency_placeholder')} />
+              </SelectTrigger>
+              <SelectContent>
+                {currencyData?.currencies?.map((currency: { code: string }) => (
+                  <SelectItem key={currency.code} value={currency.code}>
+                    {currency.code}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
@@ -84,12 +144,14 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              maxLength={MAX_EMAIL_LENGTH}
               placeholder="name@example.com"
+              className="placeholder:text-slate-400 dark:placeholder:text-slate-400 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">{t('common:password')}</Label>
+            <Label htmlFor="password" className="text-slate-700 dark:text-slate-200">{t('common:password')}</Label>
             <Input
               id="password"
               type="password"
@@ -97,7 +159,24 @@ export default function RegisterPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               placeholder="••••••••"
-              minLength={8}
+              minLength={MIN_PASSWORD_LENGTH}
+              maxLength={MAX_PASSWORD_LENGTH}
+              className="placeholder:text-slate-400 dark:placeholder:text-slate-400 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword" className="text-slate-700 dark:text-slate-200">{t('auth:confirm_password')}</Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              placeholder="••••••••"
+              minLength={MIN_PASSWORD_LENGTH}
+              maxLength={MAX_PASSWORD_LENGTH}
+              className="placeholder:text-slate-400 dark:placeholder:text-slate-400 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
             />
           </div>
 
@@ -113,7 +192,7 @@ export default function RegisterPage() {
           </Button>
         </form>
 
-        <div className="text-center text-sm text-slate-500">
+        <div className="text-center text-sm text-slate-500 dark:text-slate-300">
           {t('auth:have_account')}
           <a href="/login" className="text-indigo-600 font-bold hover:underline ml-1">
             {t('auth:login_directly')}

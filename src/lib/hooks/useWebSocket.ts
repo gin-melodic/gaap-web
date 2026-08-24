@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useGlobal } from '@/context/GlobalContext';
+import { TaskStatusType, TaskTypeType } from '@/lib/constants/taskEnums';
 
 export type WebSocketStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 
@@ -9,9 +10,9 @@ export interface WebSocketMessage {
     type: 'TASK_UPDATE' | 'PING' | 'PONG';
     payload?: {
         taskId: string;
-        status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
-        taskType: string;
-        result?: any;
+        status: TaskStatusType;
+        taskType: TaskTypeType;
+        result?: unknown;
     };
 }
 
@@ -43,10 +44,13 @@ export function useWebSocket(): UseWebSocketReturn {
 
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const host = window.location.host;
-        return `${protocol}//${host}/api/ws?token=${encodeURIComponent(token)}`;
+        return `${protocol}//${host}/api/v1/ws?token=${encodeURIComponent(token)}`;
     }, []);
 
+    const connectRef = useRef<() => void>(() => { });
+
     const connect = useCallback(() => {
+
         if (wsRef.current?.readyState === WebSocket.OPEN) {
             return;
         }
@@ -80,7 +84,7 @@ export function useWebSocket(): UseWebSocketReturn {
             };
 
             ws.onerror = (error) => {
-                console.error('[WebSocket] Error:', error);
+                console.warn('[WebSocket] Error:', error);
                 setStatus('error');
             };
 
@@ -100,7 +104,8 @@ export function useWebSocket(): UseWebSocketReturn {
 
                     reconnectTimeoutRef.current = setTimeout(() => {
                         if (isLoggedIn) {
-                            connect();
+                            // Use the ref to call connect to avoid "variable used before declaration"
+                            connectRef.current();
                         }
                     }, delay);
                 }
@@ -110,6 +115,11 @@ export function useWebSocket(): UseWebSocketReturn {
             setStatus('error');
         }
     }, [getWebSocketUrl, isLoggedIn]);
+
+    // Update the ref whenever connect changes
+    useEffect(() => {
+        connectRef.current = connect;
+    }, [connect]);
 
     const disconnect = useCallback(() => {
         if (reconnectTimeoutRef.current) {
@@ -135,6 +145,7 @@ export function useWebSocket(): UseWebSocketReturn {
     // Connect when logged in, disconnect when not
     useEffect(() => {
         if (isLoggedIn) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             connect();
         } else {
             disconnect();

@@ -5,6 +5,7 @@ import { useGlobal } from '@/context/GlobalContext';
 import { useTasks, useCancelTask, useRetryTask, Task } from '@/lib/hooks/useTasks';
 import { useAllAccounts } from '@/lib/hooks/useAccounts';
 import { useTranslation } from 'react-i18next';
+import { TaskStatus, TaskType, TaskStatusType, TaskTypeType, getStatusText as getStatusTextEnum } from '@/lib/constants/taskEnums';
 import {
     Dialog,
     DialogContent,
@@ -61,11 +62,11 @@ const TaskCenterModal = () => {
     const cancelMutation = useCancelTask();
     const retryMutation = useRetryTask();
     const { accounts } = useAllAccounts();
-    const tasks = tasksData?.data || [];
+    const tasks = useMemo(() => tasksData?.data || [], [tasksData?.data]);
 
     // Filter states
-    const [typeFilter, setTypeFilter] = useState<string>('all');
-    const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [typeFilter, setTypeFilter] = useState<TaskTypeType | 'all'>('all');
+    const [statusFilter, setStatusFilter] = useState<TaskStatusType | 'all'>('all');
 
     // Sort states
     const [sortField, setSortField] = useState<SortField>('createdAt');
@@ -76,12 +77,12 @@ const TaskCenterModal = () => {
 
     // Get unique task types
     const taskTypes = useMemo(() => {
-        const types = new Set(tasks.map(t => t.type));
+        const types = new Set(tasks.map(t => t.type as TaskTypeType));
         return Array.from(types);
     }, [tasks]);
 
-    // Status options
-    const statusOptions = ['PENDING', 'RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED'];
+    // Status options (using integer values)
+    const statusOptions = [TaskStatus.PENDING, TaskStatus.RUNNING, TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED];
 
     // Get account name by ID
     const getAccountName = (accountId: string): string => {
@@ -91,7 +92,8 @@ const TaskCenterModal = () => {
 
     // Get detailed task title with account names
     const getDetailedTaskTitle = (task: Task): string => {
-        if (task.type === 'ACCOUNT_MIGRATION' && task.payload) {
+        const taskType = task.type as TaskTypeType;
+        if (taskType === TaskType.ACCOUNT_MIGRATION && task.payload) {
             const payload = task.payload as AccountMigrationPayload;
             const sourceAccountName = getAccountName(payload.accountId);
             const targetAccountIds = Object.values(payload.migrationTargets || {});
@@ -102,28 +104,54 @@ const TaskCenterModal = () => {
                 return `${sourceAccountName} → ${targetAccountIds.length} ${t('common:accounts')}`;
             }
             return sourceAccountName;
+        } else if (taskType === TaskType.DATA_EXPORT && task.payload) {
+            const payload = task.payload as { startDate: string; endDate: string };
+            return `${payload.startDate} - ${payload.endDate}`;
+        } else if (taskType === TaskType.DATA_IMPORT && task.payload) {
+            const payload = task.payload as { fileName: string };
+            // Extract filename from path if needed, or just show it
+            const fileName = payload.fileName.split(/[/\\]/).pop() || payload.fileName;
+
+            if (task.status === TaskStatus.COMPLETED && task.result) {
+                const result = task.result as {
+                    accountsImported?: number;
+                    transactionsImported?: number;
+                    accountsSkipped?: number;
+                    transactionsSkipped?: number;
+                };
+                const added = (result.accountsImported || 0) + (result.transactionsImported || 0);
+                const updated = (result.accountsSkipped || 0) + (result.transactionsSkipped || 0);
+                const duplicated = updated;
+                return `${fileName} (${t('settings:import_result_summary', { added, updated, duplicated })})`;
+            }
+
+            return fileName;
         }
         return '';
     };
 
-    const getTypeText = (type: string) => {
-        if (type === 'ACCOUNT_MIGRATION') return t('settings:task_type_account_migration');
-        return type;
+    const getTypeText = (type: TaskTypeType | string) => {
+        const typeNum = typeof type === 'string' ? parseInt(type, 10) : type;
+        if (typeNum === TaskType.ACCOUNT_MIGRATION) return t('settings:task_type_account_migration');
+        if (typeNum === TaskType.DATA_EXPORT) return t('settings:task_type_data_export');
+        if (typeNum === TaskType.DATA_IMPORT) return t('settings:task_type_data_import');
+        return String(type);
     };
 
-    const getStatusIcon = (status: string) => {
+    const getStatusIcon = (status: TaskStatusType) => {
         switch (status) {
-            case 'PENDING': return <Clock size={14} className="text-amber-500" />;
-            case 'RUNNING': return <Loader2 size={14} className="text-blue-500 animate-spin" />;
-            case 'COMPLETED': return <CheckCircle2 size={14} className="text-green-500" />;
-            case 'FAILED': return <XCircle size={14} className="text-red-500" />;
-            case 'CANCELLED': return <X size={14} className="text-slate-400" />;
+            case TaskStatus.PENDING: return <Clock size={14} className="text-amber-500" />;
+            case TaskStatus.RUNNING: return <Loader2 size={14} className="text-blue-500 animate-spin" />;
+            case TaskStatus.COMPLETED: return <CheckCircle2 size={14} className="text-green-500" />;
+            case TaskStatus.FAILED: return <XCircle size={14} className="text-red-500" />;
+            case TaskStatus.CANCELLED: return <X size={14} className="text-slate-400 dark:text-slate-500" />;
             default: return null;
         }
     };
 
-    const getStatusText = (status: string) => {
-        const key = `settings:task_status_${status.toLowerCase()}`;
+    const getStatusText = (status: TaskStatusType) => {
+        const statusStr = getStatusTextEnum(status).toLowerCase();
+        const key = `settings:task_status_${statusStr}`;
         return t(key);
     };
 
@@ -134,7 +162,7 @@ const TaskCenterModal = () => {
     };
 
     const getErrorMessage = (task: Task): string | null => {
-        if (task.status !== 'FAILED') return null;
+        if (task.status !== TaskStatus.FAILED) return null;
         const result = task.result as { error?: string } | undefined;
         return result?.error || null;
     };
@@ -183,10 +211,10 @@ const TaskCenterModal = () => {
                     break;
                 }
                 case 'type':
-                    comparison = a.type.localeCompare(b.type);
+                    comparison = a.type - b.type;
                     break;
                 case 'status':
-                    comparison = a.status.localeCompare(b.status);
+                    comparison = a.status - b.status;
                     break;
             }
             return sortOrder === 'asc' ? comparison : -comparison;
@@ -203,8 +231,13 @@ const TaskCenterModal = () => {
     }, [filteredAndSortedTasks, currentPage]);
 
     // Reset to page 1 when filters change
-    const handleFilterChange = (setter: (value: string) => void) => (value: string) => {
-        setter(value);
+    const handleTypeFilterChange = (value: string) => {
+        setTypeFilter(value === 'all' ? 'all' : Number(value) as TaskTypeType);
+        setCurrentPage(1);
+    };
+
+    const handleStatusFilterChange = (value: string) => {
+        setStatusFilter(value === 'all' ? 'all' : Number(value) as TaskStatusType);
         setCurrentPage(1);
     };
 
@@ -231,28 +264,28 @@ const TaskCenterModal = () => {
                 <div className="flex flex-wrap gap-4 py-4 border-b border-[var(--border)]">
                     <div className="flex items-center gap-2">
                         <span className="text-sm text-[var(--text-muted)]">{t('settings:task_filter_type')}:</span>
-                        <Select value={typeFilter} onValueChange={handleFilterChange(setTypeFilter)}>
+                        <Select value={String(typeFilter)} onValueChange={handleTypeFilterChange}>
                             <SelectTrigger className="w-[180px]">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">{t('common:all')}</SelectItem>
                                 {taskTypes.map(type => (
-                                    <SelectItem key={type} value={type}>{getTypeText(type)}</SelectItem>
+                                    <SelectItem key={type} value={String(type)}>{getTypeText(type)}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="text-sm text-[var(--text-muted)]">{t('settings:task_filter_status')}:</span>
-                        <Select value={statusFilter} onValueChange={handleFilterChange(setStatusFilter)}>
+                        <Select value={String(statusFilter)} onValueChange={handleStatusFilterChange}>
                             <SelectTrigger className="w-[150px]">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">{t('common:all')}</SelectItem>
                                 {statusOptions.map(status => (
-                                    <SelectItem key={status} value={status}>{getStatusText(status)}</SelectItem>
+                                    <SelectItem key={status} value={String(status)}>{getStatusText(status)}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -333,7 +366,7 @@ const TaskCenterModal = () => {
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            {(task.status === 'RUNNING' || task.status === 'PENDING') ? (
+                                            {(task.status === TaskStatus.RUNNING || task.status === TaskStatus.PENDING) ? (
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-16 h-1.5 bg-[var(--bg-main)] rounded-full overflow-hidden">
                                                         <div
@@ -350,22 +383,22 @@ const TaskCenterModal = () => {
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex gap-1">
-                                                {(task.status === 'PENDING' || task.status === 'RUNNING') && (
+                                                {(task.status === TaskStatus.PENDING || task.status === TaskStatus.RUNNING) && (
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        className="h-7 px-2 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                                        className="h-7 px-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
                                                         onClick={() => cancelMutation.mutate(task.id)}
                                                         disabled={cancelMutation.isPending}
                                                     >
                                                         <X size={14} />
                                                     </Button>
                                                 )}
-                                                {task.status === 'FAILED' && (
+                                                {task.status === TaskStatus.FAILED && (
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        className="h-7 px-2 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                                                        className="h-7 px-2 text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
                                                         onClick={() => retryMutation.mutate(task.id)}
                                                         disabled={retryMutation.isPending}
                                                     >

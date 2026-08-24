@@ -4,12 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGlobal } from '@/context/GlobalContext';
 import { useLogin } from '@/lib/hooks';
-import { useTranslation, Trans } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 import { Turnstile } from '@marsidev/react-turnstile';
 import {
   Wallet,
   CheckCircle2,
-  Sparkles,
   Mail,
   Lock,
   MessageCircle,
@@ -21,8 +20,7 @@ import { Label } from '@/components/ui/label';
 import { LanguageSwitcher } from '@/components/features/LanguageSwitcher';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { ApiError } from '@/lib/api';
-import { sha256 } from '@/lib/utils';
+import { classifyLoginError } from '@/lib/utils/login-error';
 
 const GithubIcon = ({ size = 24, className, ...props }: { size?: number, className?: string } & React.SVGProps<SVGSVGElement>) => (
   <svg
@@ -53,6 +51,7 @@ const LoginPage = () => {
   const [code, setCode] = useState('');
   const [step, setStep] = useState(1); // 1: Email/Password, 2: 2FA Code
   const [turnstileToken, setTurnstileToken] = useState('');
+  const [formError, setFormError] = useState('');
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -62,6 +61,7 @@ const LoginPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError('');
 
     if (step === 1 && !turnstileToken) {
       toast.error(t('auth:captcha_required'));
@@ -69,50 +69,49 @@ const LoginPage = () => {
     }
 
     try {
-      const hashedPassword = await sha256(password);
       const data = await loginMutation.mutateAsync({
         email,
-        password: hashedPassword,
-        code: step === 2 ? code : undefined,
-        cf_turnstile_response: turnstileToken
+        password,
+        code: step === 2 ? code : '',
+        cfTurnstileResponse: turnstileToken
       });
 
       // Login success
-      if (!data || !data.user) {
+      if (!data || !data.auth || !data.auth.user) {
         throw new Error('Invalid response format');
       }
 
       contextLogin({
-        email: data.user.email,
-        nickname: data.user.nickname,
-        avatar: data.user.avatar,
-        plan: data.user.plan
+        email: data.auth.user.email,
+        nickname: data.auth.user.nickname,
+        avatar: data.auth.user.avatar,
+        plan: data.auth.user.plan,
+        mainCurrency: data.auth.user.mainCurrency
       });
 
       toast.success(t('auth:login_success'), { duration: 4000 });
       router.push('/dashboard');
     } catch (err: unknown) {
-      if (err instanceof ApiError) {
-        if (err.message && err.message.includes('2FA code required')) {
-          setStep(2);
-          toast.info(t('auth:enter_2fa_code'), { duration: 4000 });
-          return;
-        }
-        if (err.message === 'invalid email or password') {
-          toast.error(t('auth:invalid_email_or_password'), { duration: 4000 });
-          return;
-        }
-        // Error already handled by hook
-      } else if (err instanceof Error) {
-        // Error already handled by hook
+      const errorKind = classifyLoginError(err);
+
+      if (errorKind === 'two-factor-required') {
+        setStep(2);
+        toast.info(t('auth:enter_2fa_code'), { duration: 4000 });
+        return;
       }
+
+      const message = errorKind === 'invalid-credentials'
+        ? t('auth:invalid_email_or_password')
+        : t('auth:login_failed');
+      setFormError(message);
+      toast.error(message, { duration: 4000 });
     }
   };
 
   const loading = loginMutation.isPending;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex">
       {/* Left Side: Marketing Display Area (Desktop) */}
       <div className="hidden lg:flex lg:w-1/4 bg-indigo-900 text-white p-12 flex-col justify-between relative overflow-hidden">
         {/* Background Decoration */}
@@ -166,7 +165,7 @@ const LoginPage = () => {
       </div>
 
       {/* Right Side: Login Form */}
-      <div className="w-full lg:w-3/4 flex items-center justify-center p-4 lg:p-8 bg-white relative">
+      <div className="w-full lg:w-3/4 flex items-center justify-center p-4 lg:p-8 bg-white dark:bg-slate-900 relative">
         <div className="absolute top-4 right-4">
           <LanguageSwitcher />
         </div>
@@ -177,10 +176,10 @@ const LoginPage = () => {
                 <Wallet className="text-white w-6 h-6" />
               </div>
             </div>
-            <h2 className="text-3xl font-bold text-slate-900">
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
               {t('auth:welcome')}
             </h2>
-            <p className="mt-2 text-slate-500">
+            <p className="mt-2 text-slate-500 dark:text-slate-300">
               {t('auth:login_description')}
             </p>
           </div>
@@ -189,37 +188,45 @@ const LoginPage = () => {
             {step === 1 ? (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="email">{t('common:email')}</Label>
+                  <Label htmlFor="email" className="text-slate-700 dark:text-slate-200">{t('common:email')}</Label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
                       <Mail size={18} />
                     </div>
                     <Input
                       id="email"
                       type="email"
                       required
+                      aria-invalid={Boolean(formError)}
                       placeholder="name@company.com"
-                      className="pl-10 py-6 rounded-xl placeholder:text-slate-300 text-slate-900 bg-white border-slate-200"
+                      className={`pl-10 py-6 rounded-xl placeholder:text-slate-400 dark:placeholder:text-slate-400 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 ${formError ? 'border-red-500 ring-2 ring-red-500/30 focus-visible:border-red-500 focus-visible:ring-red-500/40 dark:border-red-500' : 'border-slate-200 dark:border-slate-700'}`}
                       value={email}
-                      onChange={e => setEmail(e.target.value)}
+                      onChange={e => {
+                        setEmail(e.target.value);
+                        setFormError('');
+                      }}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password">{t('common:password')}</Label>
+                  <Label htmlFor="password" className="text-slate-700 dark:text-slate-200">{t('common:password')}</Label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
                       <Lock size={18} />
                     </div>
                     <Input
                       id="password"
                       type="password"
                       required
+                      aria-invalid={Boolean(formError)}
                       placeholder="••••••••"
-                      className="pl-10 py-6 rounded-xl placeholder:text-slate-300 text-slate-900 bg-white border-slate-200"
+                      className={`pl-10 py-6 rounded-xl placeholder:text-slate-400 dark:placeholder:text-slate-400 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 ${formError ? 'border-red-500 ring-2 ring-red-500/30 focus-visible:border-red-500 focus-visible:ring-red-500/40 dark:border-red-500' : 'border-slate-200 dark:border-slate-700'}`}
                       value={password}
-                      onChange={e => setPassword(e.target.value)}
+                      onChange={e => {
+                        setPassword(e.target.value);
+                        setFormError('');
+                      }}
                     />
                   </div>
                 </div>
@@ -228,25 +235,29 @@ const LoginPage = () => {
                   <Turnstile
                     siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
                     onSuccess={(token) => setTurnstileToken(token)}
-                    options={{ theme: 'light' }}
+                    options={{ theme: 'auto' }}
                   />
                 </div>
               </>
             ) : (
               <div className="space-y-2 animate-in fade-in slide-in-from-right duration-300">
-                <Label htmlFor="code">{t('auth:enter_2fa_code')}</Label>
+                <Label htmlFor="code" className="text-slate-700 dark:text-slate-200">{t('auth:enter_2fa_code')}</Label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
                     <ShieldCheck size={18} />
                   </div>
                   <Input
                     id="code"
                     type="text"
                     required
+                    aria-invalid={Boolean(formError)}
                     placeholder="••••••"
-                    className="pl-10 py-6 rounded-xl tracking-widest text-center text-lg placeholder:text-slate-300 text-slate-900 bg-white border-slate-200"
+                    className={`pl-10 py-6 rounded-xl tracking-widest text-center text-lg placeholder:text-slate-400 dark:placeholder:text-slate-400 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 ${formError ? 'border-red-500 ring-2 ring-red-500/30 focus-visible:border-red-500 focus-visible:ring-red-500/40 dark:border-red-500' : 'border-slate-200 dark:border-slate-700'}`}
                     value={code}
-                    onChange={e => setCode(e.target.value)}
+                    onChange={e => {
+                      setCode(e.target.value);
+                      setFormError('');
+                    }}
                     maxLength={6}
                     autoFocus
                   />
@@ -254,7 +265,7 @@ const LoginPage = () => {
                 <Button
                   type="button"
                   variant="link"
-                  className="text-sm text-slate-500"
+                  className="text-sm text-slate-500 dark:text-slate-300"
                   onClick={() => setStep(1)}
                 >
                   {t('auth:back_to_login')}
@@ -265,14 +276,15 @@ const LoginPage = () => {
             <Button type="submit" disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-6 rounded-xl font-bold shadow-lg shadow-indigo-200">
               {loading ? t('auth:logging_in') : (step === 1 ? t('auth:sign_in') : t('auth:verify_and_login'))}
             </Button>
+
           </form>
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200"></div>
+              <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-slate-500">{t('auth:or_continue_with')}</span>
+              <span className="px-4 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-300">{t('auth:or_continue_with')}</span>
             </div>
           </div>
 
@@ -280,11 +292,11 @@ const LoginPage = () => {
             <Button
               variant="outline"
               type="button"
-              onClick={() => {
-                contextLogin({ email: 'github_user@example.com', nickname: 'GitHub User', plan: 'PRO' });
-                router.push('/dashboard');
-              }}
-              className="flex items-center justify-center gap-2 py-6 rounded-xl hover:bg-slate-50"
+              // onClick={() => {
+              //   contextLogin({ email: 'github_user@example.com', nickname: 'GitHub User', plan: UserLevelType.USER_LEVEL_TYPE_PRO });
+              //   router.push('/dashboard');
+              // }}
+              className="flex items-center justify-center gap-2 py-6 rounded-xl text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
             >
               <GithubIcon size={20} />
               <span>GitHub</span>
@@ -292,11 +304,11 @@ const LoginPage = () => {
             <Button
               variant="outline"
               type="button"
-              onClick={() => {
-                contextLogin({ email: 'wechat_user@example.com', nickname: t('auth:default_wechat_username'), plan: 'FREE' });
-                router.push('/dashboard');
-              }}
-              className="flex items-center justify-center gap-2 py-6 rounded-xl hover:bg-slate-50"
+              // onClick={() => {
+              //   contextLogin({ email: 'wechat_user@example.com', nickname: t('auth:default_wechat_username'), plan: UserLevelType.USER_LEVEL_TYPE_FREE });
+              //   router.push('/dashboard');
+              // }}
+              className="flex items-center justify-center gap-2 py-6 rounded-xl text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
             >
               <MessageCircle size={20} className="text-green-600" />
               <span>微信</span>
@@ -304,7 +316,7 @@ const LoginPage = () => {
           </div>
 
           <div className="text-center text-sm">
-            <span className="text-slate-500">
+            <span className="text-slate-500 dark:text-slate-300">
               {t('auth:no_account')}
             </span>
             <Link

@@ -1,16 +1,22 @@
-import apiRequest from '../api';
-import { BalanceTrendResponse } from '../types';
+import { secureRequest } from '../network/secure-client';
+import {
+  GetBalanceTrendReq,
+  GetBalanceTrendRes,
+} from '../proto/dashboard/v1/dashboard';
 
 export const dashboardService = {
-    getBalanceTrend: (accounts?: string[]): Promise<BalanceTrendResponse> => {
-        let url = '/api/dashboard/balance-trend';
-        if (accounts && accounts.length > 0 && !accounts.includes('all')) {
-            const params = new URLSearchParams();
-            // GoFrame expects accounts[] or repeated accounts parameter?
-            // Usually it's multiple ?accounts=id1&accounts=id2
-            accounts.forEach(id => params.append('accounts', id));
-            url += `?${params.toString()}`;
-        }
-        return apiRequest(url);
+  getBalanceTrend: (
+    accounts?: string[],
+    startDate?: string,
+    endDate?: string,
+  ): Promise<GetBalanceTrendRes> => secureRequest(
+    '/dashboard/get-balance-trend',
+    {
+      accounts: accounts?.filter((account) => account !== 'all') ?? [],
+      startDate: startDate ?? '',
+      endDate: endDate ?? '',
     },
+    GetBalanceTrendReq,
+    GetBalanceTrendRes,
+  ),
 };
