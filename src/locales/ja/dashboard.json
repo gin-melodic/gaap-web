@@ -6,6 +6,9 @@
   "income": "収入",
   "expense": "支出",
   "trend_30_days": "過去30日間の資産推移",
+  "balance_trend": "資産推移",
   "all_assets": "すべての資産",
-  "select_accounts": "アカウントを選択"
+  "select_accounts": "アカウントを選択",
+  "select_trend_date_range": "推移の期間を選択",
+  "date_range_hint": "過去2年以内の開始日と終了日を選択してください。両日を含みます。"
 }

@@ -51,6 +51,10 @@ export interface GetMonthlyStatsRes {
 
 export interface GetBalanceTrendReq {
   accounts: string[];
+  /** Inclusive start date in YYYY-MM-DD format. Defaults with end_date to the past 60 days. */
+  startDate: string;
+  /** Inclusive end date in YYYY-MM-DD format. Defaults with start_date to today. */
+  endDate: string;
 }
 
 export interface GetBalanceTrendRes {
@@ -660,13 +664,19 @@ export const GetMonthlyStatsRes: MessageFns<GetMonthlyStatsRes> = {
 };
 
 function createBaseGetBalanceTrendReq(): GetBalanceTrendReq {
-  return { accounts: [] };
+  return { accounts: [], startDate: "", endDate: "" };
 }
 
 export const GetBalanceTrendReq: MessageFns<GetBalanceTrendReq> = {
   encode(message: GetBalanceTrendReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.accounts) {
       writer.uint32(10).string(v!);
+    }
+    if (message.startDate !== "") {
+      writer.uint32(18).string(message.startDate);
+    }
+    if (message.endDate !== "") {
+      writer.uint32(26).string(message.endDate);
     }
     return writer;
   },
@@ -686,6 +696,22 @@ export const GetBalanceTrendReq: MessageFns<GetBalanceTrendReq> = {
           message.accounts.push(reader.string());
           continue;
         }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.startDate = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.endDate = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -698,6 +724,8 @@ export const GetBalanceTrendReq: MessageFns<GetBalanceTrendReq> = {
   fromJSON(object: any): GetBalanceTrendReq {
     return {
       accounts: globalThis.Array.isArray(object?.accounts) ? object.accounts.map((e: any) => globalThis.String(e)) : [],
+      startDate: isSet(object.startDate) ? globalThis.String(object.startDate) : "",
+      endDate: isSet(object.endDate) ? globalThis.String(object.endDate) : "",
     };
   },
 
@@ -705,6 +733,12 @@ export const GetBalanceTrendReq: MessageFns<GetBalanceTrendReq> = {
     const obj: any = {};
     if (message.accounts?.length) {
       obj.accounts = message.accounts;
+    }
+    if (message.startDate !== "") {
+      obj.startDate = message.startDate;
+    }
+    if (message.endDate !== "") {
+      obj.endDate = message.endDate;
     }
     return obj;
   },
@@ -715,6 +749,8 @@ export const GetBalanceTrendReq: MessageFns<GetBalanceTrendReq> = {
   fromPartial<I extends Exact<DeepPartial<GetBalanceTrendReq>, I>>(object: I): GetBalanceTrendReq {
     const message = createBaseGetBalanceTrendReq();
     message.accounts = object.accounts?.map((e) => e) || [];
+    message.startDate = object.startDate ?? "";
+    message.endDate = object.endDate ?? "";
     return message;
   },
 };
