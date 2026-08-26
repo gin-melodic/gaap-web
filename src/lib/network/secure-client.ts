@@ -375,6 +375,29 @@ export async function login<TReq, TRes extends { auth?: { accessToken?: string; 
   return result;
 }
 
+/** Login as the server-configured online demo user. */
+export async function demoLogin<TReq, TRes extends { auth?: { accessToken?: string; refreshToken?: string; sessionKey?: string } }>(
+  ReqType: MessageFns<TReq>,
+  ResType: MessageFns<TRes>
+): Promise<TRes> {
+  const result = await secureRequest('/auth/demo-login', {}, ReqType, ResType, 'bootstrap', { includeToken: false });
+
+  if (result.auth) {
+    if (result.auth.accessToken) {
+      tokenStorage.setToken(result.auth.accessToken);
+    }
+    if (result.auth.refreshToken) {
+      tokenStorage.setRefreshToken(result.auth.refreshToken);
+    }
+    if (result.auth.sessionKey) {
+      tokenStorage.setSessionKey(result.auth.sessionKey);
+    }
+  }
+
+  resetNetworkState();
+  return result;
+}
+
 /**
  * Register with ALE encryption
  * Automatically stores tokens and session key

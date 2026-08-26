@@ -41,6 +41,18 @@ export function useLogin() {
   });
 }
 
+export function useDemoLogin() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => secureAuthService.demoLogin(),
+    onSuccess: () => {
+      queryClient.clear();
+    },
+    onError: () => undefined,
+  });
+}
+
 export function useRegister() {
   const { t } = useTranslation(['auth', 'common']);
   const queryClient = useQueryClient();
