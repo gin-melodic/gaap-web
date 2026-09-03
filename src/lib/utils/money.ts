@@ -130,19 +130,29 @@ export class MoneyHelper {
 
   // 格式化为货币字符串 (例如 "¥100.50")
   formatCurrency(): string {
-    // fallback if currency is empty
-    if (!this.currency) return this.amount.toFixed(2);
+    const fixed = this.amount.toFixed(2);
+    if (!this.currency) return fixed;
 
-    return new Intl.NumberFormat('zh-CN', {
-      style: 'currency',
-      currency: this.currency,
-    }).format(this.amount.toNumber());
+    try {
+      const parts = new Intl.NumberFormat('zh-CN', {
+        style: 'currency',
+        currency: this.currency,
+      }).formatToParts(0);
+      const symbol = parts.find(part => part.type === 'currency')?.value || this.currency;
+      const [integer, fraction] = fixed.replace('-', '').split('.');
+      const grouped = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      return `${this.amount.isNegative() ? '-' : ''}${symbol}${grouped}.${fraction}`;
+    } catch {
+      return `${this.currency} ${fixed}`;
+    }
   }
 
-  /**
-   * 转为普通数字 (可能丢失精度，用于 UI 控件显示)
-   */
-  toNumber(): number {
+  toDecimal(): InstanceType<typeof Decimal> {
+    return new Decimal(this.amount);
+  }
+
+  /** Chart libraries require IEEE-754 values; never use this for financial calculations. */
+  toChartNumber(): number {
     return this.amount.toNumber();
   }
 }

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { taskService, Task, TaskQuery } from '../services/taskService';
 import { toast } from 'sonner';
+import { TaskStatus } from '@/lib/constants/taskEnums';
 
 // Query Keys
 export const taskKeys = {
@@ -28,7 +29,7 @@ export function useTask(id: string) {
     enabled: !!id,
     refetchInterval: (query) => {
       const data = query.state.data;
-      if (data?.status === 'PENDING' || data?.status === 'RUNNING') {
+      if (data?.status === TaskStatus.PENDING || data?.status === TaskStatus.RUNNING) {
         return 2000;
       }
       return false;
@@ -80,7 +81,7 @@ export function useAllTasks() {
 // Convenience hook: Get active task count
 export function useActiveTasks() {
   const { tasks, ...rest } = useAllTasks();
-  const activeTasks = tasks.filter(t => t.status === 'PENDING' || t.status === 'RUNNING');
+  const activeTasks = tasks.filter(t => t.status === TaskStatus.PENDING || t.status === TaskStatus.RUNNING);
   return {
     activeTasks,
     activeCount: activeTasks.length,

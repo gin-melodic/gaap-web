@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { useAllTransactionsSuspense, useAllAccountsSuspense, useCreateTransaction, useUpdateTransaction, useDeleteTransaction, useCreateAccount } from '@/lib/hooks';
 import { TransactionType, AccountType, Account, Transaction, Money } from '@/lib/types';
 import { MoneyHelper } from '@/lib/utils/money';
+import { resolveTransactionType } from '@/lib/utils/transaction-type';
+import { accountService } from '@/lib/services/accountService';
 import { useTranslation } from 'react-i18next';
 import { Plus, ArrowRightLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -28,11 +30,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from '@/components/ui/label';
+import { useGlobal } from '@/context/GlobalContext';
+import { toast } from 'sonner';
 
 const Transactions = () => {
   const { t } = useTranslation(['transactions', 'common']);
   const { transactions } = useAllTransactionsSuspense();
   const { accounts } = useAllAccountsSuspense();
+  const { baseCurrency } = useGlobal();
   const createTransaction = useCreateTransaction();
   const updateTransactionMutation = useUpdateTransaction();
   const deleteTransactionMutation = useDeleteTransaction();
@@ -59,19 +64,9 @@ const Transactions = () => {
 
   const [newTx, setNewTx] = useState({ amount: '', note: '', from: '', to: '', date: getCurrentDateTime() });
 
-  const formatCurrency = (amount: Money | number, currency = 'CNY') => {
-    let val = amount;
-    // Also handle Money encoded object
-    if (typeof amount === 'object' && amount !== null && ('units' in amount || 'nanos' in amount)) {
-      // Check if it has 'units' (string) or needs coercion
-      val = MoneyHelper.from(amount).toNumber();
-    }
-
-    try {
-      return new Intl.NumberFormat('zh-CN', { style: 'currency', currency }).format(val as number);
-    } catch {
-      return `${currency} ${Number(val).toFixed(2)}`;
-    }
+  const formatCurrency = (amount: Money | undefined, currency = baseCurrency) => {
+    if (!amount) return MoneyHelper.fromAmount('0', currency).formatCurrency();
+    return MoneyHelper.from(amount).formatCurrency();
   };
 
   const getCurrencySymbol = (currencyCode: string) => {
@@ -86,8 +81,7 @@ const Transactions = () => {
 
   // Helper to safely get currency from an account
   const getAccountCurrency = (account?: Account) => {
-    // If account.balance is undefined, default to CNY
-    return account?.balance?.currencyCode || 'CNY';
+    return account?.balance?.currencyCode || baseCurrency;
   };
 
   const currentCurrency = getAccountCurrency(accounts.find(a => a.id === newTx.from));
@@ -156,23 +150,27 @@ const Transactions = () => {
     e.preventDefault();
     if (!newTx.amount || !newTx.from || !newTx.to) return;
 
+    const createdAccountIds: string[] = [];
     try {
       let finalFromAccount = newTx.from;
       let finalToAccount = newTx.to;
+      let fromAccount = accounts.find(a => a.id === newTx.from);
+      let toAccount = accounts.find(a => a.id === newTx.to);
 
       if (newTx.from === 'NEW_INCOME') {
         if (!newIncomeName) return;
         const res = await createAccount.mutateAsync({
           name: newIncomeName,
           type: AccountType.ACCOUNT_TYPE_INCOME,
-          currency: 'CNY',
-          balance: 0,
+          currency: getAccountCurrency(accounts.find(a => a.id === newTx.to)),
+          balance: '0',
           isGroup: false,
           date: getCurrentDateTime(),
         });
-        if (res.account) {
-          finalFromAccount = res.account.id;
-        }
+        if (!res.account) throw new Error('income account creation returned no account');
+        finalFromAccount = res.account.id;
+        fromAccount = res.account;
+        createdAccountIds.push(res.account.id);
       }
 
       if (newTx.to === 'NEW_EXPENSE') {
@@ -183,22 +181,19 @@ const Transactions = () => {
           name: newExpenseName,
           type: AccountType.ACCOUNT_TYPE_EXPENSE,
           currency: sourceCurrency,
-          balance: 0,
+          balance: '0',
           isGroup: false,
           date: getCurrentDateTime(),
         });
-        if (res.account) {
-          finalToAccount = res.account.id;
-        }
+        if (!res.account) throw new Error('expense account creation returned no account');
+        finalToAccount = res.account.id;
+        toAccount = res.account;
+        createdAccountIds.push(res.account.id);
       }
 
-      const fromAccount = finalFromAccount === newTx.from ? accounts.find(a => a.id === newTx.from) : undefined;
-      const toAccount = finalToAccount === newTx.to ? accounts.find(a => a.id === newTx.to) : undefined;
+      if (!fromAccount || !toAccount) throw new Error('transaction account not found');
       const fromCurrency = getAccountCurrency(fromAccount);
-
-      let type = TransactionType.TRANSACTION_TYPE_TRANSFER;
-      if (toAccount?.type === AccountType.ACCOUNT_TYPE_EXPENSE) type = TransactionType.TRANSACTION_TYPE_EXPENSE;
-      if (fromAccount?.type === AccountType.ACCOUNT_TYPE_INCOME) type = TransactionType.TRANSACTION_TYPE_INCOME;
+      const type = resolveTransactionType(fromAccount.type, toAccount.type);
 
       let finalNote = newTx.note;
       if (!finalNote) {
@@ -218,7 +213,7 @@ const Transactions = () => {
       const txData = {
         from: finalFromAccount,
         to: finalToAccount,
-        amount: parseFloat(newTx.amount),
+        amount: newTx.amount,
         currency: fromCurrency,
         type,
         note: finalNote,
@@ -233,7 +228,13 @@ const Transactions = () => {
 
       setShowAddModal(false);
       resetForm();
-    } catch {
+    } catch (error) {
+      // If the follow-up transaction fails, remove only accounts created by this
+      // submission. The API refuses deletion if a transaction was committed.
+      await Promise.allSettled(createdAccountIds.map(id => accountService.delete(id)));
+      if (error instanceof Error && error.message === 'invalid account type combination') {
+        toast.error(t('transactions:invalid_account_combination'));
+      }
       // Error is already handled by the hook with toast
     }
   };
@@ -250,9 +251,9 @@ const Transactions = () => {
 
   const handleEdit = (tx: Transaction) => {
     // tx.amount is Money (proto). Construct a helper from it.
-    const amountVal = MoneyHelper.from(tx.amount).toNumber();
+    const amountVal = MoneyHelper.from(tx.amount).format(9);
     setNewTx({
-      amount: amountVal.toString(),
+      amount: amountVal,
       note: tx.note,
       from: tx.from,
       to: tx.to,
@@ -291,6 +292,8 @@ const Transactions = () => {
     });
   };
 
+  const [showOpeningBalance, setShowOpeningBalance] = useState(false);
+
   const isPending = createTransaction.isPending ||
     updateTransactionMutation.isPending ||
     deleteTransactionMutation.isPending ||
@@ -299,7 +302,18 @@ const Transactions = () => {
   return (
     <div className="h-full flex flex-col relative pb-20 md:pb-0">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-[var(--text-main)]">{t('transactions:history')}</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-bold text-[var(--text-main)]">{t('transactions:history')}</h2>
+          <label className="flex items-center gap-2 cursor-pointer text-sm text-[var(--text-muted)] hover:text-[var(--text-main)] select-none">
+            <input
+              type="checkbox"
+              checked={showOpeningBalance}
+              onChange={() => setShowOpeningBalance(!showOpeningBalance)}
+              className="w-4 h-4 rounded border-[var(--border)] bg-[var(--bg-card)] text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer"
+            />
+            <span>{t('transactions:show_opening_balance')}</span>
+          </label>
+        </div>
         <Dialog open={showAddModal} onOpenChange={(open) => {
           setShowAddModal(open);
           if (!open) resetForm();
@@ -315,31 +329,31 @@ const Transactions = () => {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4 py-4">
               <div>
-                <Label className="text-xs font-bold text-slate-500 uppercase mb-1 block">
+                <Label className="text-xs font-bold text-slate-500 dark:text-slate-300 uppercase mb-1 block">
                   {t('transactions:date')} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   type="datetime-local"
                   step="1"
-                  className="bg-white font-bold"
+                  className="bg-white dark:bg-slate-800 dark:border-slate-700 font-bold"
                   value={newTx.date}
                   onChange={e => setNewTx({ ...newTx, date: e.target.value })}
                   required
                 />
               </div>
               <div>
-                <Label className="text-xs font-bold text-slate-500 uppercase">
+                <Label className="text-xs font-bold text-slate-500 dark:text-slate-300 uppercase">
                   {t('transactions:amount')} <span className="text-red-500">*</span>
                 </Label>
-                <div className="flex items-baseline border-b-2 border-slate-200 focus-within:border-indigo-600 transition-colors">
-                  <span className="text-2xl font-bold text-slate-400 shrink-0 mr-2">
+                <div className="flex items-baseline border-b-2 border-slate-200 dark:border-slate-700 focus-within:border-indigo-600 transition-colors">
+                  <span className="text-2xl font-bold text-slate-400 dark:text-slate-500 shrink-0 mr-2">
                     {getCurrencySymbol(currentCurrency)}
                   </span>
                   <Input
                     type="number"
                     autoFocus
                     placeholder="0.00"
-                    className="text-3xl md:text-3xl font-bold border-none px-0 py-2 shadow-none placeholder:text-slate-300 focus-visible:ring-0 h-auto"
+                    className="text-3xl md:text-3xl font-bold border-none px-0 py-2 shadow-none placeholder:text-slate-300 dark:placeholder:text-slate-500 text-slate-900 dark:text-slate-100 focus-visible:ring-0 h-auto"
                     onChange={e => setNewTx({ ...newTx, amount: e.target.value })}
                     value={newTx.amount}
                   />
@@ -394,23 +408,23 @@ const Transactions = () => {
                 </div>
               </div>
               {isCreatingIncome && (
-                <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-100 animate-in fade-in slide-in-from-top-2">
+                <div className="bg-indigo-50 dark:bg-indigo-950/30 p-3 rounded-lg border border-indigo-100 dark:border-indigo-900 animate-in fade-in slide-in-from-top-2">
                   <Label className="text-xs font-bold text-indigo-600 uppercase mb-1 block">
                     {t('transactions:new_income_name')} <span className="text-red-500">*</span>
                   </Label>
-                  <Input type="text" className="bg-white" placeholder={t('transactions:income_placeholder')} value={newIncomeName} onChange={e => setNewIncomeName(e.target.value)} required />
+                  <Input type="text" className="bg-white dark:bg-slate-800 dark:border-slate-700" placeholder={t('transactions:income_placeholder')} value={newIncomeName} onChange={e => setNewIncomeName(e.target.value)} required />
                 </div>
               )}
               {isCreatingExpense && (
-                <div className="bg-orange-50 p-3 rounded-lg border border-orange-100 animate-in fade-in slide-in-from-top-2">
+                <div className="bg-orange-50 dark:bg-orange-950/30 p-3 rounded-lg border border-orange-100 dark:border-orange-900 animate-in fade-in slide-in-from-top-2">
                   <Label className="text-xs font-bold text-orange-600 uppercase mb-1 block">
                     {t('transactions:new_expense_name')} <span className="text-red-500">*</span>
                   </Label>
-                  <Input type="text" className="bg-white" placeholder={t('transactions:expense_placeholder')} value={newExpenseName} onChange={e => setNewExpenseName(e.target.value)} required />
+                  <Input type="text" className="bg-white dark:bg-slate-800 dark:border-slate-700" placeholder={t('transactions:expense_placeholder')} value={newExpenseName} onChange={e => setNewExpenseName(e.target.value)} required />
                 </div>
               )}
               <div>
-                <Label className="text-xs font-bold text-slate-500 uppercase mb-1 block">{t('transactions:note')}</Label>
+                <Label className="text-xs font-bold text-slate-500 dark:text-slate-300 uppercase mb-1 block">{t('transactions:note')}</Label>
                 <Input type="text" placeholder={t('transactions:note_placeholder')} value={newTx.note} onChange={e => setNewTx({ ...newTx, note: e.target.value })} />
               </div>
               <div className="pt-2 flex gap-3">
@@ -418,7 +432,7 @@ const Transactions = () => {
                   <Button
                     type="button"
                     variant="destructive"
-                    className="flex-1 py-6 rounded-xl font-bold bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 shadow-none"
+                    className="flex-1 py-6 rounded-xl font-bold bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-950/60 border border-red-200 dark:border-red-900 shadow-none"
                     onClick={() => handleDelete(editingTxId)}
                     disabled={isPending}
                   >
@@ -438,11 +452,14 @@ const Transactions = () => {
         </Dialog>
       </div>
       <div className="space-y-3 overflow-y-auto">
-        {transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(tx => {
+        {transactions
+          .filter(tx => showOpeningBalance || tx.type !== TransactionType.TRANSACTION_TYPE_OPENING_BALANCE)
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .map(tx => {
           const fromAcc = accounts.find(a => a.id === tx.from);
           const toAcc = accounts.find(a => a.id === tx.to);
           const isOpeningBalance = tx.type === TransactionType.TRANSACTION_TYPE_OPENING_BALANCE;
-          const txCurrency = tx.amount?.currencyCode || 'CNY';
+          const txCurrency = tx.amount?.currencyCode || baseCurrency;
           return (
             <Card
               key={tx.id}
@@ -460,7 +477,7 @@ const Transactions = () => {
                     </div>
                     <div className="text-xs text-[var(--text-muted)]">{formatDateForDisplay(tx.date)}</div>
                   </div>
-                  <div className={`font-mono font-bold text-lg ${tx.type === TransactionType.TRANSACTION_TYPE_EXPENSE ? 'text-[var(--text-main)]' : tx.type === TransactionType.TRANSACTION_TYPE_INCOME ? 'text-emerald-600' : tx.type === TransactionType.TRANSACTION_TYPE_OPENING_BALANCE ? 'text-purple-600' : 'text-[var(--primary)]'}`}>{formatCurrency(tx.amount || 0, txCurrency)}</div>
+                  <div className={`font-mono font-bold text-lg ${tx.type === TransactionType.TRANSACTION_TYPE_EXPENSE ? 'text-[var(--text-main)]' : tx.type === TransactionType.TRANSACTION_TYPE_INCOME ? 'text-emerald-600' : tx.type === TransactionType.TRANSACTION_TYPE_OPENING_BALANCE ? 'text-purple-600' : 'text-[var(--primary)]'}`}>{formatCurrency(tx.amount, txCurrency)}</div>
                 </div>
                 <div className="flex items-center gap-2 text-sm bg-[var(--bg-main)] p-2 rounded-lg mt-1 border border-[var(--border)]">
                   <span className="text-[var(--text-muted)] truncate max-w-[45%]">{fromAcc ? getFullAccountName(fromAcc, accounts) : t('transactions:unknown_account')}</span>

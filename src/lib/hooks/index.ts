@@ -30,12 +30,14 @@ export {
 export {
   useProfile,
   useLogin,
+  useDemoLogin,
   useRegister,
   useLogout,
   useGenerate2FA,
   useEnable2FA,
   useDisable2FA,
   useUpdatePassword,
+  useCurrencyList,
   authKeys,
 } from './useAuth';
 
@@ -47,4 +49,3 @@ export { useBalanceTrend, dashboardKeys } from './useDashboard';
 
 // Types re-export
 export * from '../types';
-

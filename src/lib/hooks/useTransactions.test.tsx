@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { transactionService } from '../services/transactionService';
 import { useTransactions, useCreateTransaction, useAllTransactions, transactionKeys } from '../hooks/useTransactions';
+import { dashboardKeys } from '../hooks/useDashboard';
 import { TransactionType, Transaction, ListTransactionsRes } from '../types';
 import { Money } from '../proto/base/base';
 
@@ -142,14 +143,15 @@ describe('useCreateTransaction', () => {
     };
     vi.mocked(transactionService.create).mockResolvedValue(createResponse);
 
-    const { Wrapper } = createWrapper();
+    const { queryClient, Wrapper } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
     const { result } = renderHook(() => useCreateTransaction(), { wrapper: Wrapper });
 
     const input = {
       date: '2024-01-02',
       from: 'acc_1',
       to: 'acc_2',
-      amount: 200,
+      amount: '200',
       currency: 'CNY',
       note: 'New transaction',
       type: TransactionType.TRANSACTION_TYPE_EXPENSE,
@@ -162,6 +164,7 @@ describe('useCreateTransaction', () => {
     });
 
     expect(transactionService.create).toHaveBeenCalled();
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: dashboardKeys.all });
   });
 });
 

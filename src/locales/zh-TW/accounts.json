@@ -1,5 +1,7 @@
 {
   "my_accounts": "我的帳戶",
+  "show_equity": "顯示權益帳戶",
+  "hide_equity": "隱藏權益帳戶",
   "account_group": "帳戶群組",
   "no_accounts_found": "未找到相關帳戶",
   "filter_accounts": "篩選帳戶...",
@@ -37,6 +39,7 @@
   "free_asset_limit_reached": "免費用戶最多只能創建5個資產帳戶，升級到 Pro 解鎖無限帳戶",
   "free_group_disabled": "父子帳戶功能僅限 Pro 用戶，升級後可使用多幣種帳戶管理",
   "delete_no_transactions_confirm": "該帳戶沒有交易記錄，確定要刪除嗎？刪除後餘額將直接清零，此操作無法撤銷。",
+  "delete_with_transactions_beta_blocked": "Beta 版本不支援刪除已有交易的帳戶。請保留該帳戶；帳戶遷移刪除將於後續版本開放。",
   "initial_balance_info": "系統將自動生成期初憑證",
   "equity": "權益",
   "create_success": "帳戶建立成功",

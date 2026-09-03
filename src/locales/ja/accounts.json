@@ -1,5 +1,7 @@
 {
   "my_accounts": "マイアカウント",
+  "show_equity": "資本口座を表示",
+  "hide_equity": "資本口座を非表示",
   "account_group": "アカウントグループ",
   "no_accounts_found": "アカウントが見つかりません",
   "filter_accounts": "アカウントをフィルタ...",
@@ -37,6 +39,7 @@
   "free_asset_limit_reached": "無料ユーザーは最大5つの資産口座を作成できます。Proにアップグレードして無制限に。",
   "free_group_disabled": "親子口座はProユーザー限定です。アップグレードして多通貨管理を解除。",
   "delete_no_transactions_confirm": "このアカウントには取引記録がありません。削除してもよろしいですか？残高はゼロになり、この操作は取り消せません。",
+  "delete_with_transactions_beta_blocked": "Beta 版では取引があるアカウントを削除できません。このアカウントは保持してください。移行を伴う削除は今後のリリースで再開します。",
   "initial_balance_info": "期首残高仕訳が自動生成されます",
   "equity": "資本",
   "create_success": "アカウントを作成しました",

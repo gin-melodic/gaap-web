@@ -1,5 +1,7 @@
 {
   "my_accounts": "我的账户",
+  "show_equity": "显示权益账户",
+  "hide_equity": "隐藏权益账户",
   "account_group": "账户组",
   "no_accounts_found": "未找到相关账户",
   "filter_accounts": "筛选账户...",
@@ -37,6 +39,7 @@
   "free_asset_limit_reached": "免费用户最多只能创建5个资产账户，升级到 Pro 解锁无限账户",
   "free_group_disabled": "父子账户功能仅限 Pro 用户，升级后可使用多币种账户管理",
   "delete_no_transactions_confirm": "该账户没有交易记录，确定要删除吗？删除后余额将直接清零，此操作无法撤销。",
+  "delete_with_transactions_beta_blocked": "Beta 版本不支持删除已有交易的账户。请保留该账户；账户迁移删除将在后续版本开放。",
   "initial_balance_info": "系统将自动生成期初凭证",
   "equity": "权益",
   "create_success": "账户创建成功",

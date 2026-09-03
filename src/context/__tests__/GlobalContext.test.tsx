@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { GlobalProvider, useGlobal } from '../GlobalContext';
-import { ApiError } from '../../lib/api';
+import { ApiError } from '../../lib/network/errors';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { GetUserProfileRes } from '../../lib/proto/user/v1/user';
 

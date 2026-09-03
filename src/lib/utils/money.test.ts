@@ -72,7 +72,7 @@ describe('MoneyHelper', () => {
     });
 
     it('should maintain consistency: from -> toProto -> from should preserve value', () => {
-      const originalAmount = 123.456789012;
+      const originalAmount = '123.456789012';
       const money1 = MoneyHelper.fromAmount(originalAmount, 'USD');
       const proto = money1.toProto();
       
@@ -83,13 +83,13 @@ describe('MoneyHelper', () => {
       const money2 = MoneyHelper.from(proto);
       
       // The round-trip should preserve the value within reasonable precision
-      expect(money2.toNumber()).toBeCloseTo(originalAmount, 9);
+      expect(money2.format(9)).toBe(originalAmount);
     });
 
     it('should handle arithmetic results that may round to boundary', () => {
       // Test a division that might produce a value close to rounding boundary
-      const money = MoneyHelper.fromAmount(10, 'USD');
-      const result = money.div(3).mul(3); // 10/3*3 may have precision issues
+      const money = MoneyHelper.fromAmount('10', 'USD');
+      const result = money.div('3').mul('3'); // 10/3*3 may have precision issues
       const proto = result.toProto();
       
       // Should not throw and should have valid nanos
@@ -124,48 +124,48 @@ describe('MoneyHelper', () => {
       };
       const money = MoneyHelper.from(proto);
       
-      expect(money.toNumber()).toBeCloseTo(123.45, 9);
+      expect(money.format(9)).toBe('123.450000000');
       expect(money.currency).toBe('USD');
     });
 
     it('should handle null/undefined', () => {
       const money1 = MoneyHelper.from(null);
-      expect(money1.toNumber()).toBe(0);
+      expect(money1.format(2)).toBe('0.00');
       
       const money2 = MoneyHelper.from(undefined);
-      expect(money2.toNumber()).toBe(0);
+      expect(money2.format(2)).toBe('0.00');
     });
   });
 
   describe('arithmetic operations', () => {
     it('should add correctly', () => {
-      const m1 = MoneyHelper.fromAmount(100.50, 'USD');
-      const m2 = MoneyHelper.fromAmount(50.25, 'USD');
+      const m1 = MoneyHelper.fromAmount('100.50', 'USD');
+      const m2 = MoneyHelper.fromAmount('50.25', 'USD');
       const result = m1.add(m2);
       
-      expect(result.toNumber()).toBeCloseTo(150.75, 9);
+      expect(result.format(2)).toBe('150.75');
     });
 
     it('should subtract correctly', () => {
-      const m1 = MoneyHelper.fromAmount(100.50, 'USD');
-      const m2 = MoneyHelper.fromAmount(50.25, 'USD');
+      const m1 = MoneyHelper.fromAmount('100.50', 'USD');
+      const m2 = MoneyHelper.fromAmount('50.25', 'USD');
       const result = m1.sub(m2);
       
-      expect(result.toNumber()).toBeCloseTo(50.25, 9);
+      expect(result.format(2)).toBe('50.25');
     });
 
     it('should multiply correctly', () => {
-      const money = MoneyHelper.fromAmount(100, 'USD');
-      const result = money.mul(1.5);
+      const money = MoneyHelper.fromAmount('100', 'USD');
+      const result = money.mul('1.5');
       
-      expect(result.toNumber()).toBeCloseTo(150, 9);
+      expect(result.format(2)).toBe('150.00');
     });
 
     it('should divide correctly', () => {
-      const money = MoneyHelper.fromAmount(100, 'USD');
-      const result = money.div(4);
+      const money = MoneyHelper.fromAmount('100', 'USD');
+      const result = money.div('4');
       
-      expect(result.toNumber()).toBeCloseTo(25, 9);
+      expect(result.format(2)).toBe('25.00');
     });
 
     it('should throw on currency mismatch', () => {

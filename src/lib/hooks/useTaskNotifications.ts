@@ -9,6 +9,7 @@ import { transactionKeys } from './useTransactions';
 import { useGlobal } from '@/context/GlobalContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { taskKeys } from './useTasks';
+import { TaskStatus, TaskType, TaskTypeType } from '@/lib/constants/taskEnums';
 
 /**
  * Hook that listens to WebSocket for task status changes and shows notifications
@@ -29,8 +30,8 @@ export function useTaskNotifications() {
     }, [openTaskCenter, queryClient]);
 
     // Refresh related data based on task type
-    const refreshRelatedData = useCallback((taskType: string) => {
-        if (taskType === 'ACCOUNT_MIGRATION') {
+    const refreshRelatedData = useCallback((taskType: TaskTypeType) => {
+        if (taskType === TaskType.ACCOUNT_MIGRATION) {
             // Refresh accounts and transactions after account migration
             queryClient.invalidateQueries({ queryKey: accountKeys.lists() });
             queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
@@ -49,15 +50,15 @@ export function useTaskNotifications() {
             console.log('[TaskNotifications] Received task update:', { taskId, taskStatus, taskType });
 
             // Skip if already notified for this completed/failed task
-            if ((taskStatus === 'COMPLETED' || taskStatus === 'FAILED') && notifiedTasks.has(taskId)) {
+            if ((taskStatus === TaskStatus.COMPLETED || taskStatus === TaskStatus.FAILED) && notifiedTasks.has(taskId)) {
                 return;
             }
 
-            if (taskStatus === 'COMPLETED') {
+            if (taskStatus === TaskStatus.COMPLETED) {
                 const typeText = getTypeText(taskType, t);
                 let message = t('task_completed_notification', { type: typeText });
 
-                if (taskType === 'DATA_IMPORT' && lastMessage.payload.result) {
+                if (taskType === TaskType.DATA_IMPORT && lastMessage.payload.result) {
                     const result = lastMessage.payload.result as {
                         accountsImported?: number;
                         transactionsImported?: number;
@@ -79,7 +80,7 @@ export function useTaskNotifications() {
                 });
                 notifiedTasks.add(taskId);
                 refreshRelatedData(taskType);
-            } else if (taskStatus === 'FAILED') {
+            } else if (taskStatus === TaskStatus.FAILED) {
                 const typeText = getTypeText(taskType, t);
                 toast.error(t('task_failed_notification', { type: typeText }), {
                     duration: 6000,
@@ -101,10 +102,9 @@ export function useTaskNotifications() {
 }
 
 // Helper to get human-readable task type
-function getTypeText(type: string, t: (key: string) => string): string {
-    if (type === 'ACCOUNT_MIGRATION') {
+function getTypeText(type: TaskTypeType, t: (key: string) => string): string {
+    if (type === TaskType.ACCOUNT_MIGRATION) {
         return t('task_type_account_migration');
     }
-    return type;
+    return String(type);
 }
-

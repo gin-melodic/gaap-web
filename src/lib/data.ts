@@ -6,16 +6,6 @@ import {
   LucideProps
 } from 'lucide-react';
 
-// Simulated exchange rates (relative to CNY)
-export const EXCHANGE_RATES: Record<string, number> = {
-  CNY: 1,
-  USD: 7.23,
-  HKD: 0.92,
-  EUR: 7.85,
-  JPY: 0.048,
-  GBP: 9.12
-};
-
 // Theme definitions
 export const THEMES = [
   {

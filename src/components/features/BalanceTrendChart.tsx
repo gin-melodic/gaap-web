@@ -21,11 +21,17 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { AccountType, useAllAccounts, useBalanceTrend, useProfile } from '@/lib/hooks';
-import { EXCHANGE_RATES } from '@/lib/data';
 import { ChevronDown, Loader2 } from 'lucide-react';
 import { MoneyHelper } from '@/lib/utils/money';
 import { DailyBalance } from '@/lib/types';
-import { DEFAULT_CURRENCY_CODE } from '@/lib/utils/constant';
+import Decimal from 'decimal.js';
+import { resolveDisplayCurrency } from '@/lib/utils/display-currency';
+import TrendDateRangePicker, {
+  createInitialTrendDateState,
+  getEarliestSelectableDate,
+  toLocalDateValue,
+  type TrendDateRange,
+} from './TrendDateRangePicker';
 
 const COLORS = [
   'var(--primary)',
@@ -39,12 +45,32 @@ const COLORS = [
 ];
 
 const BalanceTrendChart = () => {
-  const { t } = useTranslation(['dashboard', 'common']);
+  const { t, i18n } = useTranslation(['dashboard', 'common']);
   const { data: profile } = useProfile();
-  const mainCurrency = profile?.user?.mainCurrency || 'CNY';
 
   const { accounts } = useAllAccounts();
+  const mainCurrency = resolveDisplayCurrency(
+    profile?.user?.mainCurrency,
+    accounts.map((account) => account.balance ?? {}),
+  );
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(['all']);
+  const [initialDateState] = useState(createInitialTrendDateState);
+  const { earliestDate: rollingEarliestDate, latestDate } = initialDateState;
+  const [dateRange, setDateRange] = useState<TrendDateRange>(initialDateState.range);
+
+  const earliestDate = useMemo(
+    () => getEarliestSelectableDate(accounts, rollingEarliestDate),
+    [accounts, rollingEarliestDate],
+  );
+  const effectiveDateRange = useMemo<TrendDateRange>(() => {
+    if (dateRange.to < earliestDate) {
+      return { from: earliestDate, to: earliestDate };
+    }
+    return {
+      from: dateRange.from < earliestDate ? earliestDate : dateRange.from,
+      to: dateRange.to,
+    };
+  }, [dateRange, earliestDate]);
 
   // Filter valid asset accounts for the dropdown
   const assetAccounts = useMemo(() => {
@@ -73,39 +99,32 @@ const BalanceTrendChart = () => {
     });
   };
 
-  const { data: trendData, isLoading } = useBalanceTrend(selectedAccountIds);
+  const startDate = toLocalDateValue(effectiveDateRange.from);
+  const endDate = toLocalDateValue(effectiveDateRange.to);
+  const { data: trendData, isFetching } = useBalanceTrend(selectedAccountIds, startDate, endDate);
 
   // Transform backend data for recharts
   const chartData = useMemo(() => {
     if (!trendData?.data || !Array.isArray(trendData.data)) return [];
 
-    const baseRate = EXCHANGE_RATES[mainCurrency] || 1;
-
     const td = trendData.data.map((d: DailyBalance) => {
-      let allTotal = 0;
+      let allTotal = new Decimal(0);
       const convertedBalances: Record<string, number> = {};
       const balances = d.balances || {};
 
       Object.entries(balances).forEach(([id, balance]) => {
         const acc = accounts.find(a => a.id === id);
-        // Prefer the per-day balance currency; fallback to account's currency or default
-        const currency = balance?.currencyCode || acc?.balance?.currencyCode || DEFAULT_CURRENCY_CODE;
-        const accRate = (EXCHANGE_RATES[currency] || 1);
-        
         let amount = 0;
         try {
-          amount = MoneyHelper.from(balance).toNumber();
-        } catch (error) {
-          console.error(`Error parsing balance for account ${id}:`, error);
+          const money = MoneyHelper.from(balance);
+          if (money.currency && money.currency !== mainCurrency) return;
+          amount = money.toChartNumber();
+          if (acc && acc.type === AccountType.ACCOUNT_TYPE_ASSET) {
+            allTotal = allTotal.plus(money.toDecimal());
+          }
+        } catch {
         }
-        
-        const converted = amount * (accRate / baseRate);
-
-        convertedBalances[id] = converted;
-
-        if (acc && acc.type === AccountType.ACCOUNT_TYPE_ASSET) {
-          allTotal += converted;
-        }
+        convertedBalances[id] = amount;
       });
 
       // Ensure selected accounts always have a numeric value (0 when missing)
@@ -119,9 +138,8 @@ const BalanceTrendChart = () => {
 
       return {
         date: d.date,
-        displayDate: d.date.substring(5), // MM-DD
         ...convertedBalances,
-        all: allTotal
+        all: allTotal.toNumber()
       };
     });
     return td;
@@ -138,40 +156,73 @@ const BalanceTrendChart = () => {
     }
   }, [mainCurrency]);
 
+  const formatChartDate = useMemo(() => {
+    const language = i18n.resolvedLanguage ?? i18n.language;
+    const options: Intl.DateTimeFormatOptions = chartData.length > 370
+      ? { year: '2-digit', month: 'short' }
+      : { month: 'short', day: 'numeric' };
+    const formatter = new Intl.DateTimeFormat(language, options);
+    return (value: string) => {
+      const [year, month, day] = value.split('-').map(Number);
+      return formatter.format(new Date(year, month - 1, day));
+    };
+  }, [chartData.length, i18n.language, i18n.resolvedLanguage]);
+
+  const formatFullDate = useMemo(() => {
+    const language = i18n.resolvedLanguage ?? i18n.language;
+    const formatter = new Intl.DateTimeFormat(language, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+    return (value: string) => {
+      const [year, month, day] = value.split('-').map(Number);
+      return formatter.format(new Date(year, month - 1, day));
+    };
+  }, [i18n.language, i18n.resolvedLanguage]);
+
   return (
     <Card className="bg-[var(--bg-card)] border-[var(--border)] shadow-sm">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardHeader className="flex flex-col gap-3 pb-2 sm:flex-row sm:items-center sm:justify-between">
         <CardTitle className="text-lg font-bold text-[var(--text-main)]">
-          {t('dashboard:trend_30_days')}
+          {t('dashboard:balance_trend')}
         </CardTitle>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
-              {t('dashboard:select_accounts')} <ChevronDown className="ml-2 h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuCheckboxItem
-              checked={selectedAccountIds.includes('all')}
-              onCheckedChange={() => toggleAccount('all')}
-            >
-              {t('dashboard:all_assets')}
-            </DropdownMenuCheckboxItem>
-            {assetAccounts.map(acc => (
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <TrendDateRangePicker
+            value={effectiveDateRange}
+            earliestDate={earliestDate}
+            latestDate={latestDate}
+            onChange={setDateRange}
+          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="w-full sm:w-auto">
+                {t('dashboard:select_accounts')} <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuCheckboxItem
-                key={acc.id}
-                checked={selectedAccountIds.includes(acc.id)}
-                onCheckedChange={() => toggleAccount(acc.id)}
+                checked={selectedAccountIds.includes('all')}
+                onCheckedChange={() => toggleAccount('all')}
               >
-                {acc.name}
+                {t('dashboard:all_assets')}
               </DropdownMenuCheckboxItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+              {assetAccounts.map(acc => (
+                <DropdownMenuCheckboxItem
+                  key={acc.id}
+                  checked={selectedAccountIds.includes(acc.id)}
+                  onCheckedChange={() => toggleAccount(acc.id)}
+                >
+                  {acc.name}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="h-[300px] w-full relative">
-          {isLoading && (
+          {isFetching && (
             <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg-card)]/50 z-10">
               <Loader2 className="w-8 h-8 animate-spin text-[var(--primary)]" />
             </div>
@@ -188,11 +239,14 @@ const BalanceTrendChart = () => {
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
               <XAxis
-                dataKey="displayDate"
+                dataKey="date"
                 stroke="var(--text-muted)"
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
+                tickFormatter={formatChartDate}
+                interval="preserveStartEnd"
+                minTickGap={32}
               />
               <YAxis
                 stroke="var(--text-muted)"
@@ -208,12 +262,14 @@ const BalanceTrendChart = () => {
                   color: 'var(--text-main)',
                   borderRadius: '8px'
                 }}
-                formatter={(value: number, name: string) => {
+                formatter={(value, name) => {
                   const label = name === 'all'
                     ? t('dashboard:all_assets')
                     : accounts.find(a => a.id === name)?.name || name;
-                  return [`${currencySymbol}${value.toFixed(2)}`, label];
+                  const numericValue = typeof value === 'number' ? value : Number(value ?? 0);
+                  return [`${currencySymbol}${new Decimal(numericValue).toFixed(2)}`, label];
                 }}
+                labelFormatter={(value) => formatFullDate(String(value))}
               />
               <Legend />
               {selectedAccountIds.map((id, index) => {

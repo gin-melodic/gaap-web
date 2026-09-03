@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { useAllAccountsSuspense, Account, AccountType, Money } from '@/lib/hooks';
+import { useAllAccountsSuspense, Account, AccountType } from '@/lib/hooks';
 import { useTranslation } from 'react-i18next';
-import { ACCOUNT_TYPES, EXCHANGE_RATES } from '@/lib/data';
+import { ACCOUNT_TYPES } from '@/lib/data';
+import { useGlobal } from '@/context/GlobalContext';
 import { MoneyHelper } from '@/lib/utils/money';
 import {
   Plus,
@@ -24,6 +25,7 @@ import EditAccountModal from './EditAccountModal';
 const Accounts = () => {
   const { t } = useTranslation(['accounts', 'common']);
   const { accounts } = useAllAccountsSuspense();
+  const { baseCurrency } = useGlobal();
   // We use string IDs for tabs, but map them to Enums for filtering
   const [activeTab, setActiveTab] = useState('ALL');
   const [page, setPage] = useState(1);
@@ -32,21 +34,7 @@ const Accounts = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const itemsPerPage = 10;
 
-  const formatCurrency = (amount: number | Money, currency = 'CNY') => {
-    let val = 0;
-    if (typeof amount === 'number') {
-      val = amount;
-    } else {
-      // Assume Money proto or undefined
-      val = MoneyHelper.from(amount).toNumber();
-    }
-
-    try {
-      return new Intl.NumberFormat('zh-CN', { style: 'currency', currency }).format(val);
-    } catch {
-      return `${currency} ${val.toFixed(2)}`;
-    }
-  };
+  const [showEquity, setShowEquity] = useState(false);
 
   const tabToEnum: Record<string, AccountType | undefined> = useMemo(() => ({
     'ASSET': AccountType.ACCOUNT_TYPE_ASSET,
@@ -57,6 +45,10 @@ const Accounts = () => {
 
   const topLevelAccounts = useMemo(() => {
     let filtered = accounts.filter(a => !a.parentId);
+
+    if (!showEquity) {
+      filtered = filtered.filter(a => a.type !== AccountType.ACCOUNT_TYPE_EQUITY);
+    }
 
     if (activeTab !== 'ALL') {
       const targetType = tabToEnum[activeTab];
@@ -81,7 +73,7 @@ const Accounts = () => {
       return dateB - dateA;
     });
     return filtered;
-  }, [accounts, activeTab, searchQuery, tabToEnum]);
+  }, [accounts, activeTab, searchQuery, tabToEnum, showEquity]);
 
   const totalPages = Math.ceil(topLevelAccounts.length / itemsPerPage);
 
@@ -98,7 +90,7 @@ const Accounts = () => {
     { id: 'EXPENSE', label: t('common:expense') }
   ];
 
-  const AccountRow = ({ account, isChild = false, groupBalance, hasChildren = false }: { account: Account, isChild?: boolean, groupBalance?: number, hasChildren?: boolean }) => {
+  const AccountRow = ({ account, isChild = false, groupBalance, hasChildren = false }: { account: Account, isChild?: boolean, groupBalance?: MoneyHelper, hasChildren?: boolean }) => {
     const typeMeta = ACCOUNT_TYPES[account.type] || ACCOUNT_TYPES[AccountType.ACCOUNT_TYPE_ASSET];
     const TypeIcon = typeMeta.icon;
 
@@ -108,7 +100,7 @@ const Accounts = () => {
     };
 
     // Safe access to currency
-    const currency = account.balance?.currencyCode || 'CNY';
+    const currency = account.balance?.currencyCode || baseCurrency;
     // Safe access to balance value
     const balanceVal = account.balance; // Money object
 
@@ -128,8 +120,8 @@ const Accounts = () => {
           </div>
           {groupBalance !== undefined && (
             <div className="text-right">
-              <div className="font-bold text-[var(--text-main)]">{formatCurrency(groupBalance, 'CNY')}</div>
-              <div className="text-[10px] text-slate-400">≈ {t('common:total')}</div>
+              <div className="font-bold text-[var(--text-main)]">{groupBalance.formatCurrency()}</div>
+              <div className="text-[10px] text-slate-400">{t('common:total')}</div>
             </div>
           )}
         </div>
@@ -154,7 +146,7 @@ const Accounts = () => {
           <div>
             <div className="font-medium text-[var(--text-main)] flex items-center gap-2">
               {account.name}
-              {currency !== 'CNY' && (
+              {currency !== baseCurrency && (
                 <span className="text-[10px] bg-[var(--bg-main)] text-[var(--text-muted)] px-1.5 py-0.5 rounded font-bold">{currency}</span>
               )}
             </div>
@@ -162,10 +154,7 @@ const Accounts = () => {
           </div>
         </div>
         <div className="text-right">
-          <div className="font-bold text-[var(--text-main)]">{formatCurrency(MoneyHelper.from(balanceVal).toNumber(), currency)}</div>
-          {currency !== 'CNY' && (
-            <div className="text-[10px] text-slate-400">≈ {formatCurrency(MoneyHelper.from(balanceVal).toNumber() * (EXCHANGE_RATES[currency] || 1), 'CNY')}</div>
-          )}
+          <div className="font-bold text-[var(--text-main)]">{MoneyHelper.from(balanceVal).formatCurrency()}</div>
         </div>
       </div>
     );
@@ -173,12 +162,10 @@ const Accounts = () => {
 
   const renderAccountCard = (parentAccount: Account) => {
     const children = accounts.filter(a => a.parentId === parentAccount.id);
-    const groupBalance = children.reduce((sum, child) => {
-      const childIso = child.balance?.currencyCode || 'CNY';
-      const rate = EXCHANGE_RATES[childIso] || 1;
-      const balVal = MoneyHelper.from(child.balance).toNumber();
-      return sum + (balVal * rate);
-    }, 0);
+    const groupBalance = children.reduce(
+      (sum, child) => sum.add(MoneyHelper.from(child.balance)),
+      MoneyHelper.fromAmount('0', baseCurrency),
+    );
 
     return (
       <Card key={parentAccount.id} className="bg-[var(--bg-card)] border-[var(--border)] gap-0 p-0 shadow-sm mb-3 overflow-hidden transition-all hover:shadow-md">
@@ -201,7 +188,18 @@ const Accounts = () => {
   return (
     <div className="space-y-6 pb-20 md:pb-0">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold text-[var(--text-main)]">{t('accounts:my_accounts')}</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-bold text-[var(--text-main)]">{t('accounts:my_accounts')}</h2>
+          <label className="flex items-center gap-2 cursor-pointer text-sm text-[var(--text-muted)] hover:text-[var(--text-main)] select-none">
+            <input
+              type="checkbox"
+              checked={showEquity}
+              onChange={() => setShowEquity(!showEquity)}
+              className="w-4 h-4 rounded border-[var(--border)] bg-[var(--bg-card)] text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer"
+            />
+            <span>{t('accounts:show_equity')}</span>
+          </label>
+        </div>
         <Button onClick={() => setIsAddModalOpen(true)} className="bg-[var(--primary)] text-white hover:opacity-90 shadow-lg shadow-indigo-200/20" size="icon">
           <Plus size={20} />
         </Button>
@@ -239,7 +237,7 @@ const Accounts = () => {
           <Button variant="outline" size="icon" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages || totalPages === 0} className="bg-[var(--bg-card)] border-[var(--border)] hover:bg-[var(--bg-main)]"><ChevronRight size={18} className="text-[var(--text-main)]" /></Button>
         </div>
         <div className="relative w-full sm:w-64">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Search size={16} /></div>
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"><Search size={16} /></div>
           <Input
             type="text"
             placeholder={t('accounts:filter_accounts')}
@@ -248,7 +246,7 @@ const Accounts = () => {
             onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
           />
           {searchQuery && (
-            <button onClick={() => { setSearchQuery(''); setPage(1); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-[var(--bg-main)]"><X size={14} /></button>
+            <button onClick={() => { setSearchQuery(''); setPage(1); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full hover:bg-[var(--bg-main)]"><X size={14} /></button>
           )}
         </div>
       </div>

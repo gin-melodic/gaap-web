@@ -1,5 +1,6 @@
 {
   "history": "交易明細",
+  "show_opening_balance": "顯示期初餘額交易",
   "date": "交易時間",
   "add_transaction": "記一筆",
   "new_transaction": "新交易 (複式)",
@@ -21,6 +22,7 @@
   "note": "備註",
   "note_placeholder": "例如：超市購物",
   "confirm_add": "確認記帳",
+  "invalid_account_combination": "收入帳戶不能直接記入支出帳戶，請選擇資產或負債帳戶作為其中一方。",
   "unnamed_transaction": "未命名交易",
   "unknown_account": "未知帳戶",
   "edit_transaction": "編輯交易",

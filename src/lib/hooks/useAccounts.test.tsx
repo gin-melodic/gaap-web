@@ -7,6 +7,7 @@ import { useAccounts, useCreateAccount, useAllAccounts, accountKeys } from '../h
 import { AccountType, Account } from '../types';
 import { Money } from '../proto/base/base';
 import { ListAccountsRes } from '../proto/account/v1/account';
+import { toast } from 'sonner';
 
 // Mock the account service
 vi.mock('../services/accountService', () => ({
@@ -172,7 +173,7 @@ describe('useCreateAccount', () => {
       name: 'New Account',
       type: AccountType.ACCOUNT_TYPE_ASSET,
       currency: 'CNY',
-      balance: 500,
+      balance: '500',
       isGroup: false,
       date: '2023-01-01',
     };
@@ -213,6 +214,27 @@ describe('useCreateAccount', () => {
     await waitFor(() => {
       expect(result.current.isError).toBe(true);
     });
+  });
+
+  it('should suppress success toast for multi-step account flows', async () => {
+    vi.mocked(accountService.create).mockResolvedValue({
+      account: { ...mockAccount, id: 'acc_silent' },
+      base: { message: '' },
+    });
+    const { Wrapper } = createWrapper();
+    const { result } = renderHook(() => useCreateAccount({ silent: true }), { wrapper: Wrapper });
+
+    result.current.mutate({
+      name: 'Silent Account',
+      type: AccountType.ACCOUNT_TYPE_ASSET,
+      currency: 'CNY',
+      balance: '0',
+      isGroup: false,
+      date: '2023-01-01',
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(toast.success).not.toHaveBeenCalled();
   });
 });
 

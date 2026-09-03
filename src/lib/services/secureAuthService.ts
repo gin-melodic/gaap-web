@@ -1,5 +1,6 @@
 import {
   login,
+  demoLogin,
   register,
   logout,
   secureRequest,
@@ -10,6 +11,7 @@ import {
 import {
   LoginReq,
   LoginRes,
+  DemoLoginReq,
   RegisterReq,
   RegisterRes,
   LogoutReq,
@@ -24,6 +26,8 @@ import {
   Disable2FARes,
   UpdatePasswordReq,
   UpdatePasswordRes,
+  GetCurrencyListReq,
+  GetCurrencyListRes,
 } from '../proto/auth/v1/auth';
 
 import {
@@ -35,7 +39,7 @@ import {
 } from '../proto/user/v1/user';
 
 // Re-export types for convenience
-export type { LoginRes, RegisterRes, RefreshTokenRes, UserInput };
+export type { LoginRes, RegisterRes, RefreshTokenRes, UserInput, GetCurrencyListRes };
 
 /**
  * Secure Auth Service using ALE + Protobuf
@@ -68,6 +72,11 @@ export const secureAuthService = {
     );
   },
 
+  /** Login as the online demo user without exposing its credentials. */
+  demoLogin: async (): Promise<LoginRes> => {
+    return demoLogin(DemoLoginReq, LoginRes);
+  },
+
   /**
    * Register a new account
    * Automatically stores access token, refresh token, and session key
@@ -76,6 +85,7 @@ export const secureAuthService = {
     email: string;
     password: string;
     nickname: string;
+    mainCurrency: string;
     cfTurnstileResponse?: string;
   }): Promise<RegisterRes> => {
     return register(
@@ -83,6 +93,7 @@ export const secureAuthService = {
         email: input.email,
         password: input.password,
         nickname: input.nickname,
+        mainCurrency: input.mainCurrency,
         cfTurnstileResponse: input.cfTurnstileResponse || '',
       },
       RegisterReq,
@@ -162,6 +173,13 @@ export const secureAuthService = {
    */
   getProfile: async (): Promise<GetUserProfileRes> => {
     return secureRequest('/user/get-profile', {}, GetUserProfileReq, GetUserProfileRes, 'session');
+  },
+
+  /**
+   * Get currency list
+   */
+  getCurrencyList: async (): Promise<GetCurrencyListRes> => {
+    return secureRequest('/auth/get-currency-list', {}, GetCurrencyListReq, GetCurrencyListRes, 'bootstrap', { includeToken: false });
   },
 
   /**

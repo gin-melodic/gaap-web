@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import { useLogin, useRegister, useLogout, useProfile, authKeys } from './useAuth';
+import { useDemoLogin, useLogin, useRegister, useLogout, useProfile, authKeys } from './useAuth';
 import { secureAuthService } from '../services/secureAuthService';
 import { UserLevelType } from '../types';
 
@@ -10,6 +10,7 @@ import { UserLevelType } from '../types';
 vi.mock('../services/secureAuthService', () => ({
   secureAuthService: {
     login: vi.fn(),
+    demoLogin: vi.fn(),
     register: vi.fn(),
     logout: vi.fn(),
     getProfile: vi.fn(),
@@ -146,6 +147,27 @@ describe('useAuth Hooks', () => {
     });
   });
 
+  describe('useDemoLogin', () => {
+    it('logs in without accepting browser credentials', async () => {
+      vi.mocked(secureAuthService.demoLogin).mockResolvedValue({
+        auth: {
+          accessToken: 'demo-token',
+          refreshToken: 'demo-refresh',
+          user: mockUser,
+          sessionKey: 'demo-key',
+        },
+        base: undefined,
+      });
+
+      const { Wrapper } = createWrapper();
+      const { result } = renderHook(() => useDemoLogin(), { wrapper: Wrapper });
+      result.current.mutate();
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(secureAuthService.demoLogin).toHaveBeenCalledWith();
+    });
+  });
+
   describe('useRegister', () => {
     it('should register successfully', async () => {
       vi.mocked(secureAuthService.register).mockResolvedValue({ auth: undefined, base: undefined });
@@ -153,13 +175,14 @@ describe('useAuth Hooks', () => {
       const { Wrapper } = createWrapper();
       const { result } = renderHook(() => useRegister(), { wrapper: Wrapper });
 
-      result.current.mutate({ email: 'test@example.com', password: 'password', nickname: 'test', cfTurnstileResponse: '' });
+      result.current.mutate({ email: 'test@example.com', password: 'password', nickname: 'test', mainCurrency: 'USD', cfTurnstileResponse: '' });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(secureAuthService.register).toHaveBeenCalledWith({
         email: 'test@example.com',
         password: 'password',
         nickname: 'test',
+        mainCurrency: 'USD',
         cfTurnstileResponse: '',
       });
     });

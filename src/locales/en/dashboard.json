@@ -6,6 +6,9 @@
   "income": "Income",
   "expense": "Expense",
   "trend_30_days": "30-Day Trend",
+  "balance_trend": "Balance Trend",
   "all_assets": "All Assets",
-  "select_accounts": "Select Accounts"
+  "select_accounts": "Select Accounts",
+  "select_trend_date_range": "Select trend date range",
+  "date_range_hint": "Select a start and end date within the past two years. Both dates are included."
 }
