@@ -47,5 +47,7 @@
   "update_success": "帳戶更新成功",
   "update_failed": "更新失敗",
   "delete_failed": "刪除失敗",
-  "migration_task_started": "遷移任務已建立，請在任務中心查看進度"
+  "migration_task_started": "遷移任務已建立，請在任務中心查看進度",
+  "add_account_desc": "填寫新帳戶的類型、開戶日期與初始餘額等基本資訊。",
+  "edit_account_desc": "更新該帳戶的詳細資訊，確認後儲存變更。"
 }

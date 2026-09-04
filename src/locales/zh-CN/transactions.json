@@ -38,5 +38,6 @@
   "update_success": "交易更新成功",
   "update_error": "更新失败",
   "delete_success": "交易删除成功",
-  "delete_error": "删除失败"
+  "delete_error": "删除失败",
+  "transaction_form_desc": "记录一笔收入、支出或转账，交易时间精确到秒。"
 }

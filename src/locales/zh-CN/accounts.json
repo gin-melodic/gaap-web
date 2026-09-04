@@ -47,5 +47,7 @@
   "update_success": "账户更新成功",
   "update_failed": "更新失败",
   "delete_failed": "删除失败",
-  "migration_task_started": "迁移任务已创建，请在任务中心查看进度"
+  "migration_task_started": "迁移任务已创建，请在任务中心查看进度",
+  "add_account_desc": "填写新账户的类型、开户日期与初始余额等基本信息。",
+  "edit_account_desc": "更新该账户的详细信息，确认后保存更改。"
 }
