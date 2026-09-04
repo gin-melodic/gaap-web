@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useLayoutEffect, useRef, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AreaChart,
@@ -44,6 +44,25 @@ const COLORS = [
   '#06b6d4', // cyan-500
 ];
 
+// Recharts' ResponsiveContainer initializes its internal size state to -1 and
+// emits a console warning during the render pass that happens before the first
+// ResizeObserver measurement. Measuring the container ourselves and only mounting
+// the chart with explicit pixel dimensions (which takes recharts' static sizing
+// path) avoids that initial width(-1)/height(-1) warning entirely.
+function useMeasuredSize(ref: React.RefObject<HTMLDivElement | null>) {
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element || typeof ResizeObserver === 'undefined') return;
+    const update = () => setSize({ width: element.clientWidth, height: element.clientHeight });
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [ref]);
+  return size;
+}
+
 const BalanceTrendChart = () => {
   const { t, i18n } = useTranslation(['dashboard', 'common']);
   const { data: profile } = useProfile();
@@ -62,6 +81,8 @@ const BalanceTrendChart = () => {
     () => getEarliestSelectableDate(accounts, rollingEarliestDate),
     [accounts, rollingEarliestDate],
   );
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const measuredSize = useMeasuredSize(chartContainerRef);
   const effectiveDateRange = useMemo<TrendDateRange>(() => {
     if (dateRange.to < earliestDate) {
       return { from: earliestDate, to: earliestDate };
@@ -221,13 +242,14 @@ const BalanceTrendChart = () => {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="h-[300px] w-full relative">
+        <div ref={chartContainerRef} className="h-[300px] w-full relative">
           {isFetching && (
             <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg-card)]/50 z-10">
               <Loader2 className="w-8 h-8 animate-spin text-[var(--primary)]" />
             </div>
           )}
-          <ResponsiveContainer width="100%" height="100%">
+          {measuredSize.width > 0 && measuredSize.height > 0 ? (
+            <ResponsiveContainer width={measuredSize.width} height={measuredSize.height}>
             <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 40, bottom: 0 }}>
               <defs>
                 {selectedAccountIds.map((id, index) => (
@@ -291,7 +313,8 @@ const BalanceTrendChart = () => {
                 );
               })}
             </AreaChart>
-          </ResponsiveContainer>
+            </ResponsiveContainer>
+          ) : null}
         </div>
       </CardContent>
     </Card>
