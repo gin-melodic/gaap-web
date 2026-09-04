@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 
 import { beforeAll, describe, expect, it } from 'vitest';
 
+import { installUatFetch } from './retry-fetch';
 import { encryptPayload, signRequest } from '../lib/crypto/browser-crypto';
 import { tokenStorage } from '../lib/network/secure-client';
 import { secureAuthService } from '../lib/services/secureAuthService';
@@ -116,13 +117,7 @@ describeUat('GAAP ALE raw security gates', () => {
     Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: storage });
     Object.defineProperty(window, 'localStorage', { configurable: true, value: storage });
 
-    const nativeFetch = globalThis.fetch.bind(globalThis);
-    globalThis.fetch = (input: string | URL | Request, init?: RequestInit) => {
-      if (typeof input === 'string' && input.startsWith('/')) {
-        return nativeFetch(`${baseUrl}${input}`, init);
-      }
-      return nativeFetch(input, init);
-    };
+    installUatFetch(baseUrl);
 
     process.env.NEXT_PUBLIC_ALE_BOOTSTRAP_KEY = envFileValue('NEXT_PUBLIC_ALE_BOOTSTRAP_KEY');
     jwtSecret = envFileValue('JWT_SECRET');
