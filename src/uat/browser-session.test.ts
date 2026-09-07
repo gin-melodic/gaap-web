@@ -8,6 +8,7 @@ import { secureAuthService } from '../lib/services/secureAuthService';
 import { transactionService } from '../lib/services/transactionService';
 import { tokenStorage } from '../lib/network/secure-client';
 import { AccountType, TransactionType } from '../lib/proto/base/base';
+import { TransactionQuery } from '../lib/proto/transaction/v1/transaction';
 
 import { installUatFetch } from './retry-fetch';
 
@@ -111,7 +112,7 @@ describeBrowserSession('GAAP local UAT browser session bootstrap (P2 UI round)',
     expect(asset?.id, 'asset account is missing an id').not.toBe('');
     expect(expense?.id, 'expense account is missing an id').not.toBe('');
 
-    if ((await transactionService.list({})).data.length === 0) {
+    if ((await transactionService.list(TransactionQuery.fromPartial({}))).data.length === 0) {
       await transactionService.create({
         date: '2026-09-01T08:30:00',
         from: asset!.id,
