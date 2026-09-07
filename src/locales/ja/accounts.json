@@ -47,5 +47,7 @@
   "update_success": "アカウントを更新しました",
   "update_failed": "更新に失敗しました",
   "delete_failed": "削除に失敗しました",
-  "migration_task_started": "移行タスクが作成されました。タスクセンターで進行状況を確認してください"
+  "migration_task_started": "移行タスクが作成されました。タスクセンターで進行状況を確認してください",
+  "add_account_desc": "タイプ、開設日、初期残高を指定して新しいアカウントを作成します。",
+  "edit_account_desc": "このアカウントの詳細を変更し、確認すると保存されます。"
 }

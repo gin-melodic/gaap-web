@@ -38,5 +38,6 @@
   "update_success": "取引を更新しました",
   "update_error": "更新に失敗しました",
   "delete_success": "取引を削除しました",
-  "delete_error": "削除に失敗しました"
+  "delete_error": "削除に失敗しました",
+  "transaction_form_desc": "収入・支出・振替を記録します。取引日時は秒単位まで指定できます。"
 }

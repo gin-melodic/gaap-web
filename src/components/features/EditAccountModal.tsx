@@ -357,6 +357,7 @@ const EditAccountModal = ({ isOpen, onClose, account }: EditAccountModalProps) =
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t('accounts:edit_account')}</DialogTitle>
+          <DialogDescription>{t('accounts:edit_account_desc')}</DialogDescription>
         </DialogHeader>
         {account && <EditAccountForm key={account.id} account={account} onClose={onClose} />}
       </DialogContent>

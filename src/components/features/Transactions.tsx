@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useAllTransactionsSuspense, useAllAccountsSuspense, useCreateTransaction, useUpdateTransaction, useDeleteTransaction, useCreateAccount } from '@/lib/hooks';
 import { TransactionType, AccountType, Account, Transaction, Money } from '@/lib/types';
 import { MoneyHelper } from '@/lib/utils/money';
+import { formatDateForDisplay, formatDateForInput, getCurrentDateTime } from '@/lib/utils/date-format';
 import { resolveTransactionType } from '@/lib/utils/transaction-type';
 import { accountService } from '@/lib/services/accountService';
 import { useTranslation } from 'react-i18next';
@@ -51,16 +52,6 @@ const Transactions = () => {
   const [newExpenseName, setNewExpenseName] = useState('');
   const [isCreatingIncome, setIsCreatingIncome] = useState(false);
   const [newIncomeName, setNewIncomeName] = useState('');
-  const getCurrentDateTime = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
-    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-  };
 
   const [newTx, setNewTx] = useState({ amount: '', note: '', from: '', to: '', date: getCurrentDateTime() });
 
@@ -108,42 +99,6 @@ const Transactions = () => {
     if (isCreatingIncome && !newIncomeName) return false;
     if (isCreatingExpense && !newExpenseName) return false;
     return true;
-  };
-
-  const formatDateForInput = (dateStr: string) => {
-    try {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return dateStr;
-
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      const hours = String(d.getHours()).padStart(2, '0');
-      const minutes = String(d.getMinutes()).padStart(2, '0');
-      const seconds = String(d.getSeconds()).padStart(2, '0');
-      return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-    } catch {
-      return dateStr;
-    }
-  };
-
-  const formatDateForDisplay = (dateStr: string) => {
-    try {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return dateStr;
-
-      return new Intl.DateTimeFormat('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-      }).format(d).replace(/\//g, '-');
-    } catch {
-      return dateStr;
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -326,6 +281,7 @@ const Transactions = () => {
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>{editingTxId ? t('transactions:edit_transaction') : t('transactions:new_transaction')}</DialogTitle>
+              <DialogDescription>{t('transactions:transaction_form_desc')}</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4 py-4">
               <div>

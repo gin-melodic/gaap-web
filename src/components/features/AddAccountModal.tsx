@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -175,6 +176,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t('accounts:add_account')}</DialogTitle>
+          <DialogDescription>{t('accounts:add_account_desc')}</DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-6 py-4">

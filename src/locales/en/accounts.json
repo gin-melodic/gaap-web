@@ -47,5 +47,7 @@
   "update_success": "Account updated successfully",
   "update_failed": "Update failed",
   "delete_failed": "Deletion failed",
-  "migration_task_started": "Migration task created, please check progress in Task Center"
+  "migration_task_started": "Migration task created, please check progress in Task Center",
+  "add_account_desc": "Create a new account with its type, opening date and initial balance.",
+  "edit_account_desc": "Update this account's details; changes are saved when you confirm."
 }
