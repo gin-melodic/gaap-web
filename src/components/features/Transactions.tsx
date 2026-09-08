@@ -194,13 +194,30 @@ const Transactions = () => {
     }
   };
 
+  // The server requires both legs of every transaction to share one currency
+  // ("account currency mismatch"), so the account selected on the opposite side is
+  // cleared as soon as it no longer matches the just-changed selection (DEF-030).
+  const currencyOfSelected = (id: string) => {
+    if (!id || id === 'NEW_INCOME' || id === 'NEW_EXPENSE') return '';
+    const acc = accounts.find(a => a.id === id);
+    return acc ? getAccountCurrency(acc) : '';
+  };
+
+  const clearOppositeIfMismatched = (changedId: string, otherId: string): string => {
+    const ccy = currencyOfSelected(changedId);
+    if (!ccy || !otherId) return otherId;
+    const other = accounts.find(a => a.id === otherId);
+    if (other && getAccountCurrency(other) !== ccy) return '';
+    return otherId;
+  };
+
   const handleFromChange = (val: string) => {
-    setNewTx({ ...newTx, from: val });
+    setNewTx(prev => ({ ...prev, from: val, to: clearOppositeIfMismatched(val, prev.to) }));
     if (val === 'NEW_INCOME') setIsCreatingIncome(true); else setIsCreatingIncome(false);
   };
 
   const handleToChange = (val: string) => {
-    setNewTx({ ...newTx, to: val });
+    setNewTx(prev => ({ ...prev, to: val, from: clearOppositeIfMismatched(val, prev.from) }));
     if (val === 'NEW_EXPENSE') setIsCreatingExpense(true); else setIsCreatingExpense(false);
   };
 
@@ -237,6 +254,15 @@ const Transactions = () => {
         // Error is already handled by the hook with toast
       }
     }
+  };
+
+  // DEF-030: as soon as a concrete account is picked on either side, hide cross-currency
+  // accounts in both dropdowns so the form cannot build a pair the server would reject.
+  // NEW_INCOME / NEW_EXPENSE create their account in the opposite leg's currency and stay
+  // available regardless of the selection.
+  const sameCurrencyAsSelection = (a: Account) => {
+    const ccy = currencyOfSelected(newTx.from) || currencyOfSelected(newTx.to);
+    return !ccy || getAccountCurrency(a) === ccy;
   };
 
   const renderAccountOptions = (filterFn: (a: Account) => boolean) => {
@@ -327,12 +353,12 @@ const Transactions = () => {
                     <SelectContent>
                       <SelectGroup>
                         <SelectLabel>{t('transactions:asset_source')}</SelectLabel>
-                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_ASSET)}
+                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_ASSET && sameCurrencyAsSelection(a))}
                       </SelectGroup>
                       <SelectGroup>
                         <SelectLabel>{t('transactions:income_source')}</SelectLabel>
                         <SelectItem value="NEW_INCOME" className="font-bold text-indigo-600">{t('transactions:new_income_account')}</SelectItem>
-                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_INCOME)}
+                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_INCOME && sameCurrencyAsSelection(a))}
                       </SelectGroup>
                     </SelectContent>
                   </Select>
@@ -349,15 +375,15 @@ const Transactions = () => {
                       <SelectGroup>
                         <SelectLabel>{t('transactions:expense_destination')}</SelectLabel>
                         <SelectItem value="NEW_EXPENSE" className="font-bold text-indigo-600">{t('transactions:new_expense_account')}</SelectItem>
-                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_EXPENSE)}
+                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_EXPENSE && sameCurrencyAsSelection(a))}
                       </SelectGroup>
                       <SelectGroup>
                         <SelectLabel>{t('transactions:asset_deposit')}</SelectLabel>
-                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_ASSET)}
+                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_ASSET && sameCurrencyAsSelection(a))}
                       </SelectGroup>
                       <SelectGroup>
                         <SelectLabel>{t('transactions:liability_repayment')}</SelectLabel>
-                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_LIABILITY)}
+                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_LIABILITY && sameCurrencyAsSelection(a))}
                       </SelectGroup>
                     </SelectContent>
                   </Select>
