@@ -35,7 +35,7 @@
   "base_currency": "基準貨幣",
   "base_currency_desc": "所有資產統計將統一轉換為此貨幣顯示。",
   "exchange_rates": "匯率設定",
-  "exchange_rates_desc": "設定其他貨幣相對於基準貨幣的匯率。",
+  "exchange_rates_desc": "設定其他貨幣相對於錨定貨幣 ({{anchor}}) 的匯率。",
   "last_updated": "最後更新: {{time}}",
   "currency_placeholder": "貨幣代碼 (如 GBP)",
   "sync_failed": "同步匯率失敗，請檢查網路",
@@ -156,5 +156,6 @@
     "select_date_range": "請選擇日期範圍",
     "invalid_file_type": "僅支援 .zip 檔案",
     "import_warning": "匯入過程中，帳戶和交易操作將暫時停用。重複資料將被跳過。"
-  }
+  },
+  "missing_rate": "缺少匯率"
 }

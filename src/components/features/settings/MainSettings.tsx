@@ -64,9 +64,9 @@ export const MainSettings = ({ onNavigate }: { onNavigate: (view: SettingsView) 
       {/* General Settings */}
       <Card className="bg-[var(--bg-card)] border-[var(--border)] shadow-sm overflow-hidden py-0 gap-0">
         <div className="p-4 border-b border-[var(--border)] font-bold text-[var(--text-main)] text-sm bg-[var(--bg-main)]">{t('settings:preferences')}</div>
-        <div className="p-4 border-b border-[var(--border)] flex justify-between items-center">
+        <div onClick={() => onNavigate('CURRENCY')} className="p-4 border-b border-[var(--border)] flex justify-between items-center hover:bg-[var(--bg-main)] cursor-pointer">
           <div className="flex items-center gap-3"><Globe size={18} className="text-[var(--text-muted)]" /><span className="text-[var(--text-main)] font-medium">{t('settings:currency_management')}</span></div>
-          <div className="flex items-center gap-2 text-[var(--text-muted)] text-sm"><span>{baseCurrency}</span></div>
+          <div className="flex items-center gap-2 text-[var(--text-muted)] text-sm"><span>{baseCurrency}</span><ChevronRight size={16} /></div>
         </div>
         <div onClick={() => onNavigate('LANGUAGE')} className="p-4 border-b border-[var(--border)] flex justify-between items-center hover:bg-[var(--bg-main)] cursor-pointer">
           <div className="flex items-center gap-3"><Languages size={18} className="text-[var(--text-muted)]" /><span className="text-[var(--text-main)] font-medium">{t('settings:language_preference')}</span></div>

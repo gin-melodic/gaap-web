@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGlobal } from '@/context/GlobalContext';
-import { useCreateAccount, useAllAccounts, AccountType, UserLevelType } from '@/lib/hooks';
+import { useCreateAccount, useAllAccounts, useSupportedCurrencies, AccountType, UserLevelType } from '@/lib/hooks';
 import { ACCOUNT_TYPES } from '@/lib/data';
 import {
   Dialog,
@@ -39,7 +39,8 @@ interface AddAccountModalProps {
 
 const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
   const { t } = useTranslation(['accounts', 'common']);
-  const { currencies, user } = useGlobal();
+  const { user } = useGlobal();
+  const currencies = useSupportedCurrencies();
   const { accounts } = useAllAccounts();
   const createAccount = useCreateAccount({ silent: true });
   const { baseCurrency } = useGlobal();
@@ -246,7 +247,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
                 <div className="space-y-2">
                   <Label>{t('common:currency')}</Label>
                   <div className="flex gap-2">
-                    <Select value={currency} onValueChange={setCurrency} disabled>
+                    <Select value={currency} onValueChange={setCurrency}>
                       <SelectTrigger className="flex-1">
                         <SelectValue />
                       </SelectTrigger>

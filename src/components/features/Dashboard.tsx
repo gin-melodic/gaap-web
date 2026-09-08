@@ -1,15 +1,37 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { useAllAccountsSuspense, AccountType, useAllTransactions, useProfile } from '@/lib/hooks';
+import { useAllAccountsSuspense, AccountType, useAllTransactions, useProfile, useExchangeRates } from '@/lib/hooks';
 import { useTranslation } from 'react-i18next';
 import { TransactionType } from '@/lib/types';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import BalanceTrendChart from './BalanceTrendChart';
-import { MoneyHelper } from '@/lib/utils/money';
+import { MoneyHelper, convertAmount } from '@/lib/utils/money';
 import Decimal from 'decimal.js';
 import { resolveDisplayCurrency } from '@/lib/utils/display-currency';
+
+type DecimalValue = InstanceType<typeof Decimal>;
+
+/** Sum per-currency buckets into a single target currency, recording any
+ *  currency that lacks a rate. Financial math stays in Decimal (never floats). */
+function sumConverted(
+  buckets: Record<string, DecimalValue>,
+  target: string,
+  rateMap: Record<string, string>,
+  missing: Set<string>,
+): DecimalValue {
+  let total = new Decimal(0);
+  for (const [currency, amount] of Object.entries(buckets)) {
+    const converted = convertAmount(amount, currency, target, rateMap);
+    if (converted === null) {
+      missing.add(currency);
+      continue;
+    }
+    total = total.plus(converted);
+  }
+  return total;
+}
 
 const Dashboard = () => {
   const { t } = useTranslation(['dashboard', 'common']);
@@ -17,6 +39,7 @@ const Dashboard = () => {
 
   const { accounts } = useAllAccountsSuspense();
   const { transactions } = useAllTransactions();
+  const { rateMap } = useExchangeRates();
   const mainCurrency = resolveDisplayCurrency(
     profile?.user?.mainCurrency,
     accounts.map((account) => account.balance ?? {}),
@@ -24,43 +47,77 @@ const Dashboard = () => {
   );
 
   const summary = useMemo(() => {
-    let assets = MoneyHelper.fromAmount('0', mainCurrency);
-    let liabilities = MoneyHelper.fromAmount('0', mainCurrency);
+    const assetBuckets: Record<string, DecimalValue> = {};
+    const liabilityBuckets: Record<string, DecimalValue> = {};
+    const missing = new Set<string>();
 
     accounts.forEach(acc => {
       if (acc.isGroup) return;
-
-      const balance = MoneyHelper.from(acc.balance);
-      if (acc.type === AccountType.ACCOUNT_TYPE_ASSET) assets = assets.add(balance);
-      if (acc.type === AccountType.ACCOUNT_TYPE_LIABILITY) liabilities = liabilities.add(balance);
+      const money = MoneyHelper.from(acc.balance);
+      const currency = (money.currency || mainCurrency).toUpperCase();
+      const target = acc.type === AccountType.ACCOUNT_TYPE_ASSET
+        ? assetBuckets
+        : acc.type === AccountType.ACCOUNT_TYPE_LIABILITY
+          ? liabilityBuckets
+          : null;
+      if (!target) return;
+      target[currency] = (target[currency] ?? new Decimal(0)).plus(money.toDecimal());
     });
-    return { assets, liabilities, netWorth: assets.sub(liabilities) };
-  }, [accounts, mainCurrency]);
 
+    const assets = sumConverted(assetBuckets, mainCurrency, rateMap, missing);
+    const liabilities = sumConverted(liabilityBuckets, mainCurrency, rateMap, missing);
+    return {
+      assets: new MoneyHelper(assets, mainCurrency),
+      liabilities: new MoneyHelper(liabilities, mainCurrency),
+      netWorth: new MoneyHelper(assets.minus(liabilities), mainCurrency),
+      missing: Array.from(missing).sort(),
+    };
+  }, [accounts, mainCurrency, rateMap]);
 
   const monthlyStats = useMemo(() => {
     const now = new Date();
     const currentMonth = now.toISOString().slice(0, 7); // YYYY-MM
 
-    let income = MoneyHelper.fromAmount('0', mainCurrency);
-    let expense = MoneyHelper.fromAmount('0', mainCurrency);
+    const incomeBuckets: Record<string, DecimalValue> = {};
+    const expenseBuckets: Record<string, DecimalValue> = {};
+    const missing = new Set<string>();
 
     transactions.forEach(tx => {
-      // Check if transaction is in current month
-      // Note: we're using string comparison which is safe for ISO format
       if (!tx.date.startsWith(currentMonth)) return;
 
-      const amount = MoneyHelper.from(tx.amount);
-
-      if (tx.type === TransactionType.TRANSACTION_TYPE_INCOME) income = income.add(amount);
-      if (tx.type === TransactionType.TRANSACTION_TYPE_EXPENSE) expense = expense.add(amount);
+      const money = MoneyHelper.from(tx.amount);
+      const currency = (money.currency || mainCurrency).toUpperCase();
+      const target = tx.type === TransactionType.TRANSACTION_TYPE_INCOME
+        ? incomeBuckets
+        : tx.type === TransactionType.TRANSACTION_TYPE_EXPENSE
+          ? expenseBuckets
+          : null;
+      if (!target) return;
+      target[currency] = (target[currency] ?? new Decimal(0)).plus(money.toDecimal());
     });
 
-    return { income, expense };
-  }, [transactions, mainCurrency]);
+    const income = sumConverted(incomeBuckets, mainCurrency, rateMap, missing);
+    const expense = sumConverted(expenseBuckets, mainCurrency, rateMap, missing);
+    return {
+      income: new MoneyHelper(income, mainCurrency),
+      expense: new MoneyHelper(expense, mainCurrency),
+      missing: Array.from(missing).sort(),
+    };
+  }, [transactions, mainCurrency, rateMap]);
+
+  const allMissing = useMemo(
+    () => Array.from(new Set([...summary.missing, ...monthlyStats.missing])).sort(),
+    [summary.missing, monthlyStats.missing],
+  );
 
   return (
     <div className="space-y-6 pb-20 md:pb-0">
+      {allMissing.length > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+          {t('dashboard:missing_rates', { currencies: allMissing.join(', ') })}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-[var(--primary)] text-white shadow-lg shadow-indigo-200/50 border-none">
           <CardContent className="p-6">

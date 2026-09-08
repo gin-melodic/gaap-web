@@ -10,5 +10,6 @@
   "all_assets": "すべての資産",
   "select_accounts": "アカウントを選択",
   "select_trend_date_range": "推移の期間を選択",
-  "date_range_hint": "過去2年以内の開始日と終了日を選択してください。両日を含みます。"
+  "date_range_hint": "過去2年以内の開始日と終了日を選択してください。両日を含みます。",
+  "missing_rates": "一部の通貨で為替レートが不足しているため、合計から除外されています: {{currencies}}"
 }

@@ -27,6 +27,14 @@ export function useCurrencyList() {
   });
 }
 
+/** Supported currency codes as a plain string array (uppercase). */
+export function useSupportedCurrencies(): string[] {
+  const { data } = useCurrencyList();
+  return (data?.currencies ?? [])
+    .map((currency) => currency.code?.toUpperCase())
+    .filter((code): code is string => !!code);
+}
+
 export function useLogin() {
   const queryClient = useQueryClient();
 

@@ -58,6 +58,36 @@ export interface GetAccountTypesRes_TypesEntry {
   value: AccountTypeConfig | undefined;
 }
 
+/**
+ * ExchangeRate is a single anchor-relative exchange rate. The rate is serialized
+ * as a decimal string to preserve precision (never a float).
+ */
+export interface ExchangeRate {
+  currency: string;
+  rate: string;
+  source: string;
+  updatedAt: string;
+}
+
+export interface GetExchangeRatesReq {
+}
+
+export interface GetExchangeRatesRes {
+  anchor: string;
+  rates: ExchangeRate[];
+  base: BaseResponse | undefined;
+}
+
+export interface SetExchangeRateReq {
+  currency: string;
+  rate: string;
+}
+
+export interface SetExchangeRateRes {
+  rate: ExchangeRate | undefined;
+  base: BaseResponse | undefined;
+}
+
 function createBaseListCurrenciesReq(): ListCurrenciesReq {
   return {};
 }
@@ -816,6 +846,407 @@ export const GetAccountTypesRes_TypesEntry: MessageFns<GetAccountTypesRes_TypesE
   },
 };
 
+function createBaseExchangeRate(): ExchangeRate {
+  return { currency: "", rate: "", source: "", updatedAt: "" };
+}
+
+export const ExchangeRate: MessageFns<ExchangeRate> = {
+  encode(message: ExchangeRate, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.currency !== "") {
+      writer.uint32(10).string(message.currency);
+    }
+    if (message.rate !== "") {
+      writer.uint32(18).string(message.rate);
+    }
+    if (message.source !== "") {
+      writer.uint32(26).string(message.source);
+    }
+    if (message.updatedAt !== "") {
+      writer.uint32(34).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ExchangeRate {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseExchangeRate();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.currency = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.rate = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.source = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ExchangeRate {
+    return {
+      currency: isSet(object.currency) ? globalThis.String(object.currency) : "",
+      rate: isSet(object.rate) ? globalThis.String(object.rate) : "",
+      source: isSet(object.source) ? globalThis.String(object.source) : "",
+      updatedAt: isSet(object.updatedAt) ? globalThis.String(object.updatedAt) : "",
+    };
+  },
+
+  toJSON(message: ExchangeRate): unknown {
+    const obj: any = {};
+    if (message.currency !== "") {
+      obj.currency = message.currency;
+    }
+    if (message.rate !== "") {
+      obj.rate = message.rate;
+    }
+    if (message.source !== "") {
+      obj.source = message.source;
+    }
+    if (message.updatedAt !== "") {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ExchangeRate>, I>>(base?: I): ExchangeRate {
+    return ExchangeRate.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ExchangeRate>, I>>(object: I): ExchangeRate {
+    const message = createBaseExchangeRate();
+    message.currency = object.currency ?? "";
+    message.rate = object.rate ?? "";
+    message.source = object.source ?? "";
+    message.updatedAt = object.updatedAt ?? "";
+    return message;
+  },
+};
+
+function createBaseGetExchangeRatesReq(): GetExchangeRatesReq {
+  return {};
+}
+
+export const GetExchangeRatesReq: MessageFns<GetExchangeRatesReq> = {
+  encode(_: GetExchangeRatesReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetExchangeRatesReq {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetExchangeRatesReq();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): GetExchangeRatesReq {
+    return {};
+  },
+
+  toJSON(_: GetExchangeRatesReq): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetExchangeRatesReq>, I>>(base?: I): GetExchangeRatesReq {
+    return GetExchangeRatesReq.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetExchangeRatesReq>, I>>(_: I): GetExchangeRatesReq {
+    const message = createBaseGetExchangeRatesReq();
+    return message;
+  },
+};
+
+function createBaseGetExchangeRatesRes(): GetExchangeRatesRes {
+  return { anchor: "", rates: [], base: undefined };
+}
+
+export const GetExchangeRatesRes: MessageFns<GetExchangeRatesRes> = {
+  encode(message: GetExchangeRatesRes, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.anchor !== "") {
+      writer.uint32(10).string(message.anchor);
+    }
+    for (const v of message.rates) {
+      ExchangeRate.encode(v!, writer.uint32(18).fork()).join();
+    }
+    if (message.base !== undefined) {
+      BaseResponse.encode(message.base, writer.uint32(2042).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetExchangeRatesRes {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetExchangeRatesRes();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.anchor = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.rates.push(ExchangeRate.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 255: {
+          if (tag !== 2042) {
+            break;
+          }
+
+          message.base = BaseResponse.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetExchangeRatesRes {
+    return {
+      anchor: isSet(object.anchor) ? globalThis.String(object.anchor) : "",
+      rates: globalThis.Array.isArray(object?.rates) ? object.rates.map((e: any) => ExchangeRate.fromJSON(e)) : [],
+      base: isSet(object.base) ? BaseResponse.fromJSON(object.base) : undefined,
+    };
+  },
+
+  toJSON(message: GetExchangeRatesRes): unknown {
+    const obj: any = {};
+    if (message.anchor !== "") {
+      obj.anchor = message.anchor;
+    }
+    if (message.rates?.length) {
+      obj.rates = message.rates.map((e) => ExchangeRate.toJSON(e));
+    }
+    if (message.base !== undefined) {
+      obj.base = BaseResponse.toJSON(message.base);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetExchangeRatesRes>, I>>(base?: I): GetExchangeRatesRes {
+    return GetExchangeRatesRes.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetExchangeRatesRes>, I>>(object: I): GetExchangeRatesRes {
+    const message = createBaseGetExchangeRatesRes();
+    message.anchor = object.anchor ?? "";
+    message.rates = object.rates?.map((e) => ExchangeRate.fromPartial(e)) || [];
+    message.base = (object.base !== undefined && object.base !== null)
+      ? BaseResponse.fromPartial(object.base)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseSetExchangeRateReq(): SetExchangeRateReq {
+  return { currency: "", rate: "" };
+}
+
+export const SetExchangeRateReq: MessageFns<SetExchangeRateReq> = {
+  encode(message: SetExchangeRateReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.currency !== "") {
+      writer.uint32(10).string(message.currency);
+    }
+    if (message.rate !== "") {
+      writer.uint32(18).string(message.rate);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SetExchangeRateReq {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSetExchangeRateReq();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.currency = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.rate = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SetExchangeRateReq {
+    return {
+      currency: isSet(object.currency) ? globalThis.String(object.currency) : "",
+      rate: isSet(object.rate) ? globalThis.String(object.rate) : "",
+    };
+  },
+
+  toJSON(message: SetExchangeRateReq): unknown {
+    const obj: any = {};
+    if (message.currency !== "") {
+      obj.currency = message.currency;
+    }
+    if (message.rate !== "") {
+      obj.rate = message.rate;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SetExchangeRateReq>, I>>(base?: I): SetExchangeRateReq {
+    return SetExchangeRateReq.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SetExchangeRateReq>, I>>(object: I): SetExchangeRateReq {
+    const message = createBaseSetExchangeRateReq();
+    message.currency = object.currency ?? "";
+    message.rate = object.rate ?? "";
+    return message;
+  },
+};
+
+function createBaseSetExchangeRateRes(): SetExchangeRateRes {
+  return { rate: undefined, base: undefined };
+}
+
+export const SetExchangeRateRes: MessageFns<SetExchangeRateRes> = {
+  encode(message: SetExchangeRateRes, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rate !== undefined) {
+      ExchangeRate.encode(message.rate, writer.uint32(10).fork()).join();
+    }
+    if (message.base !== undefined) {
+      BaseResponse.encode(message.base, writer.uint32(2042).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SetExchangeRateRes {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSetExchangeRateRes();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rate = ExchangeRate.decode(reader, reader.uint32());
+          continue;
+        }
+        case 255: {
+          if (tag !== 2042) {
+            break;
+          }
+
+          message.base = BaseResponse.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SetExchangeRateRes {
+    return {
+      rate: isSet(object.rate) ? ExchangeRate.fromJSON(object.rate) : undefined,
+      base: isSet(object.base) ? BaseResponse.fromJSON(object.base) : undefined,
+    };
+  },
+
+  toJSON(message: SetExchangeRateRes): unknown {
+    const obj: any = {};
+    if (message.rate !== undefined) {
+      obj.rate = ExchangeRate.toJSON(message.rate);
+    }
+    if (message.base !== undefined) {
+      obj.base = BaseResponse.toJSON(message.base);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SetExchangeRateRes>, I>>(base?: I): SetExchangeRateRes {
+    return SetExchangeRateRes.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SetExchangeRateRes>, I>>(object: I): SetExchangeRateRes {
+    const message = createBaseSetExchangeRateRes();
+    message.rate = (object.rate !== undefined && object.rate !== null)
+      ? ExchangeRate.fromPartial(object.rate)
+      : undefined;
+    message.base = (object.base !== undefined && object.base !== null)
+      ? BaseResponse.fromPartial(object.base)
+      : undefined;
+    return message;
+  },
+};
+
 export interface ConfigService {
   /** Get supported currencies */
   ListCurrencies(request: ListCurrenciesReq): Promise<ListCurrenciesRes>;
@@ -827,6 +1258,10 @@ export interface ConfigService {
   GetThemes(request: GetThemesReq): Promise<GetThemesRes>;
   /** Get account type definitions */
   GetAccountTypes(request: GetAccountTypesReq): Promise<GetAccountTypesRes>;
+  /** Get exchange rates (reference + manual) relative to the anchor currency */
+  GetExchangeRates(request: GetExchangeRatesReq): Promise<GetExchangeRatesRes>;
+  /** Set a manual exchange-rate override for a currency */
+  SetExchangeRate(request: SetExchangeRateReq): Promise<SetExchangeRateRes>;
 }
 
 export const ConfigServiceServiceName = "config.v1.ConfigService";
@@ -841,6 +1276,8 @@ export class ConfigServiceClientImpl implements ConfigService {
     this.DeleteCurrency = this.DeleteCurrency.bind(this);
     this.GetThemes = this.GetThemes.bind(this);
     this.GetAccountTypes = this.GetAccountTypes.bind(this);
+    this.GetExchangeRates = this.GetExchangeRates.bind(this);
+    this.SetExchangeRate = this.SetExchangeRate.bind(this);
   }
   ListCurrencies(request: ListCurrenciesReq): Promise<ListCurrenciesRes> {
     const data = ListCurrenciesReq.encode(request).finish();
@@ -870,6 +1307,18 @@ export class ConfigServiceClientImpl implements ConfigService {
     const data = GetAccountTypesReq.encode(request).finish();
     const promise = this.rpc.request(this.service, "GetAccountTypes", data);
     return promise.then((data) => GetAccountTypesRes.decode(new BinaryReader(data)));
+  }
+
+  GetExchangeRates(request: GetExchangeRatesReq): Promise<GetExchangeRatesRes> {
+    const data = GetExchangeRatesReq.encode(request).finish();
+    const promise = this.rpc.request(this.service, "GetExchangeRates", data);
+    return promise.then((data) => GetExchangeRatesRes.decode(new BinaryReader(data)));
+  }
+
+  SetExchangeRate(request: SetExchangeRateReq): Promise<SetExchangeRateRes> {
+    const data = SetExchangeRateReq.encode(request).finish();
+    const promise = this.rpc.request(this.service, "SetExchangeRate", data);
+    return promise.then((data) => SetExchangeRateRes.decode(new BinaryReader(data)));
   }
 }
 

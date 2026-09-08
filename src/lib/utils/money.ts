@@ -156,3 +156,26 @@ export class MoneyHelper {
     return this.amount.toNumber();
   }
 }
+
+/**
+ * Converts an exact amount from one currency to another using anchor-relative
+ * rates, where `rateMap[currency]` is the decimal string "1 anchor = rate
+ * currency". Same-currency conversion is the identity; a missing rate yields
+ * null so callers can report incompleteness instead of throwing.
+ */
+export function convertAmount(
+  amount: InstanceType<typeof Decimal>,
+  from: string,
+  to: string,
+  rateMap: Record<string, string>,
+): InstanceType<typeof Decimal> | null {
+  const fromCode = (from || '').toUpperCase();
+  const toCode = (to || '').toUpperCase();
+  if (fromCode === toCode) return amount;
+
+  const rateFrom = rateMap[fromCode];
+  const rateTo = rateMap[toCode];
+  if (rateFrom === undefined || rateTo === undefined) return null;
+
+  return amount.times(rateTo).div(rateFrom);
+}

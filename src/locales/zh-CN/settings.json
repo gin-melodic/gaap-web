@@ -35,7 +35,7 @@
   "base_currency": "基准货币",
   "base_currency_desc": "所有资产统计将统一转换为此货币显示。",
   "exchange_rates": "汇率设置",
-  "exchange_rates_desc": "设置其他货币相对于基准货币的汇率。",
+  "exchange_rates_desc": "设置其他货币相对于锚定货币 ({{anchor}}) 的汇率。",
   "last_updated": "最后更新: {{time}}",
   "currency_placeholder": "货币代码 (如 GBP)",
   "sync_failed": "同步汇率失败，请检查网络",
@@ -161,5 +161,6 @@
     "select_date_range": "请选择日期范围",
     "invalid_file_type": "仅支持 .zip 文件",
     "import_warning": "导入过程中，账户和交易操作将暂时禁用。重复数据将被跳过。"
-  }
+  },
+  "missing_rate": "缺少汇率"
 }

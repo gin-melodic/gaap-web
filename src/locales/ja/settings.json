@@ -35,7 +35,7 @@
   "base_currency": "基本通貨",
   "base_currency_desc": "すべての資産は集計のためにこの通貨に換算されます。",
   "exchange_rates": "為替レート設定",
-  "exchange_rates_desc": "基本通貨に対する為替レートを設定します。",
+  "exchange_rates_desc": "アンカー通貨 ({{anchor}}) に対する為替レートを設定します。",
   "last_updated": "最終更新: {{time}}",
   "currency_placeholder": "通貨コード (例: GBP)",
   "sync_failed": "レートの同期に失敗しました",
@@ -156,5 +156,6 @@
     "select_date_range": "期間を選択してください",
     "invalid_file_type": ".zipファイルのみ対応しています",
     "import_warning": "インポート中はアカウントと取引の操作が一時的に無効になります。重複データはスキップされます。"
-  }
+  },
+  "missing_rate": "レート未設定"
 }

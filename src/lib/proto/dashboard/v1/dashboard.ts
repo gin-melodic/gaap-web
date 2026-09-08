@@ -13,12 +13,20 @@ export const protobufPackage = "dashboard.v1";
 export interface DashboardSummary {
   assets: Money | undefined;
   liabilities: Money | undefined;
-  netWorth: Money | undefined;
+  netWorth:
+    | Money
+    | undefined;
+  /** Currencies present in accounts but missing an exchange rate (valuation incomplete) */
+  missingCurrencies: string[];
 }
 
 export interface MonthlyStats {
   income: Money | undefined;
-  expense: Money | undefined;
+  expense:
+    | Money
+    | undefined;
+  /** Currencies present in transactions but missing an exchange rate */
+  missingCurrencies: string[];
 }
 
 export interface DailyBalance {
@@ -63,7 +71,7 @@ export interface GetBalanceTrendRes {
 }
 
 function createBaseDashboardSummary(): DashboardSummary {
-  return { assets: undefined, liabilities: undefined, netWorth: undefined };
+  return { assets: undefined, liabilities: undefined, netWorth: undefined, missingCurrencies: [] };
 }
 
 export const DashboardSummary: MessageFns<DashboardSummary> = {
@@ -76,6 +84,9 @@ export const DashboardSummary: MessageFns<DashboardSummary> = {
     }
     if (message.netWorth !== undefined) {
       Money.encode(message.netWorth, writer.uint32(26).fork()).join();
+    }
+    for (const v of message.missingCurrencies) {
+      writer.uint32(34).string(v!);
     }
     return writer;
   },
@@ -111,6 +122,14 @@ export const DashboardSummary: MessageFns<DashboardSummary> = {
           message.netWorth = Money.decode(reader, reader.uint32());
           continue;
         }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.missingCurrencies.push(reader.string());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -125,6 +144,9 @@ export const DashboardSummary: MessageFns<DashboardSummary> = {
       assets: isSet(object.assets) ? Money.fromJSON(object.assets) : undefined,
       liabilities: isSet(object.liabilities) ? Money.fromJSON(object.liabilities) : undefined,
       netWorth: isSet(object.netWorth) ? Money.fromJSON(object.netWorth) : undefined,
+      missingCurrencies: globalThis.Array.isArray(object?.missingCurrencies)
+        ? object.missingCurrencies.map((e: any) => globalThis.String(e))
+        : [],
     };
   },
 
@@ -138,6 +160,9 @@ export const DashboardSummary: MessageFns<DashboardSummary> = {
     }
     if (message.netWorth !== undefined) {
       obj.netWorth = Money.toJSON(message.netWorth);
+    }
+    if (message.missingCurrencies?.length) {
+      obj.missingCurrencies = message.missingCurrencies;
     }
     return obj;
   },
@@ -156,12 +181,13 @@ export const DashboardSummary: MessageFns<DashboardSummary> = {
     message.netWorth = (object.netWorth !== undefined && object.netWorth !== null)
       ? Money.fromPartial(object.netWorth)
       : undefined;
+    message.missingCurrencies = object.missingCurrencies?.map((e) => e) || [];
     return message;
   },
 };
 
 function createBaseMonthlyStats(): MonthlyStats {
-  return { income: undefined, expense: undefined };
+  return { income: undefined, expense: undefined, missingCurrencies: [] };
 }
 
 export const MonthlyStats: MessageFns<MonthlyStats> = {
@@ -171,6 +197,9 @@ export const MonthlyStats: MessageFns<MonthlyStats> = {
     }
     if (message.expense !== undefined) {
       Money.encode(message.expense, writer.uint32(18).fork()).join();
+    }
+    for (const v of message.missingCurrencies) {
+      writer.uint32(26).string(v!);
     }
     return writer;
   },
@@ -198,6 +227,14 @@ export const MonthlyStats: MessageFns<MonthlyStats> = {
           message.expense = Money.decode(reader, reader.uint32());
           continue;
         }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.missingCurrencies.push(reader.string());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -211,6 +248,9 @@ export const MonthlyStats: MessageFns<MonthlyStats> = {
     return {
       income: isSet(object.income) ? Money.fromJSON(object.income) : undefined,
       expense: isSet(object.expense) ? Money.fromJSON(object.expense) : undefined,
+      missingCurrencies: globalThis.Array.isArray(object?.missingCurrencies)
+        ? object.missingCurrencies.map((e: any) => globalThis.String(e))
+        : [],
     };
   },
 
@@ -221,6 +261,9 @@ export const MonthlyStats: MessageFns<MonthlyStats> = {
     }
     if (message.expense !== undefined) {
       obj.expense = Money.toJSON(message.expense);
+    }
+    if (message.missingCurrencies?.length) {
+      obj.missingCurrencies = message.missingCurrencies;
     }
     return obj;
   },
@@ -236,6 +279,7 @@ export const MonthlyStats: MessageFns<MonthlyStats> = {
     message.expense = (object.expense !== undefined && object.expense !== null)
       ? Money.fromPartial(object.expense)
       : undefined;
+    message.missingCurrencies = object.missingCurrencies?.map((e) => e) || [];
     return message;
   },
 };
