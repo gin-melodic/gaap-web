@@ -74,10 +74,21 @@ const Sidebar = () => {
       </nav>
 
       <div
-        className="mt-auto px-4 py-4 border-t border-[var(--border)] cursor-pointer user-select-none hover:bg-[var(--bg-main)] transition-colors"
+        // DEF-031: keyboard-operable profile shortcut (Tab reachable, Enter/Space activate).
+        role="button"
+        tabIndex={0}
+        aria-label={`${user?.nickname ?? ''} ${t('settings')}`}
+        className={`mt-auto px-4 py-4 border-t border-[var(--border)] cursor-pointer user-select-none hover:bg-[var(--bg-main)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]`}
         onClick={() => {
           setSettingsView('PROFILE');
           router.push('/settings');
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setSettingsView('PROFILE');
+            router.push('/settings');
+          }
         }}
       >
         <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">

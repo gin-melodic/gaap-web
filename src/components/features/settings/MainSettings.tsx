@@ -27,12 +27,30 @@ export const MainSettings = ({ onNavigate }: { onNavigate: (view: SettingsView) 
     router.replace('/login');
   };
 
+  // DEF-031: the settings rows are styled divs with onClick — make them keyboard-operable
+  // (Tab reachable, Enter/Space activate) without changing their visual styling. The focus
+  // ring only appears for keyboard users.
+  const rowKeyHandler = (action: () => void) => (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      action();
+    }
+  };
+  const rowA11y = (labelKey: string, action: () => void) => ({
+    role: 'button',
+    tabIndex: 0,
+    'aria-label': t(labelKey),
+    onClick: action,
+    onKeyDown: rowKeyHandler(action),
+  });
+  const rowA11yClasses = 'focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]';
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       <h2 className="text-xl font-bold text-[var(--text-main)]">{t('settings:title')}</h2>
 
       {/* Profile Card */}
-      <Card onClick={() => onNavigate('PROFILE')} className="bg-[var(--bg-card)] border-[var(--border)] shadow-sm cursor-pointer hover:shadow-md transition-shadow group py-0">
+      <Card {...rowA11y('settings:profile', () => onNavigate('PROFILE'))} className={`bg-[var(--bg-card)] border-[var(--border)] shadow-sm cursor-pointer hover:shadow-md transition-shadow group py-0 ${rowA11yClasses}`}>
         <CardContent className="p-4 flex items-center gap-4">
           <Avatar className="w-16 h-16 border-2 border-[var(--border)] group-hover:border-[var(--primary)]">
             <AvatarImage src={user.avatar || undefined} />
@@ -55,7 +73,7 @@ export const MainSettings = ({ onNavigate }: { onNavigate: (view: SettingsView) 
       {/* Appearance & Theme */}
       <Card className="bg-[var(--bg-card)] border-[var(--border)] shadow-sm overflow-hidden py-0 gap-0">
         <div className="p-4 border-b border-[var(--border)] font-bold text-[var(--text-main)] text-sm bg-[var(--bg-main)]">{t('settings:personalization')}</div>
-        <div onClick={() => onNavigate('THEME')} className="p-4 flex justify-between items-center hover:bg-[var(--bg-main)] cursor-pointer">
+        <div {...rowA11y('settings:appearance_title', () => onNavigate('THEME'))} className={`p-4 flex justify-between items-center hover:bg-[var(--bg-main)] cursor-pointer ${rowA11yClasses}`}>
           <div className="flex items-center gap-3"><Palette size={18} className="text-[var(--text-muted)]" /><span className="text-[var(--text-main)] font-medium">{t('settings:appearance_title')}</span></div>
           <div className="flex items-center gap-2 text-[var(--text-muted)] text-sm"><span>{currentTheme.name}</span><ChevronRight size={16} /></div>
         </div>
@@ -64,11 +82,11 @@ export const MainSettings = ({ onNavigate }: { onNavigate: (view: SettingsView) 
       {/* General Settings */}
       <Card className="bg-[var(--bg-card)] border-[var(--border)] shadow-sm overflow-hidden py-0 gap-0">
         <div className="p-4 border-b border-[var(--border)] font-bold text-[var(--text-main)] text-sm bg-[var(--bg-main)]">{t('settings:preferences')}</div>
-        <div onClick={() => onNavigate('CURRENCY')} className="p-4 border-b border-[var(--border)] flex justify-between items-center hover:bg-[var(--bg-main)] cursor-pointer">
+        <div {...rowA11y('settings:currency_management', () => onNavigate('CURRENCY'))} className={`p-4 border-b border-[var(--border)] flex justify-between items-center hover:bg-[var(--bg-main)] cursor-pointer ${rowA11yClasses}`}>
           <div className="flex items-center gap-3"><Globe size={18} className="text-[var(--text-muted)]" /><span className="text-[var(--text-main)] font-medium">{t('settings:currency_management')}</span></div>
           <div className="flex items-center gap-2 text-[var(--text-muted)] text-sm"><span>{baseCurrency}</span><ChevronRight size={16} /></div>
         </div>
-        <div onClick={() => onNavigate('LANGUAGE')} className="p-4 border-b border-[var(--border)] flex justify-between items-center hover:bg-[var(--bg-main)] cursor-pointer">
+        <div {...rowA11y('settings:language_preference', () => onNavigate('LANGUAGE'))} className={`p-4 border-b border-[var(--border)] flex justify-between items-center hover:bg-[var(--bg-main)] cursor-pointer ${rowA11yClasses}`}>
           <div className="flex items-center gap-3"><Languages size={18} className="text-[var(--text-muted)]" /><span className="text-[var(--text-main)] font-medium">{t('settings:language_preference')}</span></div>
           <div className="flex items-center gap-2 text-[var(--text-muted)] text-sm"><ChevronRight size={16} /></div>
         </div>
