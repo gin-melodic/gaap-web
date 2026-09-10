@@ -40,5 +40,16 @@
   "optional": "Optional",
   "ok": "OK",
   "total": "Total",
-  "close": "Close"
+  "close": "Close",
+  "saving": "Saving...",
+  "deleting": "Deleting...",
+  "processing": "Processing...",
+  "task_cancelled": "Task cancelled",
+  "cancel_failed": "Cancel failed",
+  "task_resubmitted": "Task resubmitted",
+  "retry_failed": "Retry failed",
+  "lang_en": "English",
+  "lang_zh_cn": "简体中文",
+  "lang_zh_tw": "繁體中文",
+  "lang_ja": "日本語"
 }

@@ -296,7 +296,7 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
         <div className="flex gap-2">
           <Button variant="outline" onClick={onClose}>{t('common:cancel')}</Button>
           <Button onClick={handleSaveWithChildren} disabled={isPending} className="bg-[var(--primary)] text-white hover:opacity-90">
-            {isPending ? t('common:saving') || '保存中...' : t('common:save')}
+            {isPending ? t('common:saving') : t('common:save')}
           </Button>
         </div>
       </DialogFooter>
@@ -308,7 +308,7 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
             <DialogDescription asChild>
               <div className="space-y-4 text-muted-foreground text-sm">
                 {isLoadingCount ? (
-                  <p>{t('common:loading') || '加载中...'}</p>
+                  <p>{t('common:loading')}</p>
                 ) : transactionCount === 0 ? (
                   // No transactions - simple confirmation
                   <p>{t('accounts:delete_no_transactions_confirm')}</p>
@@ -333,7 +333,7 @@ const EditAccountForm = ({ account, onClose }: EditAccountFormProps) => {
                 }}
                 disabled={isPending || isLoadingCount}
               >
-                {isPending ? t('common:deleting') || '删除中...' : t('common:delete')}
+                {isPending ? t('common:deleting') : t('common:delete')}
               </Button>
             ) : null}
           </DialogFooter>

@@ -426,7 +426,7 @@ const Transactions = () => {
                   disabled={!isValid() || isPending}
                   className={`flex-[2] text-white py-6 rounded-xl font-bold hover:opacity-90 ${editingTxId ? 'bg-indigo-600' : 'bg-slate-900'} disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
-                  {isPending ? '处理中...' : (editingTxId ? t('common:save') : t('transactions:confirm_add'))}
+                  {isPending ? t('common:processing') : (editingTxId ? t('common:save') : t('transactions:confirm_add'))}
                 </Button>
               </div>
             </form>
@@ -483,7 +483,7 @@ const Transactions = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>{t('common:cancel')}</Button>
             <Button variant="destructive" onClick={confirmDelete} disabled={deleteTransactionMutation.isPending}>
-              {deleteTransactionMutation.isPending ? '删除中...' : t('common:delete')}
+              {deleteTransactionMutation.isPending ? t('common:deleting') : t('common:delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -353,7 +353,7 @@ const AddAccountModal = ({ isOpen, onClose }: AddAccountModalProps) => {
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>{t('common:cancel')}</Button>
           <Button onClick={handleSubmit} disabled={!name || isPending} className="bg-[var(--primary)] text-white hover:opacity-90">
-            {isPending ? t('common:saving') || '保存中...' : t('common:save')}
+            {isPending ? t('common:saving') : t('common:save')}
           </Button>
         </DialogFooter>
       </DialogContent>

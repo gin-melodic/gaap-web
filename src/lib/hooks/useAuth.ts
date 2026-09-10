@@ -76,7 +76,7 @@ export function useRegister() {
 
       toast.success(t('register_success'));
     },
-    // onError: (error: Error) => toast.error(error.message || '注册失败'),
+    // onError: (error: Error) => toast.error(error.message || 'Registration failed'),
   });
 }
 

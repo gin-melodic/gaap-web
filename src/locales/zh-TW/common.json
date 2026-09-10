@@ -40,5 +40,16 @@
   "optional": "選填",
   "ok": "確定",
   "total": "總計",
-  "close": "關閉"
+  "close": "關閉",
+  "saving": "儲存中...",
+  "deleting": "刪除中...",
+  "processing": "處理中...",
+  "task_cancelled": "任務已取消",
+  "cancel_failed": "取消失敗",
+  "task_resubmitted": "任務已重新提交",
+  "retry_failed": "重試失敗",
+  "lang_en": "English",
+  "lang_zh_cn": "简体中文",
+  "lang_zh_tw": "繁體中文",
+  "lang_ja": "日本語"
 }

@@ -1,19 +1,18 @@
 import Decimal from 'decimal.js';
 
-// 配置 decimal.js 的全局默认值
 // Configure Decimal.js global settings
 Decimal.config({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
 
 const NANOS_MOD = 1_000_000_000;
 
-// 宽松的输入接口 (用于 from 方法)
+// Loose input interface (used by the from method)
 export interface MoneyInput {
   currencyCode: string;
   units: string | number;
   nanos: number;
 }
 
-// 严格的输出接口 (对应 Proto 定义)
+// Strict output interface (matches the Proto definition)
 export interface MoneyProto {
   currencyCode: string;
   units: string;
@@ -30,7 +29,7 @@ export class MoneyHelper {
   }
 
   /**
-   * 对应 Go 的 NewFromEntity
+   * Equivalent to Go's NewFromEntity
    */
   static from(input: MoneyInput | undefined | null): MoneyHelper {
     if (!input) {
@@ -50,7 +49,7 @@ export class MoneyHelper {
   }
 
   /**
-   * 从普通数字或字符串创建
+   * Create from a plain number or string
    */
   static fromAmount(amount: number | string, currency: string): MoneyHelper {
     const dec = new Decimal(amount);
@@ -58,7 +57,7 @@ export class MoneyHelper {
   }
 
   /**
-   * 对应 Go 的 ToEntityValues
+   * Equivalent to Go's ToEntityValues
    */
   toProto(): MoneyProto {
     let units = this.amount.trunc();
@@ -82,53 +81,53 @@ export class MoneyHelper {
   }
 
   // ---------------------------------------------------------
-  // 算术方法
+  // Arithmetic methods
   // ---------------------------------------------------------
 
-  // Add 加法
+  // Add
   add(other: MoneyHelper): MoneyHelper {
     this.checkCurrency(other);
     return new MoneyHelper(this.amount.plus(other.amount), this.currency);
   }
 
-  // Sub 减法
+  // Sub
   sub(other: MoneyHelper): MoneyHelper {
     this.checkCurrency(other);
     return new MoneyHelper(this.amount.minus(other.amount), this.currency);
   }
 
-  // Mul 乘法
+  // Mul
   mul(multiplier: number | string): MoneyHelper {
     const mulDec = new Decimal(multiplier);
     return new MoneyHelper(this.amount.times(mulDec), this.currency);
   }
 
-  // Div 除法
+  // Div
   div(divisor: number | string): MoneyHelper {
     const divDec = new Decimal(divisor);
-    // 对应 Go 的 DivRound(d, 9)
-    // 保留 9 位小数 (Nanos 精度)
+    // Equivalent to Go's DivRound(d, 9)
+    // Keep 9 decimal places (Nanos precision)
     const result = this.amount.div(divDec).toDecimalPlaces(9);
     return new MoneyHelper(result, this.currency);
   }
 
   // ---------------------------------------------------------
-  // 辅助 / 格式化方法 (前端特有)
+  // Helper / formatting methods (frontend only)
   // ---------------------------------------------------------
 
-  // 检查币种
+  // Check currency
   private checkCurrency(other: MoneyHelper) {
     if (this.currency !== other.currency) {
       throw new Error(`Currency mismatch: ${this.currency} vs ${other.currency}`);
     }
   }
 
-  // 格式化为字符串显示 (例如 "100.50")
+  // Format as a plain string display (e.g. "100.50")
   format(decimalPlaces: number = 2): string {
     return this.amount.toFixed(decimalPlaces);
   }
 
-  // 格式化为货币字符串 (例如 "¥100.50")
+  // Format as a currency string (e.g. "¥100.50")
   formatCurrency(): string {
     const fixed = this.amount.toFixed(2);
     if (!this.currency) return fixed;
@@ -178,4 +177,37 @@ export function convertAmount(
   if (rateFrom === undefined || rateTo === undefined) return null;
 
   return amount.times(rateTo).div(rateFrom);
+}
+
+/**
+ * Sums a list of proto Money values into a single target currency using
+ * anchor-relative rates. Values without a currency code are treated as the
+ * target currency. Currencies lacking a rate are skipped and reported in
+ * `missing` (sorted) so callers can surface incompleteness instead of
+ * throwing on mixed-currency groups. Financial math stays in Decimal.
+ */
+export function sumMoneyInCurrency(
+  moneys: Array<MoneyInput | null | undefined>,
+  target: string,
+  rateMap: Record<string, string>,
+): { total: MoneyHelper; missing: string[] } {
+  const buckets = new Map<string, InstanceType<typeof Decimal>>();
+  for (const input of moneys) {
+    const money = MoneyHelper.from(input);
+    const currency = (money.currency || target).toUpperCase();
+    buckets.set(currency, (buckets.get(currency) ?? new Decimal(0)).plus(money.toDecimal()));
+  }
+
+  let total = new Decimal(0);
+  const missing = new Set<string>();
+  for (const [currency, amount] of buckets) {
+    const converted = convertAmount(amount, currency, target, rateMap);
+    if (converted === null) {
+      missing.add(currency);
+      continue;
+    }
+    total = total.plus(converted);
+  }
+
+  return { total: new MoneyHelper(total, target), missing: Array.from(missing).sort() };
 }
