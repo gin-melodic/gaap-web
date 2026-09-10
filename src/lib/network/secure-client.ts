@@ -99,6 +99,10 @@ function getKeyForType(keyType: ALEKeyType): string {
   }
   const sessionKey = tokenStorage.getSessionKey();
   if (!sessionKey) {
+    // No active session: send the user to /login instead of letting this
+    // throw unhandled and crash the page (Next.js default "This page
+    // couldn't load" screen). Mirrors the 401 handling below.
+    redirectToLogin();
     throw new Error('Session key not available. Please login first.');
   }
   return sessionKey;
