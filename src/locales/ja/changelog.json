@@ -1,0 +1,33 @@
+{
+  "title": "変更履歴",
+  "subtitle": "GAAP Cloud のリリースと変更内容",
+  "released": "公開済み",
+  "upcoming": "公開予定",
+  "category_added": "追加",
+  "category_fixed": "修正",
+  "category_improved": "改善",
+  "current_version": "現在のバージョン：{{version}}",
+  "v0.0.2-beta": {
+    "added": {
+      "multicurrency_accounts": "複数通貨対応：通貨別の独立アカウントと同通貨取引",
+      "rate_management": "為替レート管理：毎日の参考レート自動同期と手動上書き",
+      "dashboard_valuation": "基本通貨換算のダッシュボード評価とレート不足の通知",
+      "currency_settings": "設定内の通貨管理（基本通貨、対応通貨、レート同期）"
+    },
+    "fixed": {
+      "trend_bucketing": "トレンドグラフをローカル暦日でバケット化（DEF-028）",
+      "tx_currency_pairing": "振替元/先ドロップダウンで取引ペアを単一通貨に保持（DEF-030）",
+      "settings_keyboard_nav": "設定行とサイドバーのプロフィールショートカットをキーボード操作可能に（DEF-031）",
+      "profile_update_wire": "プロフィール更新の送信ペイロードを固定しエンドツーエンドで検証（DEF-029）"
+    }
+  },
+  "v0.0.1-beta": {
+    "added": {
+      "auth_sessions": "招待制ベータ：ホワイトリスト登録、ログイン/リフレッシュ/ログアウト、ALE 暗号化 protobuf チャネルでのマルチデバイス個別セッション",
+      "accounts": "資産、負債、収入、支出アカウント",
+      "transactions": "収入・支出・振替取引（更新・削除対応）",
+      "dashboard_trend": "30 日残高トレンド付きダッシュボード",
+      "settings_profile": "設定：プロフィール、外観・テーマ、言語設定"
+    }
+  }
+}

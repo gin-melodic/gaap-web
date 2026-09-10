@@ -1,0 +1,33 @@
+{
+  "title": "Changelog",
+  "subtitle": "GAAP Cloud releases and what changed",
+  "released": "Released",
+  "upcoming": "Upcoming",
+  "category_added": "Added",
+  "category_fixed": "Fixed",
+  "category_improved": "Improved",
+  "current_version": "Current version: {{version}}",
+  "v0.0.2-beta": {
+    "added": {
+      "multicurrency_accounts": "Multi-currency support: per-currency standalone accounts and same-currency transactions",
+      "rate_management": "Exchange rate management: daily reference-rate sync with manual overrides",
+      "dashboard_valuation": "Base-currency Dashboard valuation with missing-rate reporting",
+      "currency_settings": "Currency management in Settings (base currency, supported currencies, rate sync)"
+    },
+    "fixed": {
+      "trend_bucketing": "Trend chart now buckets by the local calendar day (DEF-028)",
+      "tx_currency_pairing": "To/From dropdowns keep each currency pair to a single currency (DEF-030)",
+      "settings_keyboard_nav": "Settings rows and the sidebar profile shortcut are keyboard-operable (DEF-031)",
+      "profile_update_wire": "Update-profile wire payload pinned and verified end-to-end (DEF-029)"
+    }
+  },
+  "v0.0.1-beta": {
+    "added": {
+      "auth_sessions": "Invite-only Beta: whitelisted registration, login/refresh/logout with independent multi-device sessions over the ALE-encrypted protobuf channel",
+      "accounts": "Asset, liability, income and expense accounts",
+      "transactions": "Income, expense and transfer transactions, with update and delete",
+      "dashboard_trend": "Dashboard with a 30-day balance trend",
+      "settings_profile": "Settings: profile, appearance & themes, language preference"
+    }
+  }
+}

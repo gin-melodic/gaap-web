@@ -29,7 +29,7 @@ interface Theme {
   };
 }
 
-export type SettingsView = 'MAIN' | 'PROFILE' | 'SUBSCRIPTION' | 'CURRENCY' | 'THEME' | 'LANGUAGE' | 'TASKS' | 'DATA_EXPORT';
+export type SettingsView = 'MAIN' | 'PROFILE' | 'SUBSCRIPTION' | 'CURRENCY' | 'THEME' | 'LANGUAGE' | 'TASKS' | 'DATA_EXPORT' | 'CHANGELOG';
 
 interface GlobalContextType {
   user: User;

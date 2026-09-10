@@ -52,7 +52,6 @@
   "currency_count": "{{count}} currencies",
   "pro_active": "Your Pro membership is active",
   "upgrade_hint": "Upgrade to unlock multi-currency & infinite accounts",
-  "server_info": "GAAP Cloud v0.2.3 Server: Asia-East (Shanghai)",
   "plans": {
     "free": {
       "name": "Basic",
@@ -162,5 +161,7 @@
     "invalid_file_type": "Only .zip files are supported",
     "import_warning": "During import, account and transaction operations will be temporarily disabled. Duplicate data will be skipped."
   },
-  "missing_rate": "Missing rate"
+  "missing_rate": "Missing rate",
+  "about": "About",
+  "changelog": "Changelog"
 }

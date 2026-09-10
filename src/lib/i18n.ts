@@ -19,7 +19,7 @@ i18n
   .init({
     fallbackLng: 'en',
     supportedLngs: ['en', 'zh-CN', 'zh-TW', 'ja', 'zh'],
-    ns: ['common', 'auth', 'dashboard', 'accounts', 'settings', 'transactions'],
+    ns: ['common', 'auth', 'dashboard', 'accounts', 'settings', 'transactions', 'changelog'],
     defaultNS: 'common',
     debug: process.env.NODE_ENV === 'development',
     interpolation: {

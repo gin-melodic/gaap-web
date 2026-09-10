@@ -52,7 +52,6 @@
   "currency_count": "{{count}} 種",
   "pro_active": "您的專業版會員正在生效中",
   "upgrade_hint": "升級以解鎖多幣種與無限帳戶",
-  "server_info": "GAAP Cloud v0.2.3 Server: Asia-East (Shanghai)",
   "plans": {
     "free": {
       "name": "基礎版",
@@ -157,5 +156,7 @@
     "invalid_file_type": "僅支援 .zip 檔案",
     "import_warning": "匯入過程中，帳戶和交易操作將暫時停用。重複資料將被跳過。"
   },
-  "missing_rate": "缺少匯率"
+  "missing_rate": "缺少匯率",
+  "about": "關於",
+  "changelog": "更新日誌"
 }

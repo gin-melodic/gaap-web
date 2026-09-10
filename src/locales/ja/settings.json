@@ -52,7 +52,6 @@
   "currency_count": "{{count}} 種類",
   "pro_active": "プロ版メンバーシップが有効です",
   "upgrade_hint": "アップグレードして多通貨と無制限のアカウントをロック解除",
-  "server_info": "GAAP Cloud v0.2.3 Server: Asia-East (Shanghai)",
   "plans": {
     "free": {
       "name": "ベーシック",
@@ -157,5 +156,7 @@
     "invalid_file_type": ".zipファイルのみ対応しています",
     "import_warning": "インポート中はアカウントと取引の操作が一時的に無効になります。重複データはスキップされます。"
   },
-  "missing_rate": "レート未設定"
+  "missing_rate": "レート未設定",
+  "about": "アプリ情報",
+  "changelog": "変更履歴"
 }

@@ -9,8 +9,10 @@ import {
   Palette,
   Globe,
   Languages,
+  History,
   LogOut
 } from 'lucide-react';
+import { APP_VERSION } from '@/lib/version';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -92,6 +94,15 @@ export const MainSettings = ({ onNavigate }: { onNavigate: (view: SettingsView) 
         </div>
       </Card>
 
+      {/* About */}
+      <Card className="bg-[var(--bg-card)] border-[var(--border)] shadow-sm overflow-hidden py-0 gap-0">
+        <div className="p-4 border-b border-[var(--border)] font-bold text-[var(--text-main)] text-sm bg-[var(--bg-main)]">{t('settings:about')}</div>
+        <div {...rowA11y('settings:changelog', () => onNavigate('CHANGELOG'))} className={`p-4 flex justify-between items-center hover:bg-[var(--bg-main)] cursor-pointer ${rowA11yClasses}`}>
+          <div className="flex items-center gap-3"><History size={18} className="text-[var(--text-muted)]" /><span className="text-[var(--text-main)] font-medium">{t('settings:changelog')}</span></div>
+          <div className="flex items-center gap-2 text-[var(--text-muted)] text-sm"><span>{APP_VERSION}</span><ChevronRight size={16} /></div>
+        </div>
+      </Card>
+
       <Button
         onClick={handleLogout}
         disabled={logoutMutation.isPending}
@@ -101,7 +112,7 @@ export const MainSettings = ({ onNavigate }: { onNavigate: (view: SettingsView) 
         <LogOut size={18} /> {logoutMutation.isPending ? '...' : t('common:logout')}
       </Button>
 
-      <div className="text-center text-xs text-[var(--text-muted)] mt-8">{t('settings:server_info')}</div>
+      <div className="text-center text-xs text-[var(--text-muted)] mt-8">GAAP Cloud {APP_VERSION}</div>
     </div>
   );
 };
