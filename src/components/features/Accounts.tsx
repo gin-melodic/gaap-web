@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { useAllAccountsSuspense, Account, AccountType } from '@/lib/hooks';
+import { useAllAccountsSuspense, useExchangeRates, Account, AccountType } from '@/lib/hooks';
 import { useTranslation } from 'react-i18next';
 import { ACCOUNT_TYPES } from '@/lib/data';
 import { useGlobal } from '@/context/GlobalContext';
-import { MoneyHelper } from '@/lib/utils/money';
+import { MoneyHelper, sumMoneyInCurrency } from '@/lib/utils/money';
 import {
   Plus,
   Wallet,
@@ -26,6 +26,7 @@ const Accounts = () => {
   const { t } = useTranslation(['accounts', 'common']);
   const { accounts } = useAllAccountsSuspense();
   const { baseCurrency } = useGlobal();
+  const { rateMap } = useExchangeRates();
   // We use string IDs for tabs, but map them to Enums for filtering
   const [activeTab, setActiveTab] = useState('ALL');
   const [page, setPage] = useState(1);
@@ -162,10 +163,13 @@ const Accounts = () => {
 
   const renderAccountCard = (parentAccount: Account) => {
     const children = accounts.filter(a => a.parentId === parentAccount.id);
-    const groupBalance = children.reduce(
-      (sum, child) => sum.add(MoneyHelper.from(child.balance)),
-      MoneyHelper.fromAmount('0', baseCurrency),
-    );
+    // Children may hold different currencies; convert into the base currency
+    // instead of adding raw Money values (which throws on mismatch).
+    const groupBalance = sumMoneyInCurrency(
+      children.map(child => child.balance),
+      baseCurrency,
+      rateMap,
+    ).total;
 
     return (
       <Card key={parentAccount.id} className="bg-[var(--bg-card)] border-[var(--border)] gap-0 p-0 shadow-sm mb-3 overflow-hidden transition-all hover:shadow-md">
