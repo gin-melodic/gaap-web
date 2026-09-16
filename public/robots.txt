@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /v7qk2xm9/
+Disallow: /login
+Disallow: /register

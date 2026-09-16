@@ -10,16 +10,19 @@ import {
   LayoutDashboard,
   Wallet,
   ArrowRightLeft,
-  Settings
+  Settings,
+  Gauge
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { useOpsDiscovered } from '@/lib/hooks/useOps';
 
 const Sidebar = () => {
   const pathname = usePathname();
   const router = useRouter();
   const { user, setSettingsView } = useGlobal();
   const { t } = useTranslation('common');
+  const opsDiscovered = useOpsDiscovered();
 
   // Localized plan label
   const planLabel = user?.plan === UserLevelType.USER_LEVEL_TYPE_PRO
@@ -33,6 +36,11 @@ const Sidebar = () => {
     { href: '/accounts', icon: Wallet, label: t('accounts') },
     { href: '/transactions', icon: ArrowRightLeft, label: t('transactions') },
     { href: '/settings', icon: Settings, label: t('settings') },
+    // Ops console: hidden until this browser has loaded it once (localStorage
+    // marker), so the random path is not advertised in the UI to everyone.
+    ...(opsDiscovered
+      ? [{ href: '/v7qk2xm9', icon: Gauge, label: t('console') }]
+      : []),
   ];
 
   return (
