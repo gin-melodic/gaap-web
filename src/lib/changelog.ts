@@ -32,8 +32,8 @@ export interface ChangelogRelease {
 export const CHANGELOG_RELEASES: ChangelogRelease[] = [
   {
     version: 'v0.0.2-beta',
-    released: false,
-    date: null,
+    released: true,
+    date: '2026-09-16',
     items: [
       { category: 'added', key: 'added.multicurrency_accounts' },
       { category: 'added', key: 'added.rate_management' },
