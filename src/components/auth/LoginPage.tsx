@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGlobal } from '@/context/GlobalContext';
-import { useLogin } from '@/lib/hooks';
+import { useDemoLogin, useLogin } from '@/lib/hooks';
 import { useTranslation } from 'react-i18next';
 import { Turnstile } from '@marsidev/react-turnstile';
 import {
@@ -11,8 +11,8 @@ import {
   CheckCircle2,
   Mail,
   Lock,
-  MessageCircle,
-  ShieldCheck
+  ShieldCheck,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,30 +21,13 @@ import { LanguageSwitcher } from '@/components/features/LanguageSwitcher';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { classifyLoginError } from '@/lib/utils/login-error';
-
-const GithubIcon = ({ size = 24, className, ...props }: { size?: number, className?: string } & React.SVGProps<SVGSVGElement>) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-    {...props}
-  >
-    <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
-    <path d="M9 18c-4.51 2-5-2-7-2" />
-  </svg>
-);
+import type { LoginRes } from '@/lib/services/secureAuthService';
 
 const LoginPage = () => {
   const { t } = useTranslation(['common', 'auth']);
   const { login: contextLogin, isLoggedIn } = useGlobal();
   const loginMutation = useLogin();
+  const demoLoginMutation = useDemoLogin();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -58,6 +41,22 @@ const LoginPage = () => {
       router.push('/dashboard');
     }
   }, [isLoggedIn, router]);
+
+  const completeLogin = (data: LoginRes) => {
+    if (!data?.auth?.user) {
+      throw new Error('Invalid response format');
+    }
+
+    contextLogin({
+      email: data.auth.user.email,
+      nickname: data.auth.user.nickname,
+      avatar: data.auth.user.avatar,
+      plan: data.auth.user.plan,
+      mainCurrency: data.auth.user.mainCurrency
+    });
+    toast.success(t('auth:login_success'), { duration: 4000 });
+    router.push('/dashboard');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,21 +75,7 @@ const LoginPage = () => {
         cfTurnstileResponse: turnstileToken
       });
 
-      // Login success
-      if (!data || !data.auth || !data.auth.user) {
-        throw new Error('Invalid response format');
-      }
-
-      contextLogin({
-        email: data.auth.user.email,
-        nickname: data.auth.user.nickname,
-        avatar: data.auth.user.avatar,
-        plan: data.auth.user.plan,
-        mainCurrency: data.auth.user.mainCurrency
-      });
-
-      toast.success(t('auth:login_success'), { duration: 4000 });
-      router.push('/dashboard');
+      completeLogin(data);
     } catch (err: unknown) {
       const errorKind = classifyLoginError(err);
 
@@ -108,7 +93,17 @@ const LoginPage = () => {
     }
   };
 
+  const handleDemoLogin = async () => {
+    try {
+      const data = await demoLoginMutation.mutateAsync();
+      completeLogin(data);
+    } catch {
+      toast.error(t('auth:demo_login_failed'), { duration: 4000 });
+    }
+  };
+
   const loading = loginMutation.isPending;
+  const demoLoading = demoLoginMutation.isPending;
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex">
@@ -273,7 +268,7 @@ const LoginPage = () => {
               </div>
             )}
 
-            <Button type="submit" disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-6 rounded-xl font-bold shadow-lg shadow-indigo-200">
+            <Button type="submit" disabled={loading || demoLoading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-6 rounded-xl font-bold shadow-lg shadow-indigo-200">
               {loading ? t('auth:logging_in') : (step === 1 ? t('auth:sign_in') : t('auth:verify_and_login'))}
             </Button>
 
@@ -288,32 +283,16 @@ const LoginPage = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Button
-              variant="outline"
-              type="button"
-              // onClick={() => {
-              //   contextLogin({ email: 'github_user@example.com', nickname: 'GitHub User', plan: UserLevelType.USER_LEVEL_TYPE_PRO });
-              //   router.push('/dashboard');
-              // }}
-              className="flex items-center justify-center gap-2 py-6 rounded-xl text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
-            >
-              <GithubIcon size={20} />
-              <span>GitHub</span>
-            </Button>
-            <Button
-              variant="outline"
-              type="button"
-              // onClick={() => {
-              //   contextLogin({ email: 'wechat_user@example.com', nickname: t('auth:default_wechat_username'), plan: UserLevelType.USER_LEVEL_TYPE_FREE });
-              //   router.push('/dashboard');
-              // }}
-              className="flex items-center justify-center gap-2 py-6 rounded-xl text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
-            >
-              <MessageCircle size={20} className="text-green-600" />
-              <span>微信</span>
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            type="button"
+            disabled={loading || demoLoading}
+            onClick={handleDemoLogin}
+            className="flex w-full items-center justify-center gap-2 py-6 rounded-xl text-indigo-700 hover:bg-indigo-50 dark:hover:bg-slate-800 dark:border-slate-700 dark:text-indigo-300"
+          >
+            <Sparkles size={20} />
+            <span>{demoLoading ? t('auth:demo_login_loading') : t('auth:demo_login')}</span>
+          </Button>
 
           <div className="text-center text-sm">
             <span className="text-slate-500 dark:text-slate-300">

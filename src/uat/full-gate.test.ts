@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import Decimal from 'decimal.js';
 import { beforeAll, describe, expect, it } from 'vitest';
 
+import { installUatFetch } from './retry-fetch';
 import { accountService } from '../lib/services/accountService';
 import { dashboardService } from '../lib/services/dashboardService';
 import { secureAuthService } from '../lib/services/secureAuthService';
@@ -207,13 +208,7 @@ describeUat('GAAP local UAT full gate', () => {
       value: storage,
     });
 
-    const nativeFetch = globalThis.fetch.bind(globalThis);
-    globalThis.fetch = (input: string | URL | Request, init?: RequestInit) => {
-      if (typeof input === 'string' && input.startsWith('/')) {
-        return nativeFetch(`${baseUrl}${input}`, init);
-      }
-      return nativeFetch(input, init);
-    };
+    installUatFetch(baseUrl);
   });
 
   it('executes the protocol-backed CORE gates and emits redacted evidence', async () => {
@@ -671,7 +666,9 @@ describeUat('GAAP local UAT full gate', () => {
         return moneyValue(day.balances[created.assetA]);
       };
       const before = await readTrend();
-      expect(before.data.length).toBe(30);
+      // Default range is the past 60 calendar days clamped to this user's
+      // earliest account date, so the window length depends on run date.
+      expect(before.data.length).toBeGreaterThanOrEqual(30);
       const beforeEight = balanceOn(before, '2026-08-08');
       const beforeNine = balanceOn(before, '2026-08-09');
       const historical = await createTransaction(

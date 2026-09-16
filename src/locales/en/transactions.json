@@ -38,5 +38,6 @@
   "update_success": "Transaction updated successfully",
   "update_error": "Failed to update transaction",
   "delete_success": "Transaction deleted successfully",
-  "delete_error": "Failed to delete transaction"
+  "delete_error": "Failed to delete transaction",
+  "transaction_form_desc": "Record an income, expense or transfer; the transaction time is kept with second precision."
 }

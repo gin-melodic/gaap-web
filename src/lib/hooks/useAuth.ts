@@ -27,6 +27,14 @@ export function useCurrencyList() {
   });
 }
 
+/** Supported currency codes as a plain string array (uppercase). */
+export function useSupportedCurrencies(): string[] {
+  const { data } = useCurrencyList();
+  return (data?.currencies ?? [])
+    .map((currency) => currency.code?.toUpperCase())
+    .filter((code): code is string => !!code);
+}
+
 export function useLogin() {
   const queryClient = useQueryClient();
 
@@ -35,6 +43,18 @@ export function useLogin() {
     onSuccess: () => {
       // Tokens are already handled by secureAuthService
       // Clear ALL cached queries to prevent stale errors from being replayed
+      queryClient.clear();
+    },
+    onError: () => undefined,
+  });
+}
+
+export function useDemoLogin() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => secureAuthService.demoLogin(),
+    onSuccess: () => {
       queryClient.clear();
     },
     onError: () => undefined,
@@ -56,7 +76,7 @@ export function useRegister() {
 
       toast.success(t('register_success'));
     },
-    // onError: (error: Error) => toast.error(error.message || '注册失败'),
+    // onError: (error: Error) => toast.error(error.message || 'Registration failed'),
   });
 }
 

@@ -99,6 +99,10 @@ function getKeyForType(keyType: ALEKeyType): string {
   }
   const sessionKey = tokenStorage.getSessionKey();
   if (!sessionKey) {
+    // No active session: send the user to /login instead of letting this
+    // throw unhandled and crash the page (Next.js default "This page
+    // couldn't load" screen). Mirrors the 401 handling below.
+    redirectToLogin();
     throw new Error('Session key not available. Please login first.');
   }
   return sessionKey;
@@ -359,6 +363,29 @@ export async function login<TReq, TRes extends { auth?: { accessToken?: string; 
   const result = await secureRequest('/auth/login', reqData, ReqType, ResType, 'bootstrap', { includeToken: false });
 
   // Store tokens from auth response
+  if (result.auth) {
+    if (result.auth.accessToken) {
+      tokenStorage.setToken(result.auth.accessToken);
+    }
+    if (result.auth.refreshToken) {
+      tokenStorage.setRefreshToken(result.auth.refreshToken);
+    }
+    if (result.auth.sessionKey) {
+      tokenStorage.setSessionKey(result.auth.sessionKey);
+    }
+  }
+
+  resetNetworkState();
+  return result;
+}
+
+/** Login as the server-configured online demo user. */
+export async function demoLogin<TReq, TRes extends { auth?: { accessToken?: string; refreshToken?: string; sessionKey?: string } }>(
+  ReqType: MessageFns<TReq>,
+  ResType: MessageFns<TRes>
+): Promise<TRes> {
+  const result = await secureRequest('/auth/demo-login', {}, ReqType, ResType, 'bootstrap', { includeToken: false });
+
   if (result.auth) {
     if (result.auth.accessToken) {
       tokenStorage.setToken(result.auth.accessToken);

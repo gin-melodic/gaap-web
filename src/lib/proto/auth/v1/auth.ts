@@ -43,6 +43,9 @@ export interface LoginRes {
   base: BaseResponse | undefined;
 }
 
+export interface DemoLoginReq {
+}
+
 export interface RegisterReq {
   email: string;
   password: string;
@@ -561,6 +564,49 @@ export const LoginRes: MessageFns<LoginRes> = {
     message.base = (object.base !== undefined && object.base !== null)
       ? BaseResponse.fromPartial(object.base)
       : undefined;
+    return message;
+  },
+};
+
+function createBaseDemoLoginReq(): DemoLoginReq {
+  return {};
+}
+
+export const DemoLoginReq: MessageFns<DemoLoginReq> = {
+  encode(_: DemoLoginReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DemoLoginReq {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDemoLoginReq();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): DemoLoginReq {
+    return {};
+  },
+
+  toJSON(_: DemoLoginReq): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DemoLoginReq>, I>>(base?: I): DemoLoginReq {
+    return DemoLoginReq.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DemoLoginReq>, I>>(_: I): DemoLoginReq {
+    const message = createBaseDemoLoginReq();
     return message;
   },
 };
@@ -1677,6 +1723,8 @@ export const GetCurrencyListRes: MessageFns<GetCurrencyListRes> = {
 export interface AuthService {
   /** User login */
   Login(request: LoginReq): Promise<LoginRes>;
+  /** Passwordless login for the configured online demo user */
+  DemoLogin(request: DemoLoginReq): Promise<LoginRes>;
   /** User registration */
   Register(request: RegisterReq): Promise<RegisterRes>;
   /** User logout */
@@ -1703,6 +1751,7 @@ export class AuthServiceClientImpl implements AuthService {
     this.service = opts?.service || AuthServiceServiceName;
     this.rpc = rpc;
     this.Login = this.Login.bind(this);
+    this.DemoLogin = this.DemoLogin.bind(this);
     this.Register = this.Register.bind(this);
     this.Logout = this.Logout.bind(this);
     this.RefreshToken = this.RefreshToken.bind(this);
@@ -1715,6 +1764,12 @@ export class AuthServiceClientImpl implements AuthService {
   Login(request: LoginReq): Promise<LoginRes> {
     const data = LoginReq.encode(request).finish();
     const promise = this.rpc.request(this.service, "Login", data);
+    return promise.then((data) => LoginRes.decode(new BinaryReader(data)));
+  }
+
+  DemoLogin(request: DemoLoginReq): Promise<LoginRes> {
+    const data = DemoLoginReq.encode(request).finish();
+    const promise = this.rpc.request(this.service, "DemoLogin", data);
     return promise.then((data) => LoginRes.decode(new BinaryReader(data)));
   }
 

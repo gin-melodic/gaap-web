@@ -30,6 +30,7 @@ export {
 export {
   useProfile,
   useLogin,
+  useDemoLogin,
   useRegister,
   useLogout,
   useGenerate2FA,
@@ -37,8 +38,18 @@ export {
   useDisable2FA,
   useUpdatePassword,
   useCurrencyList,
+  useSupportedCurrencies,
   authKeys,
 } from './useAuth';
+
+// Exchange Rates & Currency Management
+export {
+  useExchangeRates,
+  useSetExchangeRate,
+  useAddCurrency,
+  useDeleteCurrency,
+  exchangeRateKeys,
+} from './useExchangeRates';
 
 // Task Notifications
 export { useTaskNotifications } from './useTaskNotifications';
@@ -48,4 +59,3 @@ export { useBalanceTrend, dashboardKeys } from './useDashboard';
 
 // Types re-export
 export * from '../types';
-

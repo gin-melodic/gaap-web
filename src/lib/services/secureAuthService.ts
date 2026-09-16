@@ -1,5 +1,6 @@
 import {
   login,
+  demoLogin,
   register,
   logout,
   secureRequest,
@@ -10,6 +11,7 @@ import {
 import {
   LoginReq,
   LoginRes,
+  DemoLoginReq,
   RegisterReq,
   RegisterRes,
   LogoutReq,
@@ -68,6 +70,11 @@ export const secureAuthService = {
       LoginReq,
       LoginRes
     );
+  },
+
+  /** Login as the online demo user without exposing its credentials. */
+  demoLogin: async (): Promise<LoginRes> => {
+    return demoLogin(DemoLoginReq, LoginRes);
   },
 
   /**

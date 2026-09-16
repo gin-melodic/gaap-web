@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MoneyHelper } from './money';
+import { MoneyHelper, sumMoneyInCurrency } from './money';
 
 describe('MoneyHelper', () => {
   describe('toProto()', () => {
@@ -174,5 +174,74 @@ describe('MoneyHelper', () => {
       
       expect(() => m1.add(m2)).toThrow('Currency mismatch');
     });
+  });
+});
+
+describe('sumMoneyInCurrency', () => {
+  // Anchor-relative rates: "1 anchor = rate currency" (anchor USD here).
+  const rateMap = { USD: '1', CNY: '7' };
+
+  it('returns zero in the target currency for an empty list', () => {
+    const { total, missing } = sumMoneyInCurrency([], 'CNY', rateMap);
+    expect(total.format(2)).toBe('0.00');
+    expect(total.currency).toBe('CNY');
+    expect(missing).toEqual([]);
+  });
+
+  it('sums same-currency values exactly without conversion (Decimal precision)', () => {
+    // 0.1 + 0.2 must be exactly 0.3, not the float artifact 0.30000000000000004
+    const moneys = [
+      { currencyCode: 'CNY', units: '0', nanos: 100_000_000 },
+      { currencyCode: 'CNY', units: '0', nanos: 200_000_000 },
+    ];
+    const { total, missing } = sumMoneyInCurrency(moneys, 'CNY', rateMap);
+    expect(total.format(9)).toBe('0.300000000');
+    expect(missing).toEqual([]);
+  });
+
+  it('converts mixed currencies into the target currency', () => {
+    // 100 USD + 700 CNY -> target CNY: 100 * (7/1) + 700 = 1400 CNY
+    const moneys = [
+      { currencyCode: 'USD', units: '100', nanos: 0 },
+      { currencyCode: 'CNY', units: '700', nanos: 0 },
+    ];
+    const { total, missing } = sumMoneyInCurrency(moneys, 'CNY', rateMap);
+    expect(total.format(2)).toBe('1400.00');
+    expect(total.currency).toBe('CNY');
+    expect(missing).toEqual([]);
+  });
+
+  it('skips currencies without a rate and reports them sorted in missing', () => {
+    const moneys = [
+      { currencyCode: 'EUR', units: '5', nanos: 0 },
+      { currencyCode: 'GBP', units: '2', nanos: 0 },
+      { currencyCode: 'USD', units: '3', nanos: 0 },
+    ];
+    const { total, missing } = sumMoneyInCurrency(moneys, 'USD', rateMap);
+    expect(total.format(2)).toBe('3.00');
+    expect(missing).toEqual(['EUR', 'GBP']);
+  });
+
+  it('treats null and currency-less values as the target currency', () => {
+    const moneys = [
+      null,
+      undefined,
+      { currencyCode: '', units: '1', nanos: 0 },
+      { currencyCode: 'CNY', units: '2', nanos: 500_000_000 },
+    ];
+    const { total, missing } = sumMoneyInCurrency(moneys, 'CNY', rateMap);
+    expect(total.format(2)).toBe('3.50');
+    expect(missing).toEqual([]);
+  });
+
+  it('preserves negative totals across mixed currencies', () => {
+    // -10 USD + 20 CNY -> target CNY: -70 + 20 = -50 CNY
+    const moneys = [
+      { currencyCode: 'USD', units: '-10', nanos: 0 },
+      { currencyCode: 'CNY', units: '20', nanos: 0 },
+    ];
+    const { total, missing } = sumMoneyInCurrency(moneys, 'CNY', rateMap);
+    expect(total.format(2)).toBe('-50.00');
+    expect(missing).toEqual([]);
   });
 });

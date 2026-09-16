@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useAllTransactionsSuspense, useAllAccountsSuspense, useCreateTransaction, useUpdateTransaction, useDeleteTransaction, useCreateAccount } from '@/lib/hooks';
 import { TransactionType, AccountType, Account, Transaction, Money } from '@/lib/types';
 import { MoneyHelper } from '@/lib/utils/money';
+import { formatDateForDisplay, formatDateForInput, getCurrentDateTime } from '@/lib/utils/date-format';
 import { resolveTransactionType } from '@/lib/utils/transaction-type';
 import { accountService } from '@/lib/services/accountService';
 import { useTranslation } from 'react-i18next';
@@ -51,16 +52,6 @@ const Transactions = () => {
   const [newExpenseName, setNewExpenseName] = useState('');
   const [isCreatingIncome, setIsCreatingIncome] = useState(false);
   const [newIncomeName, setNewIncomeName] = useState('');
-  const getCurrentDateTime = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
-    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-  };
 
   const [newTx, setNewTx] = useState({ amount: '', note: '', from: '', to: '', date: getCurrentDateTime() });
 
@@ -108,42 +99,6 @@ const Transactions = () => {
     if (isCreatingIncome && !newIncomeName) return false;
     if (isCreatingExpense && !newExpenseName) return false;
     return true;
-  };
-
-  const formatDateForInput = (dateStr: string) => {
-    try {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return dateStr;
-
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      const hours = String(d.getHours()).padStart(2, '0');
-      const minutes = String(d.getMinutes()).padStart(2, '0');
-      const seconds = String(d.getSeconds()).padStart(2, '0');
-      return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-    } catch {
-      return dateStr;
-    }
-  };
-
-  const formatDateForDisplay = (dateStr: string) => {
-    try {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return dateStr;
-
-      return new Intl.DateTimeFormat('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-      }).format(d).replace(/\//g, '-');
-    } catch {
-      return dateStr;
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -239,13 +194,30 @@ const Transactions = () => {
     }
   };
 
+  // The server requires both legs of every transaction to share one currency
+  // ("account currency mismatch"), so the account selected on the opposite side is
+  // cleared as soon as it no longer matches the just-changed selection (DEF-030).
+  const currencyOfSelected = (id: string) => {
+    if (!id || id === 'NEW_INCOME' || id === 'NEW_EXPENSE') return '';
+    const acc = accounts.find(a => a.id === id);
+    return acc ? getAccountCurrency(acc) : '';
+  };
+
+  const clearOppositeIfMismatched = (changedId: string, otherId: string): string => {
+    const ccy = currencyOfSelected(changedId);
+    if (!ccy || !otherId) return otherId;
+    const other = accounts.find(a => a.id === otherId);
+    if (other && getAccountCurrency(other) !== ccy) return '';
+    return otherId;
+  };
+
   const handleFromChange = (val: string) => {
-    setNewTx({ ...newTx, from: val });
+    setNewTx(prev => ({ ...prev, from: val, to: clearOppositeIfMismatched(val, prev.to) }));
     if (val === 'NEW_INCOME') setIsCreatingIncome(true); else setIsCreatingIncome(false);
   };
 
   const handleToChange = (val: string) => {
-    setNewTx({ ...newTx, to: val });
+    setNewTx(prev => ({ ...prev, to: val, from: clearOppositeIfMismatched(val, prev.from) }));
     if (val === 'NEW_EXPENSE') setIsCreatingExpense(true); else setIsCreatingExpense(false);
   };
 
@@ -282,6 +254,15 @@ const Transactions = () => {
         // Error is already handled by the hook with toast
       }
     }
+  };
+
+  // DEF-030: as soon as a concrete account is picked on either side, hide cross-currency
+  // accounts in both dropdowns so the form cannot build a pair the server would reject.
+  // NEW_INCOME / NEW_EXPENSE create their account in the opposite leg's currency and stay
+  // available regardless of the selection.
+  const sameCurrencyAsSelection = (a: Account) => {
+    const ccy = currencyOfSelected(newTx.from) || currencyOfSelected(newTx.to);
+    return !ccy || getAccountCurrency(a) === ccy;
   };
 
   const renderAccountOptions = (filterFn: (a: Account) => boolean) => {
@@ -326,6 +307,7 @@ const Transactions = () => {
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>{editingTxId ? t('transactions:edit_transaction') : t('transactions:new_transaction')}</DialogTitle>
+              <DialogDescription>{t('transactions:transaction_form_desc')}</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4 py-4">
               <div>
@@ -371,12 +353,12 @@ const Transactions = () => {
                     <SelectContent>
                       <SelectGroup>
                         <SelectLabel>{t('transactions:asset_source')}</SelectLabel>
-                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_ASSET)}
+                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_ASSET && sameCurrencyAsSelection(a))}
                       </SelectGroup>
                       <SelectGroup>
                         <SelectLabel>{t('transactions:income_source')}</SelectLabel>
                         <SelectItem value="NEW_INCOME" className="font-bold text-indigo-600">{t('transactions:new_income_account')}</SelectItem>
-                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_INCOME)}
+                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_INCOME && sameCurrencyAsSelection(a))}
                       </SelectGroup>
                     </SelectContent>
                   </Select>
@@ -393,15 +375,15 @@ const Transactions = () => {
                       <SelectGroup>
                         <SelectLabel>{t('transactions:expense_destination')}</SelectLabel>
                         <SelectItem value="NEW_EXPENSE" className="font-bold text-indigo-600">{t('transactions:new_expense_account')}</SelectItem>
-                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_EXPENSE)}
+                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_EXPENSE && sameCurrencyAsSelection(a))}
                       </SelectGroup>
                       <SelectGroup>
                         <SelectLabel>{t('transactions:asset_deposit')}</SelectLabel>
-                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_ASSET)}
+                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_ASSET && sameCurrencyAsSelection(a))}
                       </SelectGroup>
                       <SelectGroup>
                         <SelectLabel>{t('transactions:liability_repayment')}</SelectLabel>
-                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_LIABILITY)}
+                        {renderAccountOptions(a => a.type === AccountType.ACCOUNT_TYPE_LIABILITY && sameCurrencyAsSelection(a))}
                       </SelectGroup>
                     </SelectContent>
                   </Select>
@@ -444,7 +426,7 @@ const Transactions = () => {
                   disabled={!isValid() || isPending}
                   className={`flex-[2] text-white py-6 rounded-xl font-bold hover:opacity-90 ${editingTxId ? 'bg-indigo-600' : 'bg-slate-900'} disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
-                  {isPending ? '处理中...' : (editingTxId ? t('common:save') : t('transactions:confirm_add'))}
+                  {isPending ? t('common:processing') : (editingTxId ? t('common:save') : t('transactions:confirm_add'))}
                 </Button>
               </div>
             </form>
@@ -501,7 +483,7 @@ const Transactions = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>{t('common:cancel')}</Button>
             <Button variant="destructive" onClick={confirmDelete} disabled={deleteTransactionMutation.isPending}>
-              {deleteTransactionMutation.isPending ? '删除中...' : t('common:delete')}
+              {deleteTransactionMutation.isPending ? t('common:deleting') : t('common:delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

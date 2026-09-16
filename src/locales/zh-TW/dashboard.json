@@ -10,5 +10,6 @@
   "all_assets": "所有資產",
   "select_accounts": "選擇帳戶",
   "select_trend_date_range": "選擇趨勢日期範圍",
-  "date_range_hint": "請選擇過去兩年內的開始和結束日期，包含首尾兩天。"
+  "date_range_hint": "請選擇過去兩年內的開始和結束日期，包含首尾兩天。",
+  "missing_rates": "部分幣種缺少匯率，已從合計中排除: {{currencies}}"
 }

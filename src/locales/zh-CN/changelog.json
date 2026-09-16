@@ -1,0 +1,33 @@
+{
+  "title": "更新日志",
+  "subtitle": "GAAP Cloud 版本与更新记录",
+  "released": "已发布",
+  "upcoming": "即将发布",
+  "category_added": "新增",
+  "category_fixed": "修复",
+  "category_improved": "改进",
+  "current_version": "当前版本：{{version}}",
+  "v0.0.2-beta": {
+    "added": {
+      "multicurrency_accounts": "多币种支持：按币种独立记账的账户与同币种交易",
+      "rate_management": "汇率管理：每日参考汇率自动同步，支持手动覆盖",
+      "dashboard_valuation": "仪表盘按本位币估值，缺失汇率时提示",
+      "currency_settings": "设置中的货币管理（本位币、支持币种、汇率同步）"
+    },
+    "fixed": {
+      "trend_bucketing": "趋势图按本地日历日分桶（DEF-028）",
+      "tx_currency_pairing": "转入/转出下拉框保持每笔交易对使用同一币种（DEF-030）",
+      "settings_keyboard_nav": "设置行与侧边栏资料入口支持键盘操作（DEF-031）",
+      "profile_update_wire": "资料更新的请求载荷已固化并端到端验证（DEF-029）"
+    }
+  },
+  "v0.0.1-beta": {
+    "added": {
+      "auth_sessions": "邀请制 Beta：白名单注册，登录/刷新/登出，多设备独立会话（ALE 加密 protobuf 通道）",
+      "accounts": "资产、负债、收入与支出账户",
+      "transactions": "收入、支出与转账交易，支持修改和删除",
+      "dashboard_trend": "仪表盘与 30 天余额趋势",
+      "settings_profile": "设置：个人资料、外观与主题、语言偏好"
+    }
+  }
+}

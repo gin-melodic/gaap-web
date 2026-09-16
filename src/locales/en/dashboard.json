@@ -10,5 +10,6 @@
   "all_assets": "All Assets",
   "select_accounts": "Select Accounts",
   "select_trend_date_range": "Select trend date range",
-  "date_range_hint": "Select a start and end date within the past two years. Both dates are included."
+  "date_range_hint": "Select a start and end date within the past two years. Both dates are included.",
+  "missing_rates": "Some currencies are missing exchange rates and are excluded from totals: {{currencies}}"
 }

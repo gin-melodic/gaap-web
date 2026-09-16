@@ -40,5 +40,16 @@
   "optional": "任意",
   "ok": "OK",
   "total": "合計",
-  "close": "閉じる"
+  "close": "閉じる",
+  "saving": "保存中...",
+  "deleting": "削除中...",
+  "processing": "処理中...",
+  "task_cancelled": "タスクをキャンセルしました",
+  "cancel_failed": "キャンセルに失敗しました",
+  "task_resubmitted": "タスクを再送信しました",
+  "retry_failed": "再試行に失敗しました",
+  "lang_en": "English",
+  "lang_zh_cn": "简体中文",
+  "lang_zh_tw": "繁體中文",
+  "lang_ja": "日本語"
 }

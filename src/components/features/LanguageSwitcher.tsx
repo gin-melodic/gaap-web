@@ -26,10 +26,10 @@ export function LanguageSwitcher() {
           <SelectValue placeholder={t('language')} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="en">English</SelectItem>
-          <SelectItem value="zh-CN">简体中文</SelectItem>
-          <SelectItem value="zh-TW">繁體中文</SelectItem>
-          <SelectItem value="ja">日本語</SelectItem>
+          <SelectItem value="en">{t('lang_en')}</SelectItem>
+          <SelectItem value="zh-CN">{t('lang_zh_cn')}</SelectItem>
+          <SelectItem value="zh-TW">{t('lang_zh_tw')}</SelectItem>
+          <SelectItem value="ja">{t('lang_ja')}</SelectItem>
         </SelectContent>
       </Select>
     </div>

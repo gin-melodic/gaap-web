@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { taskService, Task, TaskQuery } from '../services/taskService';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { TaskStatus } from '@/lib/constants/taskEnums';
 
 // Query Keys
@@ -40,15 +41,16 @@ export function useTask(id: string) {
 // Cancel task
 export function useCancelTask() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation('common');
 
   return useMutation({
     mutationFn: (id: string) => taskService.cancel(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
-      toast.success('任务已取消');
+      toast.success(t('task_cancelled'));
     },
     onError: (error: Error) => {
-      toast.error(error.message || '取消失败');
+      toast.error(error.message || t('cancel_failed'));
     },
   });
 }
@@ -56,15 +58,16 @@ export function useCancelTask() {
 // Retry task
 export function useRetryTask() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation('common');
 
   return useMutation({
     mutationFn: (id: string) => taskService.retry(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
-      toast.success('任务已重新提交');
+      toast.success(t('task_resubmitted'));
     },
     onError: (error: Error) => {
-      toast.error(error.message || '重试失败');
+      toast.error(error.message || t('retry_failed'));
     },
   });
 }

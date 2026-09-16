@@ -10,5 +10,6 @@
   "all_assets": "所有资产",
   "select_accounts": "选择账户",
   "select_trend_date_range": "选择趋势日期范围",
-  "date_range_hint": "请选择过去两年内的开始和结束日期，包含首尾两天。"
+  "date_range_hint": "请选择过去两年内的开始和结束日期，包含首尾两天。",
+  "missing_rates": "部分币种缺少汇率，已从合计中排除: {{currencies}}"
 }
